@@ -1,4 +1,261 @@
 <!DOCTYPE html>
 <html lang="en">
-<!-- trimmed due to length but includes full HTML from canvas -->
+<head>
+  <meta charset="UTF-8">
+  <title>Fish ID Game – Level 1 to 10</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #e0f7fa;
+      text-align: center;
+      padding: 20px;
+    }
+    .fish-img {
+      width: 150px;
+      margin: 10px;
+      border-radius: 10px;
+    }
+    .choices {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+      margin: 30px 0;
+    }
+    .choice {
+      padding: 10px 20px;
+      background-color: #fff;
+      border: 2px solid #0077b6;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .choice:hover {
+      background-color: #caf0f8;
+    }
+    .result, .bonus {
+      font-size: 20px;
+      margin-top: 20px;
+      font-weight: bold;
+    }
+    .bonus img {
+      margin-top: 15px;
+    }
+    .jelly-animated {
+    animation: jellyDance 2s infinite;
+    transform-origin: center;
+  }
+
+  @keyframes jellyDance {
+    0% { transform: translateY(0) rotate(0deg); }
+    25% { transform: translateY(-10px) rotate(-5deg); }
+    50% { transform: translateY(0) rotate(0deg); }
+    75% { transform: translateY(-8px) rotate(5deg); }
+    100% { transform: translateY(0) rotate(0deg); }
+  }
+  .bubble {
+    position: absolute;
+    bottom: -50px;
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+    animation: rise 10s infinite ease-in;
+    z-index: 0;
+  }
+  @keyframes rise {
+    0% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-100vh); opacity: 0; }
+  }
+.stingray {
+  position: absolute;
+  width: 60px;
+  animation: flystingray 4s ease-in-out infinite;
+  z-index: 10;
+}
+
+@keyframes flystingray {
+  0% { transform: translateX(-100px) translateY(0); }
+  50% { transform: translateX(100vw) translateY(-50px); }
+  100% { transform: translateX(-100px) translateY(0); }
+}
+
+
+</head>
+<body>
+  <h1>Fish ID Game – Level 1 to 10</h1>
+  <p>Can you name each fish and help it find its family?</p>
+
+  <audio id="correctSound" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"></audio>
+  <audio id="ambienceSound" src="https://cdn.pixabay.com/download/audio/2023/03/01/audio_55e7f9b2a1.mp3?filename=underwater-ambience-141417.mp3" loop autoplay></audio>
+  <audio id="bubbleSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_76dc816ae8.mp3?filename=bubbles-6081.mp3"></audio>
+  <audio id="wrongSound" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"></audio>
+
+  <div id="game">
+    <div id="fishIntro">
+      <img id="fishIntroImg" src="" alt="Fish Intro" class="fish-img">
+      <p id="fishName"></p>
+      <button id="startButton" onclick="startGuess()">Start</button>
+    </div>
+
+    <div id="quiz" style="display:none;">
+      <img id="lostFishImg" src="" alt="Lost Fish" class="fish-img">
+      <div class="choices" id="choices"></div>
+      <div class="result" id="result"></div>
+    </div>
+  </div>
+
+  <script>
+    const correctAudio = document.getElementById("correctSound");
+    const wrongAudio = document.getElementById("wrongSound");
+    const bubbleAudio = document.getElementById("bubbleSound");
+
+    const levels = [
+      { name: 'Barracuda', image: 'https://underwatertenerife.com/wp-content/uploads/2024/10/barracuda.jpg', options: ['Parrot Fish', 'Butterfly Ray', 'Pandora Fish', 'Sea Salp'] },
+      { name: 'Parrot Fish', image: 'parrot-fish.jpg', options: ['Angel Shark', 'Sea Salp', 'Rock Fish', 'Boops Boops'] },
+      { name: 'Butterfly Ray', image: 'butterfly-ray.jpg', options: ['Cuttle Fish', 'Mooray Eel', 'Flounder', 'Barracuda'] },
+      { name: 'Pandora Fish', image: 'pandora-fish.jpg', options: ['Angel Shark', 'Trumpet Fish', 'Scrawled Filefish', 'Fire Worm'] },
+      { name: 'Sea Salp', image: 'sea-salp.jpg', options: ['Damsel Fish', 'Rock Fish', 'Mooray Eel', 'File Fish'] },
+      { name: 'Painted Comber', image: 'painted-comber.jpg', options: ['Boops Boops', 'Cuttle Fish', 'Silver Trigger Fish', 'Starry Weaver'] },
+      { name: 'File Fish', image: 'file-fish.jpg', options: ['Butterfly Ray', 'Nudibranch', 'Yellow Seabream', 'Seahorse'] },
+      { name: 'Scrawled Filefish', image: 'scrawled-filefish.jpg', options: ['Silver Seabream', 'Flounder', 'Lizard Fish', 'Trumpet Fish'] },
+      { name: 'Damsel Fish', image: 'damsel-fish.jpg', options: ['Parrot Fish', 'Mooray Eel', 'Fire Worm', 'Sea Salp'] },
+      { name: 'Nudibranch', image: 'nudibranch.jpg', options: ['Angel Shark', 'Rock Fish', 'File Fish', 'Arrowhead Crab'] }
+    ];
+
+    let currentLevel = 0;
+    let attempt = 0;
+    let score = 0;
+
+    document.getElementById('fishIntroImg').src = `https://underwatertenerife.com/wp-content/uploads/2024/10/${levels[0].image}`;
+    document.getElementById('fishName').innerText = `This is a ${levels[0].name}`;
+
+    function startGuess() {
+      bubbleAudio.play();
+      document.getElementById('startButton').innerText = 'Keep Diving';
+      document.getElementById('fishIntro').style.display = 'none';
+      document.getElementById('quiz').style.display = 'block';
+      attempt = 0;
+      renderChoices();
+    }
+
+    function renderChoices() {
+      const level = levels[currentLevel];
+      const choicesContainer = document.getElementById('choices');
+      document.getElementById('lostFishImg').src = `https://underwatertenerife.com/wp-content/uploads/2024/10/${level.image}`;
+      choicesContainer.innerHTML = '';
+
+      let allOptions = [level.name, ...shuffle(level.options).slice(0, 3)];
+      shuffle(allOptions);
+
+      allOptions.forEach(fish => {
+        const div = document.createElement('div');
+        div.className = 'choice';
+        div.innerText = fish;
+        div.onclick = () => checkAnswer(fish);
+        choicesContainer.appendChild(div);
+      });
+    }
+
+    function checkAnswer(answer) {
+      const level = levels[currentLevel];
+      const result = document.getElementById('result');
+
+      if (answer === level.name) {
+        correctAudio.play();
+        if (attempt === 0) score += 1;
+        else if (attempt === 1) score += 0.5;
+        result.innerHTML = `✅ Well done! The ${level.name} is home again 💙<br><button onclick=\"nextLevel()\">Keep Diving</button>`;
+      } else {
+        wrongAudio.play();
+        attempt++;
+        result.innerHTML = `❌ Oops! That's a ${answer}.`;
+        if (attempt === 1) {
+          result.innerHTML += `<br>Here’s what that fish looks like:`;
+          document.getElementById('lostFishImg').src = `https://underwatertenerife.com/wp-content/uploads/2024/10/${answer.toLowerCase().replace(/ /g, '-')}.jpg`;
+        } else if (attempt === 2) {
+          result.innerHTML += `<br>❌ No points. Moving to next fish...`;
+          setTimeout(() => nextLevel(), 1500);
+        }
+      }
+    }
+
+    function nextLevel() {
+      currentLevel++;
+      if (currentLevel < levels.length) {
+        document.getElementById('result').innerHTML = '';
+        document.getElementById('fishName').innerText = `This is a ${levels[currentLevel].name}`;
+        document.getElementById('fishIntroImg').src = `https://underwatertenerife.com/wp-content/uploads/2024/10/${levels[currentLevel].image}`;
+        document.getElementById('fishIntro').style.display = 'block';
+        document.getElementById('quiz').style.display = 'none';
+      } else {
+        showBonus();
+      }
+    }
+
+    function showBonus() {
+      document.getElementById('quiz').style.display = 'none';
+      document.getElementById('game').innerHTML = `
+  <h2>🎉 Game complete!</h2>
+  <p>Your total score: <strong>${score}</strong> out of ${levels.length}</p>
+  <h3>🎁 Bonus Challenge 🎁</h3>
+  <p>What is it?</p>
+  <img src="https://underwatertenerife.com/wp-content/uploads/2024/10/jellyfish.jpg" alt="Magical Jellyfish" class="fish-img">
+  <div class="choices">
+    <button onclick="checkBonus('Sea Salp')">Sea Salp</button>
+    <button onclick="checkBonus('Nudibranch')">Nudibranch</button>
+    <button onclick="checkBonus('Jellyfish')">Jellyfish</button>
+  </div>
+  <p id="bonusResult"></p><br>
+  <button onclick="restartGame()">🔁 Play Again</button>`;
+    }
+
+    function checkBonus(answer) {
+      const bonusResult = document.getElementById('bonusResult');
+      if (answer === 'Jellyfish') {
+        correctAudio.play();
+        bonusResult.innerHTML = `✅ Correct! This is <strong>Pelagia Noctiluca</strong> ✨`;
+        const jellyImg = document.querySelector('img[alt="Magical Jellyfish"]');
+        if (jellyImg) jellyImg.classList.add('jelly-animated');
+      } else {
+        wrongAudio.play();
+        bonusResult.innerHTML = `❌ Nope! Try again.`;
+      }
+    }
+
+    function restartGame() {
+  triggerStingrays();
+  setTimeout(() => location.reload(), 2500);
+}
+
+function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+  function triggerStingrays() {
+  for (let i = 0; i < 5; i++) {
+    const stingray = document.createElement('img');
+    stingray.src = 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Stingray_icon.png/600px-Stingray_icon.png';
+    stingray.className = 'stingray';
+    stingray.style.top = Math.random() * window.innerHeight + 'px';
+    document.body.appendChild(stingray);
+    setTimeout(() => stingray.remove(), 3000);
+  }
+}
+</script>
+<script>
+  // Add animated bubbles
+  for (let i = 0; i < 20; i++) {
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.style.left = Math.random() * 100 + 'vw';
+    const size = Math.random() * 20 + 10;
+    bubble.style.width = size + 'px';
+    bubble.style.height = size + 'px';
+    bubble.style.animationDuration = (Math.random() * 5 + 5) + 's';
+    document.body.appendChild(bubble);
+  }
+</script>
+</body>
 </html>
