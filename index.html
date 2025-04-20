@@ -230,7 +230,14 @@ let score = 0;
 let attempt = 0;
 
 document.addEventListener("DOMContentLoaded", () => {
-  showNextIntro();
+  const fishImage = new Image();
+  fishImage.src = allFishLevels[level][0].image;
+  fishImage.onload = () => {
+    document.getElementById("introFishImg").src = fishImage.src;
+    document.getElementById("introFishName").innerText = "This is a " + allFishLevels[level][0].name;
+    document.getElementById("introPhase").style.display = "block";
+    document.getElementById("nextIntroBtn").innerText = "Keep Diving";
+  };
 });
 
 function showNextIntro() {
