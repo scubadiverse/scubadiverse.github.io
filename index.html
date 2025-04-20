@@ -241,6 +241,12 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function showNextIntro() {
+  document.getElementById("nextIntroBtn").addEventListener("click", () => {
+  const oceanSound = document.getElementById("oceanSound");
+  if (oceanSound && oceanSound.paused) {
+    oceanSound.play().catch(() => {}); // Try to play if not playing
+  }
+});
   if (introIndex < fishSet.length) {
     document.getElementById("introFishImg").src = fishSet[introIndex].image;
     document.getElementById("introFishName").innerText = "This is a " + fishSet[introIndex].name;
