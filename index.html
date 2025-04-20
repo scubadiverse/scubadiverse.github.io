@@ -305,12 +305,16 @@ function nextLevel() {
     fishSet = allFishLevels[level];
     introIndex = 0;
     quizIndex = 0;
-    document.getElementById("introFishImg").src = "";
-    document.getElementById("introFishName").innerText = "";
-    document.getElementById("nextIntroBtn").innerText = "Keep Diving";
-    document.getElementById("introPhase").style.display = "block";
-    document.getElementById("quiz").style.display = "none";
-    document.getElementById("instruction").innerText = "New Level! Observe these fish...";
+    const fishImage = new Image();
+fishImage.src = allFishLevels[level][0].image;
+fishImage.onload = () => {
+  document.getElementById("introFishImg").src = fishImage.src;
+  document.getElementById("introFishName").innerText = `This is a ${allFishLevels[level][0].name}`;
+  document.getElementById("nextIntroBtn").innerText = "Keep Diving";
+  document.getElementById("introPhase").style.display = "block";
+  document.getElementById("quiz").style.display = "none";
+  document.getElementById("instruction").innerText = "New Level! Observe these fish...";
+};
   } else {
     let total = allFishLevels.flat().length;
     if (score === total) {
