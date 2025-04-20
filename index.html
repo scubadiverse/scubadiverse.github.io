@@ -172,7 +172,7 @@ body {
     </p>
   <p id="instruction">Observe these msrine species and remember their names...</p>
 
-  <div id="game" style="padding-bottom: 100px;">
+  <div id="game"  style="position: relative; z-index: 10; padding-bottom: 120px;">
     <div id="introPhase">
       <img id="introFishImg" class="fish-img" />
       <p id="introFishName"></p>
@@ -359,7 +359,7 @@ function shuffle(arr) {
 }
 </script>
 
-<div class="bubbles-bg" id="bubble-container"></div>
+<div class="bubbles-bg" id="bubble-container" style="z-index: 0;"></div>
 <script>
   const bubbleContainer = document.getElementById('bubble-container');
   for (let i = 0; i < 40; i++) {
