@@ -7,6 +7,32 @@
     -webkit-overflow-scrolling: touch;
     overflow-x: hidden;
   }
+
+.game-nav {
+  position: relative;
+  z-index: 20;
+  margin: 12px auto 18px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.game-nav a {
+  display: inline-block;
+  background: radial-gradient(circle at 30% 30%, #ffffff 0%, #d0f0ff 100%);
+  border: 2px solid #a0dfff;
+  border-radius: 50px;
+  padding: 10px 22px;
+  font-size: 1em;
+  font-weight: bold;
+  color: #003049;
+  text-decoration: none;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+.game-nav a:hover {
+  transform: scale(1.04);
+}
+
 </style>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta charset="UTF-8" />
@@ -176,6 +202,11 @@ body {
     <p style="margin-top: -10px; font-size: 1.1em;">
       🌊 Keep learning with <a href="https://scubadiverse.wordpress.com/" target="_blank" style="color: #b2f0ff; text-decoration: underline;">UnderwaterTenerife.com</a>
     </p>
+
+  <div class="game-nav">
+    <a href="/games/">🎮 All games</a>
+    <a href="/games/turtle-spotter/">📷 Play Turtle Spotter 🐢</a>
+  </div>
   <p id="instruction">Observe these fish and remember their names...</p>
 
   <div id="game" style="position: relative; z-index: 10; padding-bottom: 120px;" style="padding-bottom: 100px;">

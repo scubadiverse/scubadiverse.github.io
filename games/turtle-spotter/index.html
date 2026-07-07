@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DiveScanner Turtle Spotter - Auto Levels</title>
+<style>
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: #f6fbff;
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100svh;
+    color: #102030;
+    padding: 10px;
+  }
+
+  .game-box {
+    width: min(430px, 96vw);
+    border: 4px solid #102030;
+    border-radius: 18px;
+    background: white;
+    box-shadow: 7px 7px 0 #102030;
+    overflow: hidden;
+  }
+
+  .top-bar {
+    border-bottom: 4px solid #102030;
+    padding: 9px 10px;
+    background: white;
+  }
+
+  .top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 7px;
+  }
+
+  .title {
+    font-weight: 900;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .repeat-button {
+    margin: 0;
+    padding: 5px 8px;
+    border: 2px solid #102030;
+    border-radius: 8px;
+    background: #f6fbff;
+    box-shadow: none;
+    font-size: 12px;
+    font-weight: 900;
+    cursor: pointer;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  .stat {
+    border: 2px solid #102030;
+    border-radius: 8px;
+    padding: 4px 4px;
+    text-align: center;
+    background: #f6fbff;
+  }
+
+  .canvas-wrap {
+    position: relative;
+    background: #dff6ff;
+  }
+
+  canvas {
+    width: 100%;
+    display: block;
+    background: linear-gradient(#dff6ff, #bceeff);
+    cursor: none;
+    aspect-ratio: 9 / 16;
+    touch-action: manipulation;
+  }
+
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(223, 246, 255, 0.84);
+    padding: 18px;
+  }
+
+  .panel {
+    width: min(350px, 94%);
+    background: white;
+    border: 4px solid #102030;
+    border-radius: 16px;
+    box-shadow: 6px 6px 0 #102030;
+    padding: 18px;
+    text-align: center;
+  }
+
+  h1 {
+    margin: 0 0 10px;
+    font-size: 28px;
+    line-height: 1.05;
+  }
+
+  h2 {
+    margin: 0 0 10px;
+    font-size: 24px;
+    line-height: 1.1;
+  }
+
+  p {
+    line-height: 1.35;
+    margin: 8px 0;
+    font-size: 14px;
+  }
+
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin: 12px 0;
+  }
+
+  .legend span {
+    border: 2px solid #102030;
+    border-radius: 9px;
+    background: #f6fbff;
+    padding: 5px 7px;
+    font-weight: 800;
+    font-size: 13px;
+  }
+
+  .rule-box {
+    border: 3px solid #087b93;
+    border-radius: 12px;
+    background: #eefcff;
+    padding: 9px;
+    font-weight: 900;
+    margin: 10px 0;
+  }
+
+  button {
+    margin-top: 12px;
+    padding: 11px 16px;
+    border: 4px solid #102030;
+    border-radius: 10px;
+    background: white;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 4px 4px 0 #102030;
+  }
+
+  button:active {
+    transform: translate(3px, 3px);
+    box-shadow: 1px 1px 0 #102030;
+  }
+
+  .bottom-help {
+    border-top: 4px solid #102030;
+    padding: 9px 12px;
+    font-size: 12px;
+    color: #405060;
+    background: white;
+    line-height: 1.35;
+  }
+</style>
+</head>
+<body>
+  <div class="game-box">
+    <div class="top-bar">
+      <div class="top-row">
+        <div class="title">📷 DiveScanner: Turtle Spotter</div>
+        <button class="repeat-button" id="repeatButton">Repeat level</button>
+      </div>
+      <div class="stats">
+        <div class="stat">Level <b id="level">01</b></div>
+        <div class="stat">Score <b id="score">0</b></div>
+        <div class="stat">Turtles <b id="turtles">0/10</b></div>
+        <div class="stat">Accuracy <b id="accuracy">0%</b></div>
+      </div>
+    </div>
+
+    <div class="canvas-wrap">
+      <canvas id="game" width="540" height="960"></canvas>
+
+      <div class="screen" id="screen">
+        <div class="panel" id="panel">
+          <h1>📷 Turtle Spotter 🐢</h1>
+          <p>You are a diver on a liveaboard reef survey.</p>
+          <div class="rule-box">
+            Click or tap directly on the turtle 🐢 to spot it.
+          </div>
+          <div class="legend">
+            <span>Click: 🐢</span>
+            <span>Ignore: 🐡</span>
+            <span>Ignore: 🦈</span>
+            <span>Ignore: 🪨</span>
+            <span>Ignore: 🪸</span>
+            <span>Ignore: 🧴</span>
+          </div>
+          <p>Each level has 10 turtles. Spot 9/10 to continue automatically.</p>
+          <p>The camera pointer follows your mouse or finger. Click anywhere on the turtle sticker.</p>
+          <button id="startButton">Start level 01</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-help">
+      Click directly on 🐢 anywhere on its sticker. Good levels continue immediately. Use “Repeat level” to practise the current level again.
+    </div>
+  </div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const scoreEl = document.getElementById("score");
+const levelEl = document.getElementById("level");
+const turtlesEl = document.getElementById("turtles");
+const accuracyEl = document.getElementById("accuracy");
+
+const screen = document.getElementById("screen");
+const panel = document.getElementById("panel");
+const startButton = document.getElementById("startButton");
+const repeatButton = document.getElementById("repeatButton");
+
+const W = canvas.width;
+const H = canvas.height;
+
+const TURTLES_PER_LEVEL = 10;
+const REQUIRED_HITS = 9;
+const MAX_LEVEL = 12;
+
+let running = false;
+let objects = [];
+let bubbles = [];
+let level = 1;
+let score = 0;
+let hits = 0;
+let turtlesSpawned = 0;
+let wrong = 0;
+let missed = 0;
+let lastTime = 0;
+let spawnClock = 0;
+let levelFinished = false;
+let levelLabelPulse = 0;
+let flashText = "";
+let flashTimer = 0;
+
+let pointer = {
+  x: W / 2,
+  y: H / 2,
+  active: false,
+  downPulse: 0
+};
+
+const emojiMap = {
+  turtle: "🐢",
+  puffer: "🐡",
+  shark: "🦈",
+  rock: "🪨",
+  coral: "🪸",
+  bottle: "🧴",
+  fish: "🐟",
+  crab: "🦀",
+  octopus: "🐙",
+  dolphin: "🐬",
+  shell: "🐚"
+};
+
+function padLevel(n) {
+  return String(n).padStart(2, "0");
+}
+
+function levelDifficulty() {
+  return 1 + (level - 1) * 0.16;
+}
+
+function progressDifficulty() {
+  if (hits >= 8) return 1.55;
+  if (hits >= 6) return 1.38;
+  if (hits >= 4) return 1.22;
+  if (hits >= 3) return 1.10;
+  return 1.00;
+}
+
+function speedMultiplier() {
+  return levelDifficulty() * progressDifficulty();
+}
+
+function turtleSize() {
+  // Smaller each level, and slightly smaller later inside the level.
+  const base = 78 - Math.min(28, (level - 1) * 3);
+  const progressShrink = Math.min(12, Math.floor(hits / 3) * 4);
+  return Math.max(42, base - progressShrink + Math.random() * 8);
+}
+
+function turtleVariant() {
+  // Emoji itself cannot be recolored reliably, so the sticker ring/background varies.
+  const variants = [
+    { ring: "#0a7f8f", bg: "rgba(255,255,255,0.88)" },
+    { ring: "#2e7d32", bg: "rgba(232,255,236,0.88)" },
+    { ring: "#7a5c16", bg: "rgba(255,247,219,0.88)" },
+    { ring: "#305f72", bg: "rgba(230,250,255,0.88)" }
+  ];
+  return variants[(level + hits + turtlesSpawned) % variants.length];
+}
+
+function updateStats() {
+  const accuracy = Math.round((hits / Math.max(1, turtlesSpawned)) * 100);
+  levelEl.textContent = padLevel(level);
+  scoreEl.textContent = score;
+  turtlesEl.textContent = hits + "/" + TURTLES_PER_LEVEL;
+  accuracyEl.textContent = accuracy + "%";
+}
+
+function resetLevel(keepScore = true) {
+  objects = [];
+  bubbles = [];
+  hits = 0;
+  turtlesSpawned = 0;
+  wrong = 0;
+  missed = 0;
+  spawnClock = 0.35;
+  levelFinished = false;
+  levelLabelPulse = 0;
+  flashText = "";
+  flashTimer = 0;
+
+  if (!keepScore) score = 0;
+
+  for (let i = 0; i < 70; i++) {
+    bubbles.push({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      r: 1 + Math.random() * 4,
+      speed: 16 + Math.random() * 32
+    });
+  }
+
+  updateStats();
+}
+
+function startLevel() {
+  resetLevel(true);
+  running = true;
+  screen.style.display = "none";
+  lastTime = performance.now();
+  requestAnimationFrame(loop);
+}
+
+function retryLevel() {
+  resetLevel(true);
+  running = true;
+  screen.style.display = "none";
+  lastTime = performance.now();
+  requestAnimationFrame(loop);
+}
+
+function repeatCurrentLevel() {
+  resetLevel(true);
+  running = true;
+  screen.style.display = "none";
+  lastTime = performance.now();
+  requestAnimationFrame(loop);
+}
+
+function autoNextLevel() {
+  if (level >= MAX_LEVEL) {
+    showFinalScreen();
+    return;
+  }
+
+  level += 1;
+  resetLevel(true);
+  running = true;
+  screen.style.display = "none";
+  lastTime = performance.now();
+  requestAnimationFrame(loop);
+}
+
+function showFinalScreen() {
+  running = false;
+  screen.style.display = "flex";
+  panel.innerHTML = `
+    <h2>🏆 Survey complete</h2>
+    <p>You cleared all levels.</p>
+    <p>Final score: <b>${score}</b></p>
+    <p>DiveScanner match: turtle-friendly reef liveaboard with calm coral gardens.</p>
+    <button onclick="location.reload()">Dive again</button>
+  `;
+}
+
+function evaluateLevel() {
+  const passed = hits >= REQUIRED_HITS;
+
+  if (passed) {
+    // Continue immediately with no pause. The only visible change is the level number.
+    levelFinished = true;
+    running = false;
+    updateStats();
+
+    setTimeout(() => {
+      autoNextLevel();
+    }, 0);
+
+    return;
+  }
+
+  running = false;
+  screen.style.display = "flex";
+
+  if (hits === 0) {
+    panel.innerHTML = `
+      <h2>🐢 You didn’t spot the turtle</h2>
+      <p>Click directly on the turtle emoji 🐢 when it appears.</p>
+      <p>You spotted <b>0/${TURTLES_PER_LEVEL}</b>. Try level ${padLevel(level)} again.</p>
+      <button id="retryButton">Try again</button>
+    `;
+  } else {
+    const accuracy = Math.round((hits / TURTLES_PER_LEVEL) * 100);
+    panel.innerHTML = `
+      <h2>Try level ${padLevel(level)} again</h2>
+      <p>You spotted <b>${hits}/${TURTLES_PER_LEVEL}</b> turtles.</p>
+      <p>Accuracy: <b>${accuracy}%</b>. You need <b>90%</b> to continue.</p>
+      <p>Click anywhere on 🐢 itself. Ignore the other marine life.</p>
+      <button id="retryButton">Repeat level ${padLevel(level)}</button>
+    `;
+  }
+
+  document.getElementById("retryButton").addEventListener("click", retryLevel);
+}
+
+function spawnExtraLife(count) {
+  const distractors = ["puffer", "shark", "rock", "coral", "bottle", "fish", "crab", "octopus", "dolphin", "shell"];
+
+  for (let i = 0; i < count; i++) {
+    const type = distractors[Math.floor(Math.random() * distractors.length)];
+    let size = 48 + Math.random() * 22;
+
+    if (type === "shark" || type === "dolphin") size = 68 + Math.random() * 22;
+    if (type === "coral") size = 54 + Math.random() * 18;
+    if (type === "bottle" || type === "shell") size = 46 + Math.random() * 16;
+
+    objects.push({
+      type,
+      emoji: emojiMap[type],
+      x: W + 90 + Math.random() * 270,
+      y: 150 + Math.random() * (H - 320),
+      size,
+      speed: (82 + Math.random() * 58) * speedMultiplier(),
+      wobble: Math.random() * Math.PI * 2,
+      caught: false,
+      countedMiss: false,
+      rotation: -0.20 + Math.random() * 0.40,
+      variant: null
+    });
+  }
+}
+
+function spawnObject() {
+  if (turtlesSpawned >= TURTLES_PER_LEVEL && objects.length === 0) {
+    if (!levelFinished) {
+      evaluateLevel();
+    }
+    return;
+  }
+
+  if (turtlesSpawned >= TURTLES_PER_LEVEL) return;
+
+  let type;
+  const r = Math.random();
+
+  // First turtles are simpler, then more distractors appear as the player performs.
+  if (turtlesSpawned < 2) type = "turtle";
+  else if (hits >= 7 && r < 0.34) type = "turtle";
+  else if (hits >= 4 && r < 0.39) type = "turtle";
+  else if (hits >= 3 && r < 0.43) type = "turtle";
+  else if (r < 0.50) type = "turtle";
+  else if (r < 0.61) type = "puffer";
+  else if (r < 0.72) type = "shark";
+  else if (r < 0.81) type = "rock";
+  else if (r < 0.89) type = "coral";
+  else if (r < 0.95) type = "bottle";
+  else type = Math.random() > 0.5 ? "fish" : "crab";
+
+  let variant = null;
+  if (type === "turtle") {
+    turtlesSpawned++;
+    variant = turtleVariant();
+  }
+
+  let size = type === "turtle" ? turtleSize() : 54 + Math.random() * 22;
+  if (type === "shark" || type === "dolphin") size = 72 + Math.random() * 22;
+  if (type === "coral") size = 56 + Math.random() * 18;
+  if (type === "bottle" || type === "shell") size = 48 + Math.random() * 16;
+
+  objects.push({
+    type,
+    emoji: emojiMap[type],
+    x: W + 90,
+    y: 170 + Math.random() * (H - 350),
+    size,
+    speed: (90 + Math.random() * (24 + level * 5 + hits * 4)) * speedMultiplier(),
+    wobble: Math.random() * Math.PI * 2,
+    caught: false,
+    countedMiss: false,
+    rotation: -0.14 + Math.random() * 0.28,
+    variant
+  });
+
+  // More marine life appears as the level progresses, without telling the user why.
+  if (hits >= 8) spawnExtraLife(4 + Math.floor(level / 4));
+  else if (hits >= 6) spawnExtraLife(3);
+  else if (hits >= 4) spawnExtraLife(2);
+  else if (hits >= 3) spawnExtraLife(1);
+
+  updateStats();
+}
+
+function getCanvasPoint(event) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: (event.clientX - rect.left) * (W / rect.width),
+    y: (event.clientY - rect.top) * (H / rect.height)
+  };
+}
+
+function objectAtPoint(x, y) {
+  const candidates = objects
+    .filter(o => !o.caught)
+    .map(o => {
+      const dx = x - o.x;
+      const dy = y - o.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      return { o, dist, radius: o.size * 0.64 };
+    })
+    .filter(item => item.dist <= item.radius)
+    .sort((a, b) => a.dist - b.dist);
+
+  return candidates.length ? candidates[0].o : null;
+}
+
+function takePhotoAt(x, y) {
+  if (!running) return;
+
+  pointer.x = x;
+  pointer.y = y;
+  pointer.active = true;
+  pointer.downPulse = 0.25;
+
+  const clicked = objectAtPoint(x, y);
+
+  if (!clicked) {
+    score = Math.max(0, score - 1);
+    flashText = "missed";
+    flashTimer = 0.30;
+    updateStats();
+    return;
+  }
+
+  if (clicked.type === "turtle") {
+    score += 10 + level;
+    hits += 1;
+    clicked.caught = true;
+    flashText = "+ 🐢";
+  } else {
+    score = Math.max(0, score - 5);
+    wrong += 1;
+    flashText = "not turtle";
+  }
+
+  flashTimer = 0.30;
+  updateStats();
+}
+
+function loop(now) {
+  if (!running) return;
+
+  const dt = Math.min(0.035, (now - lastTime) / 1000);
+  lastTime = now;
+
+  spawnClock -= dt;
+  if (spawnClock <= 0) {
+    spawnObject();
+    spawnClock = Math.max(0.22, 0.92 - (level - 1) * 0.045 - hits * 0.043 + Math.random() * 0.16);
+  }
+
+  updateObjects(dt);
+  draw();
+
+  flashTimer = Math.max(0, flashTimer - dt);
+  levelLabelPulse = Math.max(0, levelLabelPulse - dt);
+  pointer.downPulse = Math.max(0, pointer.downPulse - dt);
+
+  if (!levelFinished) requestAnimationFrame(loop);
+}
+
+function updateObjects(dt) {
+  bubbles.forEach(b => {
+    b.y -= b.speed * dt * (1 + (level - 1) * 0.05);
+    if (b.y < -10) {
+      b.y = H + 10;
+      b.x = Math.random() * W;
+    }
+  });
+
+  const remaining = [];
+
+  objects.forEach(o => {
+    o.x -= o.speed * dt;
+    o.wobble += dt * (4 + level * 0.35);
+
+    if (o.type !== "rock" && o.type !== "coral" && o.type !== "shell") {
+      o.y += Math.sin(o.wobble) * (0.45 + level * 0.05);
+    }
+
+    if (o.caught) return;
+
+    if (o.x < -120) {
+      if (o.type === "turtle" && !o.countedMiss) {
+        missed += 1;
+        score = Math.max(0, score - 3);
+        o.countedMiss = true;
+      }
+    } else {
+      remaining.push(o);
+    }
+  });
+
+  objects = remaining;
+  updateStats();
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  drawBackground();
+  objects.forEach(drawObject);
+  drawCameraOverlay();
+  drawDiver();
+  drawFlash();
+  drawLevelBadge();
+  drawPointer();
+}
+
+function drawBackground() {
+  ctx.fillStyle = "#dff6ff";
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.globalAlpha = 0.20;
+  ctx.strokeStyle = "#5ab8d6";
+  ctx.lineWidth = 4;
+  const scroll = (performance.now() * 0.03 * speedMultiplier()) % 150;
+  for (let i = -1; i < 7; i++) {
+    const x = 80 + i * 150 - scroll;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x - 150, H);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
+  bubbles.forEach(b => {
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(16,32,48,0.25)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  });
+
+  ctx.strokeStyle = "#102030";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(0, H - 72);
+  for (let x = 0; x <= W; x += 25) {
+    ctx.lineTo(x, H - 72 + Math.sin(x * 0.025 + performance.now() * 0.001) * 8);
+  }
+  ctx.stroke();
+
+  ctx.font = "34px Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif";
+  const reefScroll = (performance.now() * 0.045 * speedMultiplier()) % 110;
+  for (let x = -20; x < W + 120; x += 110) {
+    const rx = x - reefScroll;
+    const y = H - 76 + Math.sin(rx * 0.025) * 8;
+    ctx.fillText("🪸", rx, y);
+  }
+}
+
+function roundRectPath(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+}
+
+function drawCameraOverlay() {
+  ctx.save();
+
+  ctx.fillStyle = "rgba(255,255,255,0.24)";
+  ctx.strokeStyle = "#102030";
+  ctx.lineWidth = 4;
+  roundRectPath(34, 110, W - 68, H - 240, 30);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.font = "38px Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("📷", 86, 146);
+
+  ctx.fillStyle = "#102030";
+  ctx.font = "bold 16px Arial";
+  ctx.fillText("CLICK DIRECTLY ON 🐢", W / 2, 150);
+
+  ctx.restore();
+}
+
+function drawObject(o) {
+  ctx.save();
+  ctx.translate(o.x, o.y);
+  ctx.rotate(o.rotation);
+
+  const bg = o.variant ? o.variant.bg : "rgba(255,255,255,0.86)";
+  const ring = o.variant ? o.variant.ring : "rgba(16,32,48,0.70)";
+
+  ctx.beginPath();
+  ctx.arc(0, 0, o.size * 0.50, 0, Math.PI * 2);
+  ctx.fillStyle = bg;
+  ctx.fill();
+  ctx.strokeStyle = ring;
+  ctx.lineWidth = o.type === "turtle" ? 5 : 3;
+  ctx.stroke();
+
+  ctx.font = o.size + "px Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, EmojiOne Color, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(o.emoji, 0, 2);
+
+  if (o.type === "turtle") {
+    ctx.strokeStyle = ring;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(0, 0, o.size * 0.68, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Tiny second ring at high levels to make variants visible even with emoji rendering.
+    if (level >= 4) {
+      ctx.strokeStyle = "rgba(16,32,48,0.28)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, o.size * 0.78, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+
+  ctx.restore();
+}
+
+function drawDiver() {
+  const y = 80 + Math.sin(performance.now() * 0.004) * 5;
+
+  ctx.save();
+  ctx.translate(55, y);
+  ctx.font = "38px Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("🤿", 0, 0);
+
+  ctx.font = "24px Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif";
+  ctx.fillText("📷", 33, 3);
+  ctx.restore();
+}
+
+function drawFlash() {
+  if (flashTimer <= 0) return;
+
+  ctx.save();
+  ctx.globalAlpha = Math.min(0.40, flashTimer);
+  ctx.fillStyle = "white";
+  ctx.fillRect(34, 110, W - 68, H - 240);
+
+  ctx.globalAlpha = 1;
+  ctx.font = "bold 25px Arial";
+  ctx.fillStyle = flashText.includes("+") || flashText.includes("complete") ? "#087b93" : "#a63737";
+  ctx.textAlign = "center";
+  ctx.fillText(flashText, W / 2, 240);
+  ctx.restore();
+}
+
+function drawLevelBadge() {
+  ctx.save();
+
+  const pulse = levelLabelPulse > 0 ? levelLabelPulse * 8 : 0;
+
+  ctx.fillStyle = "rgba(255,255,255,0.92)";
+  ctx.strokeStyle = "#102030";
+  ctx.lineWidth = 4;
+  roundRectPath(18, 18, 132 + pulse, 52 + pulse, 14);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = "#102030";
+  ctx.font = "bold 22px Arial";
+  ctx.textAlign = "left";
+  ctx.fillText("LEVEL " + padLevel(level), 34, 51);
+
+  ctx.restore();
+}
+
+function drawPointer() {
+  if (!pointer.active || !running) return;
+
+  ctx.save();
+  ctx.translate(pointer.x, pointer.y);
+
+  const pulse = pointer.downPulse > 0 ? pointer.downPulse * 24 : 0;
+
+  ctx.strokeStyle = "#087b93";
+  ctx.fillStyle = "rgba(255,255,255,0.76)";
+  ctx.lineWidth = 4;
+
+  ctx.beginPath();
+  ctx.arc(0, 0, 24 + pulse, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(-38 - pulse, 0);
+  ctx.lineTo(38 + pulse, 0);
+  ctx.moveTo(0, -38 - pulse);
+  ctx.lineTo(0, 38 + pulse);
+  ctx.stroke();
+
+  ctx.font = "26px Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("📸", 0, 1);
+
+  ctx.restore();
+}
+
+startButton.addEventListener("click", startLevel);
+repeatButton.addEventListener("click", repeatCurrentLevel);
+
+canvas.addEventListener("pointermove", event => {
+  const p = getCanvasPoint(event);
+  pointer.x = p.x;
+  pointer.y = p.y;
+  pointer.active = true;
+  if (running) draw();
+});
+
+canvas.addEventListener("pointerleave", () => {
+  pointer.active = false;
+});
+
+canvas.addEventListener("pointerdown", event => {
+  if (!running) return;
+  const p = getCanvasPoint(event);
+  takePhotoAt(p.x, p.y);
+});
+
+window.addEventListener("keydown", e => {
+  if (e.code === "Space") {
+    e.preventDefault();
+    if (running) takePhotoAt(pointer.x, pointer.y);
+  }
+});
+
+drawBackground();
+drawCameraOverlay();
+drawDiver();
+drawLevelBadge();
+updateStats();
+</script>
+</body>
+</html>
