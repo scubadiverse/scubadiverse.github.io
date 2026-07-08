@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Thoughtsieve">
-<meta name="description" content="A private CBT tool that helps you catch a negative thought, spot the thinking trap, challenge it, and turn it into a kinder, more balanced one. Everything stays on your device.">
+<meta name="description" content="A private CBT stress-relief tool. Catch a negative thought, watch it float, and turn it into a kinder, more balanced one with psychology-based reframing help. Everything stays on your device.">
 <style>
   :root{
     --bg:#0f1720; --card:#18232f; --card2:#1e2c3a; --ink:#eaf2f8; --muted:#93a6b8;
@@ -44,29 +44,18 @@
   .primary{background:var(--accent);color:#04212b;border-color:transparent;font-weight:700}
   .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
   .grow{flex:1}
-  .traps{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
-  .trap{border-radius:999px;padding:9px 13px;font-size:13px;background:var(--card2);
-    border:1px solid var(--line);text-align:left}
-  .trap.sel{border-color:var(--calm);box-shadow:0 0 0 2px var(--calm) inset;color:var(--ink)}
-  .trap small{display:block;color:var(--muted);font-size:11px;margin-top:2px;max-width:15em}
-  .trap.sel small{color:var(--ink)}
-  .flagged{border-color:var(--warn);box-shadow:0 0 0 1px var(--warn) inset}
-  .moods{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
-  .mood{border-radius:999px;padding:9px 14px;font-size:15px;background:var(--card2);
-    border:1px solid var(--line)}
-  .mood.sel{border-color:var(--calm);box-shadow:0 0 0 2px var(--calm) inset}
+  .negflag{font-size:13px;color:var(--warn);margin:8px 0 0;min-height:1.2em;line-height:1.4}
   .slider{display:flex;align-items:center;gap:12px;margin:6px 0 2px}
   .slider input{flex:1}
   .slider b{font-variant-numeric:tabular-nums;width:2.4em;text-align:right}
-  .challenge{margin:4px 0 0;padding-left:0;list-style:none}
-  .challenge li{padding:8px 0;border-bottom:1px dashed var(--line);font-size:14px;color:var(--ink)}
-  .challenge li:last-child{border-bottom:0}
-  .challenge li b{color:var(--calm)}
   .banner{border-radius:12px;padding:12px 14px;margin:0 0 12px;font-size:14px;
     background:#12384a;color:#9fe3ff;border:1px solid #1f5e78}
   @media (prefers-color-scheme: light){
     .banner{background:#e2f4ff;color:#0a5978;border-color:#a9dcf2}
   }
+  .tabs{display:flex;gap:8px;margin-bottom:14px}
+  .tabs button{flex:1;border-radius:999px;padding:10px}
+  .tabs button.on{background:var(--accent);color:#04212b;border-color:transparent;font-weight:700}
   .saved{margin-top:6px}
   .entry{background:var(--card2);border:1px solid var(--line);border-radius:14px;
     padding:14px;margin-bottom:12px}
@@ -78,9 +67,6 @@
   .entry .tag{font-size:11px;color:var(--muted);background:var(--card);border:1px solid var(--line);
     border-radius:999px;padding:3px 9px}
   .entry .del{background:transparent;border:0;color:var(--muted);padding:2px 6px;font-size:13px}
-  .tabs{display:flex;gap:8px;margin-bottom:14px}
-  .tabs button{flex:1;border-radius:999px;padding:10px}
-  .tabs button.on{background:var(--accent);color:#04212b;border-color:transparent;font-weight:700}
   .stats .stat{display:flex;justify-content:space-between;padding:8px 0;
     border-bottom:1px dashed var(--line);font-size:14px}
   .stats .stat:last-child{border-bottom:0}
@@ -88,38 +74,54 @@
   .empty{color:var(--muted);text-align:center;padding:24px 8px;font-size:14px}
   .foot{color:var(--muted);font-size:12px;text-align:center;margin-top:10px;line-height:1.7}
   a{color:var(--accent)}
-  .lock{font-size:12px;color:var(--muted);margin:0 0 16px;text-align:center}
 
-  /* ---- Pensieve release animation ---- */
-  .release{border:1px dashed var(--line);background:transparent;color:var(--muted);
-    border-radius:12px;font-size:14px}
-  .pensieve{position:fixed;inset:0;z-index:80;display:none;align-items:center;
-    justify-content:center;overflow:hidden;
-    background:radial-gradient(circle at 50% 62%, rgba(18,40,55,.90), rgba(5,10,16,.97))}
+  /* ---- Pensieve float + reframe overlay ---- */
+  .pensieve{position:fixed;inset:0;z-index:80;display:none;flex-direction:column;
+    align-items:center;justify-content:center;gap:6px;overflow-y:auto;padding:26px 18px;
+    background:radial-gradient(circle at 50% 42%, rgba(18,40,55,.92), rgba(5,10,16,.97))}
   .pensieve.show{display:flex}
+  .pensieve.reframe{justify-content:flex-start;padding-top:32px}
   .pensieve canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-  .orb{position:relative;z-index:2;width:220px;height:220px;max-width:70vw;max-height:70vw;
+  .orbhold{position:relative;z-index:2;animation:orbFloat 2.4s ease-in forwards}
+  .orb{width:220px;height:220px;max-width:66vw;max-height:66vw;
     display:flex;align-items:center;justify-content:center;text-align:center;
     padding:24px;color:#08202c;font-size:14px;line-height:1.4;font-weight:600;
     background:radial-gradient(circle at 38% 32%,rgba(255,255,255,.97),
       rgba(190,235,255,.7) 40%,rgba(120,185,225,.35) 68%,rgba(120,185,225,0) 72%);
     box-shadow:0 0 46px rgba(150,220,255,.55),inset 0 0 34px rgba(255,255,255,.5);
-    animation:orbFloat 2.4s ease-in forwards, orbWobble 2.4s ease-in-out infinite}
+    animation:orbWobble 2.4s ease-in-out infinite}
   .orb .txt{opacity:.8;max-height:8.4em;overflow:hidden}
   @keyframes orbFloat{
     0%{transform:translateY(46px) scale(.55);opacity:0}
     22%{opacity:1;transform:translateY(0) scale(1)}
-    100%{transform:translateY(-64px) scale(1.06);opacity:1}}
+    100%{transform:translateY(-40px) scale(1.05);opacity:1}}
   @keyframes orbWobble{0%,100%{border-radius:48% 52% 55% 45%/52% 48% 52% 48%}
     50%{border-radius:55% 45% 48% 52%/45% 55% 45% 55%}}
-  .orb.crack{animation:orbFloat 2.4s ease-in forwards, orbShake .26s ease-in-out 3}
+  .orb.shake{animation:orbWobble 2.4s ease-in-out infinite, orbShake .24s ease-in-out 3}
   @keyframes orbShake{0%,100%{margin-left:0}25%{margin-left:-7px}75%{margin-left:7px}}
-  .orb.gone{opacity:0;transform:scale(1.4);transition:opacity .35s, transform .35s}
-  .pensieve .cap{position:absolute;bottom:12%;z-index:2;color:#cfe6f2;font-size:16px;
-    text-align:center;max-width:22em;padding:0 20px;opacity:0;transition:opacity .6s}
-  .pensieve .cap.show{opacity:1}
+  .orb.pop{animation:none;transform:scale(1.5);opacity:0;
+    transition:transform .4s ease-out,opacity .4s ease-out}
   @media (prefers-reduced-motion: reduce){
-    .orb{animation:none} }
+    .orbhold{animation:none} .orb{animation:none} }
+  .pensieve .cap{z-index:2;color:#cfe6f2;font-size:15px;text-align:center;max-width:22em;
+    padding:0 10px;margin-top:10px;opacity:0;transition:opacity .6s;line-height:1.5}
+  .pensieve .cap.show{opacity:1}
+
+  .rpanel{display:none;z-index:2;width:100%;max-width:23em;background:var(--card);
+    border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:12px;text-align:left}
+  .pensieve.reframe .rpanel{display:block}
+  .rtrap{font-size:12.5px;color:var(--warn);font-weight:600;margin:0 0 8px;line-height:1.45}
+  .rlead{font-size:13px;color:var(--muted);margin:0 0 10px;line-height:1.5}
+  .rhelp{list-style:none;padding:0;margin:0 0 12px}
+  .rhelp li{font-size:13px;padding:8px 0;border-bottom:1px dashed var(--line);line-height:1.5}
+  .rhelp li:last-child{border-bottom:0}
+  .rhelp li b{color:var(--calm)}
+  .rpanel textarea{width:100%;min-height:82px}
+  .rnudge{font-size:12.5px;color:var(--warn);margin:8px 0 0;min-height:1em;line-height:1.4}
+  .rpanel .primary{width:100%;margin-top:12px}
+  .rpanel .rclose{width:100%;margin-top:8px;background:transparent;border:0;
+    color:var(--muted);font-size:13px}
+  #rgo:disabled{opacity:.45;cursor:not-allowed}
 
   /* ---- Caring overlay (heavy / crisis wording) ---- */
   .care{position:fixed;inset:0;z-index:90;display:none;align-items:center;justify-content:center;
@@ -136,7 +138,7 @@
 <body>
 
 <h1>🌿 Thoughtsieve</h1>
-<p class="sub">A calm space to relieve stress: unload a worry, see the thinking trap behind it, and let it go – then, in your own words, turn it into something kinder. Uses simple CBT ideas.</p>
+<p class="sub">A calm space to relieve stress. Catch a negative thought, watch it float up, and turn it into something kinder before you let it go. Guided by simple CBT ideas.</p>
 
 <div class="tabs">
   <button id="tabNew" class="on" onclick="showTab('new')">✍️ Reframe a thought</button>
@@ -149,53 +151,25 @@
   <div class="banner">🔒 Private. Everything you write stays on this device only – nothing is ever uploaded or shared.</div>
 
   <div class="card">
-    <p class="step">Step 1 · Catch it</p>
-    <label class="q" for="neg">What is the negative thought?</label>
+    <p class="step">Catch the thought</p>
+    <label class="q" for="neg">What's stressing or upsetting you?</label>
     <p class="hint">Write it exactly as it sounds in your head, even if it feels harsh.</p>
-    <textarea id="neg" oninput="detectTraps()" placeholder="e.g. I always mess everything up, everyone must think I'm useless."></textarea>
-    <div class="row" style="margin-top:8px">
-      <span class="hint grow">How strongly do you believe it right now?</span>
-    </div>
+    <textarea id="neg" oninput="onNegInput()" placeholder="e.g. I always mess everything up, everyone must think I'm useless."></textarea>
+    <div id="negFlag" class="negflag"></div>
+    <div class="row" style="margin-top:2px"><span class="hint grow">How strongly do you believe it right now?</span></div>
     <div class="slider">
       <span class="hint">Not really</span>
       <input id="believeBefore" type="range" min="0" max="100" value="70" oninput="document.getElementById('bbVal').textContent=this.value+'%'">
       <b id="bbVal">70%</b>
     </div>
-    <div class="row" style="margin-top:12px">
-      <button class="release grow" onclick="releaseThought()">🫧 Put it in the Pensieve &amp; let it go</button>
+    <div class="row" style="margin-top:14px">
+      <button class="primary grow" onclick="sendToPensieve()">🫧 Send it to the Pensieve</button>
     </div>
+    <p class="hint" style="margin-top:12px;text-align:center">A negative thought floats up and stays – it only clears once you turn it into a kinder, truer one.</p>
   </div>
 
-  <div class="card">
-    <p class="step">Step 2 · Name the thinking trap</p>
-    <p class="hint">CBT calls these <em>cognitive distortions</em>. Tap any that fit – we highlight likely ones from your words.</p>
-    <div class="traps" id="traps"></div>
-  </div>
-
-  <div class="card">
-    <p class="step">Step 3 · Challenge it</p>
-    <p class="hint">Ask yourself these CBT questions. You don't have to answer in writing – just let them soften the thought.</p>
-    <ul class="challenge" id="challenge"></ul>
-  </div>
-
-  <div class="card">
-    <p class="step">Step 4 · Flip it</p>
-    <label class="q" for="pos">Now write the balanced, kinder version.</label>
-    <p class="hint">Not fake happy – just fairer and truer. What would you tell a good friend who said the negative thought?</p>
-    <textarea id="pos" placeholder="Write it in your own words…"></textarea>
-    <div class="slider" style="margin-top:12px">
-      <span class="hint">How do you feel now?</span>
-      <input id="mood" type="hidden" value="">
-    </div>
-    <div class="moods" id="moods"></div>
-  </div>
-
-  <div class="card">
-    <div class="row">
-      <button class="primary grow" onclick="saveEntry()">💾 Save this reframe</button>
-    </div>
-    <p class="foot" id="saveMsg"></p>
-  </div>
+  <input type="hidden" id="pos">
+  <input type="hidden" id="mood" value="">
 </div>
 
 <!-- ============ SAVED VIEW ============ -->
@@ -209,15 +183,24 @@
   If you feel unsafe or in crisis, please reach out to a doctor or a local helpline.
 </p>
 
-<!-- Pensieve release overlay -->
-<div class="pensieve" id="pensieve" onclick="closePensieve()">
+<!-- Pensieve float + reframe overlay -->
+<div class="pensieve" id="pensieve" onclick="pensieveBgClick(event)">
   <canvas id="fx"></canvas>
-  <div class="orb" id="orb"><span class="txt"></span></div>
+  <div class="orbhold" id="orbhold"><div class="orb" id="orb"><span class="txt"></span></div></div>
   <div class="cap" id="pcap"></div>
+  <div class="rpanel" id="rpanel" onclick="event.stopPropagation()">
+    <p class="rtrap" id="rtrap"></p>
+    <p class="rlead">Turn it into something kinder to release it. Here is how psychologists reframe – then write your own version, in your own words:</p>
+    <ul class="rhelp" id="rhelp"></ul>
+    <textarea id="rpos" oninput="onReframeInput()" placeholder="The more balanced, kinder version…"></textarea>
+    <p class="rnudge" id="rnudge"></p>
+    <button class="primary" id="rgo" disabled onclick="transformAndRelease()">✨ Transform &amp; let it go</button>
+    <button class="rclose" onclick="closePensieve()">Not now</button>
+  </div>
 </div>
 
 <!-- Caring overlay for heavy / crisis wording -->
-<div class="care" id="care">
+<div class="care" id="care" onclick="closeCare()">
   <div class="carebox" onclick="event.stopPropagation()">
     <p class="ch">💛 That sounds really heavy.</p>
     <p>Some feelings are too big and too important to just let go of on your own – and you deserve real, human support with them.</p>
@@ -228,107 +211,36 @@
 </div>
 
 <script>
-/* ---------- Cognitive distortions (CBT) ---------- */
+/* ---------- Cognitive distortions (CBT) – used to name the thinking trap ---------- */
 const TRAPS = [
-  {id:'allnothing', name:'All-or-nothing', desc:'Seeing things as total success or total failure.',
-    words:['always','never','everything','nothing','totally','completely','ruined','perfect','failure','disaster']},
-  {id:'overgen', name:'Overgeneralising', desc:'One event becomes a never-ending pattern.',
+  {id:'allnothing', name:'All-or-nothing thinking', desc:'seeing things as total success or total failure.',
+    words:['always','never','everything','nothing','totally','completely','ruined','failure','disaster']},
+  {id:'overgen', name:'Overgeneralising', desc:'one event becomes a never-ending pattern.',
     words:['always','never','everyone','no one','every time','again','typical']},
-  {id:'mindread', name:'Mind reading', desc:'Assuming you know what others think.',
+  {id:'mindread', name:'Mind reading', desc:'assuming you know what others think.',
     words:['they think','he thinks','she thinks','everyone thinks','must think','they hate','judging me']},
-  {id:'fortune', name:'Fortune telling', desc:'Predicting the future will go badly.',
-    words:["won't",'will fail','going to fail','never will','no point','pointless','hopeless','will go wrong']},
-  {id:'catastro', name:'Catastrophising', desc:'Expecting the worst possible outcome.',
-    words:['disaster','terrible','awful','worst','catastrophe','end of the world','can\'t cope','unbearable']},
-  {id:'shoulds', name:'"Should" statements', desc:'Rigid rules that beat you up.',
+  {id:'fortune', name:'Fortune telling', desc:'predicting the future will go badly.',
+    words:["won't",'will fail','going to fail','no point','pointless','hopeless','will go wrong']},
+  {id:'catastro', name:'Catastrophising', desc:'expecting the worst possible outcome.',
+    words:['disaster','terrible','awful','worst','catastrophe','can\'t cope','unbearable']},
+  {id:'shoulds', name:'"Should" statements', desc:'rigid rules that beat you up.',
     words:['should','shouldn\'t','must','have to','ought','supposed to']},
-  {id:'labeling', name:'Labelling', desc:'Calling yourself a harsh name for one thing.',
-    words:['i\'m useless','i\'m stupid','i\'m a failure','loser','worthless','idiot','i\'m broken','useless','stupid']},
+  {id:'labeling', name:'Labelling', desc:'calling yourself a harsh name for one thing.',
+    words:['useless','stupid','loser','worthless','idiot','i\'m broken','pathetic','failure']},
   {id:'feelfact', name:'Emotional reasoning', desc:'"I feel it, so it must be true."',
     words:['i feel like','it feels like','feels true','i just know']},
-  {id:'filter', name:'Mental filter', desc:'Only noticing the negatives.',
-    words:['nothing good','only bad','all bad','never anything good']},
-  {id:'personal', name:'Personalising', desc:'Blaming yourself for things outside your control.',
+  {id:'personal', name:'Personalising', desc:'blaming yourself for things outside your control.',
     words:['my fault','because of me','i ruined','i caused','blame myself']},
 ];
 
-/* Challenge questions per trap + universal ones */
-const CHALLENGES = {
-  allnothing:['Is this really all-or-nothing, or is there a middle ground?','What is one part that actually went okay?'],
-  overgen:['Is “always/never” literally true, or are there exceptions?','Can I think of one time this went differently?'],
-  mindread:['What is the actual evidence for what they are thinking?','Could there be another explanation for their behaviour?'],
-  fortune:['Am I predicting the future as if it were fact?','What outcomes, other than the worst one, are possible?'],
-  catastro:['If the worst did happen, how would I cope with it?','How likely is the worst case, really, out of 100?'],
-  shoulds:['Says who? Whose rule is this, and is it fair?','Could I swap “should” for “I’d like to” or “it’s okay if”?'],
-  labeling:['Would I call a friend this name for the same thing?','A behaviour is not a whole person – what actually happened?'],
-  feelfact:['A feeling is real, but is it proof? What are the facts?','If a calm friend looked at this, what would they see?'],
-  filter:['What is the fuller picture – including anything good or neutral?','What am I leaving out?'],
-  personal:['How much of this was actually in my control?','What else contributed that had nothing to do with me?'],
-};
-const UNIVERSAL = [
-  'What would I say to a good friend who had this thought?',
-  'Will this matter as much in a week, a month, a year?',
-  'What is a kinder, fairer way to say the same thing?',
+/* Psychology-based reframing techniques (cognitive reappraisal) */
+const REFRAME_TECHNIQUES = [
+  ['Check the evidence','What facts actually support this thought – and what facts argue against it?'],
+  ['Find another angle','If this isn’t the only explanation, what is a kinder or more likely one?'],
+  ['Talk to yourself like a friend','What would you say to someone you love who had this exact thought?'],
+  ['Right-size it','Out of 100, how likely is the worst case? What is far more likely to happen?'],
+  ['Look for the grey','It’s rarely all-or-nothing – what part went okay, even a little?'],
 ];
-
-const MOODS = ['😣 Worse','😕 Same','🙂 A little better','😌 Calmer','💪 Stronger'];
-
-let selectedTraps = new Set();
-let selectedMood = '';
-
-/* ---------- Build the UI ---------- */
-function buildTraps(){
-  const box = document.getElementById('traps');
-  box.innerHTML = '';
-  TRAPS.forEach(t=>{
-    const b = document.createElement('button');
-    b.className = 'trap';
-    b.id = 'trap-'+t.id;
-    b.innerHTML = t.name + '<small>'+t.desc+'</small>';
-    b.onclick = ()=>{
-      if(selectedTraps.has(t.id)){selectedTraps.delete(t.id); b.classList.remove('sel');}
-      else{selectedTraps.add(t.id); b.classList.add('sel');}
-      buildChallenges();
-    };
-    box.appendChild(b);
-  });
-}
-function buildMoods(){
-  const box = document.getElementById('moods');
-  box.innerHTML='';
-  MOODS.forEach(m=>{
-    const b=document.createElement('button');
-    b.className='mood'; b.textContent=m;
-    b.onclick=()=>{
-      selectedMood=m;
-      [...box.children].forEach(c=>c.classList.remove('sel'));
-      b.classList.add('sel');
-    };
-    box.appendChild(b);
-  });
-}
-
-/* Highlight likely traps from the words the user typed */
-function detectTraps(){
-  const text = document.getElementById('neg').value.toLowerCase();
-  TRAPS.forEach(t=>{
-    const el = document.getElementById('trap-'+t.id);
-    const hit = t.words.some(w=>text.includes(w));
-    if(hit) el.classList.add('flagged'); else el.classList.remove('flagged');
-  });
-}
-
-/* Show challenge questions for the selected (or flagged) traps */
-function buildChallenges(){
-  const ul = document.getElementById('challenge');
-  const qs = [];
-  const active = selectedTraps.size ? [...selectedTraps]
-    : TRAPS.filter(t=>document.getElementById('trap-'+t.id).classList.contains('flagged')).map(t=>t.id);
-  active.forEach(id=>{ (CHALLENGES[id]||[]).forEach(q=>qs.push(q)); });
-  UNIVERSAL.forEach(q=>qs.push(q));
-  const seen = new Set(); const uniq = qs.filter(q=>!seen.has(q)&&seen.add(q)).slice(0,6);
-  ul.innerHTML = uniq.map(q=>'<li>'+q+'</li>').join('');
-}
 
 /* ---------- Safety: gently catch crisis / self-harm wording ---------- */
 const CONCERN = ['suicide','suicidal','kill myself','killing myself','end my life',
@@ -342,42 +254,52 @@ function concerning(text){
 function showCare(){ document.getElementById('care').classList.add('show'); }
 function closeCare(){ document.getElementById('care').classList.remove('show'); }
 
+/* ---------- Negativity detection (decides if a reframe is required) ---------- */
+const NEG_WORDS = ['hate','useless','stupid','idiot','failure','fail','worthless','ugly','hopeless',
+  'terrible','awful','horrible','never','always',"can't",'cannot',"won't",'no one','nobody','alone',
+  'unlovable','not good enough','not enough','loser','pathetic','disaster','ruined','broken',
+  'disgusting','embarrass','ashamed','guilty','weak','dumb','pointless','worst','disappoint',
+  'unwanted','can not','stupid','messed up','mess up','wrong with me'];
+function isNegative(text){
+  const t = (text||'').toLowerCase();
+  if(!t.trim()) return false;
+  if(NEG_WORDS.some(w => t.includes(w))) return true;
+  return TRAPS.some(tr => tr.words.some(w => t.includes(w)));
+}
+
 /* ---------- Storage ---------- */
 const KEY = 'thoughtsieve.entries.v1';
 function load(){ try{return JSON.parse(localStorage.getItem(KEY))||[];}catch(e){return [];} }
 function store(a){ localStorage.setItem(KEY, JSON.stringify(a)); }
 
-function saveEntry(){
+let detectedTrap = null;
+
+function saveFromFlow(){
   const neg = document.getElementById('neg').value.trim();
   const pos = document.getElementById('pos').value.trim();
-  const msg = document.getElementById('saveMsg');
-  if(concerning(neg) || concerning(pos)){ showCare(); return; }
-  if(!neg || !pos){ msg.textContent = 'Write both the negative thought and the kinder version first.'; return; }
-  const trapNames = [...selectedTraps].map(id=>TRAPS.find(t=>t.id===id).name);
+  if(!neg || !pos) return;
   const entry = {
     id: Date.now(),
     date: new Date().toISOString(),
     neg, pos,
-    traps: trapNames,
+    traps: detectedTrap ? [detectedTrap] : [],
     believeBefore: +document.getElementById('believeBefore').value,
-    mood: selectedMood
+    mood: ''
   };
   const all = load(); all.unshift(entry); store(all);
-  resetForm();
-  msg.textContent = '✅ Saved. Well done for taking the time.';
   renderSaved();
-  setTimeout(()=>{ msg.textContent=''; }, 3500);
+  resetForm();
 }
 
 function resetForm(){
   document.getElementById('neg').value='';
   document.getElementById('pos').value='';
+  document.getElementById('rpos').value='';
+  document.getElementById('negFlag').textContent='';
+  document.getElementById('rnudge').textContent='';
   document.getElementById('believeBefore').value=70;
   document.getElementById('bbVal').textContent='70%';
-  selectedTraps.clear(); selectedMood='';
-  [...document.querySelectorAll('.trap')].forEach(b=>b.classList.remove('sel','flagged'));
-  [...document.querySelectorAll('.mood')].forEach(b=>b.classList.remove('sel'));
-  buildChallenges();
+  detectedTrap=null;
 }
 
 function delEntry(id){
@@ -393,22 +315,20 @@ function renderSaved(){
   const list = document.getElementById('savedList');
   const stats = document.getElementById('statsCard');
   if(!all.length){
-    list.innerHTML = '<div class="empty">No reframes yet.<br>Every negative thought you flip will appear here.</div>';
+    list.innerHTML = '<div class="empty">No reframes yet.<br>Every negative thought you turn around will appear here.</div>';
     stats.style.display='none';
     return;
   }
   stats.style.display='block';
-  // Stats
   const total = all.length;
   const trapCount = {};
   all.forEach(e=>(e.traps||[]).forEach(t=>trapCount[t]=(trapCount[t]||0)+1));
   const topTrap = Object.entries(trapCount).sort((a,b)=>b[1]-a[1])[0];
   const week = all.filter(e=> Date.now()-new Date(e.date).getTime() < 7*864e5).length;
   stats.innerHTML =
-    '<div class="stat"><span>Thoughts flipped</span><b>'+total+'</b></div>'+
+    '<div class="stat"><span>Thoughts turned around</span><b>'+total+'</b></div>'+
     '<div class="stat"><span>This week</span><b>'+week+'</b></div>'+
     (topTrap?'<div class="stat"><span>Most common trap</span><b>'+esc(topTrap[0])+'</b></div>':'');
-  // List
   list.innerHTML = all.map(e=>{
     const d = new Date(e.date);
     const when = d.toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'});
@@ -432,33 +352,111 @@ function showTab(which){
   if(which==='saved') renderSaved();
 }
 
-/* ---------- Pensieve release animation ---------- */
-let fxRaf = null;
-function releaseThought(){
+/* ---------- Live hint under the thought ---------- */
+function onNegInput(){
+  const neg = document.getElementById('neg').value;
+  const f = document.getElementById('negFlag');
+  if(concerning(neg)){ f.textContent=''; return; }
+  f.textContent = isNegative(neg)
+    ? '💭 This reads as a negative thought – Thoughtsieve will help you turn it around.'
+    : '';
+}
+
+/* ---------- Send to the Pensieve ---------- */
+function timings(){
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return reduce;
+}
+function sendToPensieve(){
   const neg = document.getElementById('neg').value.trim();
   if(concerning(neg)){ showCare(); return; }
+  if(!neg){ document.getElementById('neg').focus(); return; }
+
+  const ov = document.getElementById('pensieve');
+  const hold = document.getElementById('orbhold');
+  const orb = document.getElementById('orb');
+  const cap = document.getElementById('pcap');
+
+  orb.querySelector('.txt').textContent = neg.length > 90 ? neg.slice(0,90)+'…' : neg;
+  hold.className = 'orbhold'; orb.className = 'orb';
+  cap.className = 'cap';
+  ov.classList.remove('reframe');
+  ov.classList.add('show');
+  void hold.offsetWidth; // restart float
+
+  if(isNegative(neg)){
+    // Float and HOLD – force a reframe before it can burst
+    ov.classList.add('reframe');
+    cap.textContent = 'This one is weighing on you. Turn it into something kinder to let it go.';
+    cap.classList.add('show');
+    buildReframeHelp();
+    const rpos = document.getElementById('rpos');
+    rpos.value = document.getElementById('pos').value || '';
+    document.getElementById('rnudge').textContent='';
+    onReframeInput();
+  } else {
+    // Nothing harsh to transform – let it gently drift away
+    cap.textContent = 'Letting it drift away…';
+    const reduce = timings();
+    const t = reduce ? {shake:60,burst:220,cap:420,close:1800} : {shake:2000,burst:2350,cap:2500,close:4600};
+    setTimeout(()=>orb.classList.add('shake'), t.shake);
+    setTimeout(()=>{ burst(orb); orb.classList.add('pop'); }, t.burst);
+    setTimeout(()=>{ cap.textContent='Released. 🌿'; cap.classList.add('show'); }, t.cap);
+    setTimeout(()=>closePensieve(), t.close);
+  }
+}
+
+function buildReframeHelp(){
+  const neg = document.getElementById('neg').value.toLowerCase();
+  detectedTrap = null;
+  const trap = TRAPS.find(t=>t.words.some(w=>neg.includes(w)));
+  const rt = document.getElementById('rtrap');
+  if(trap){ detectedTrap = trap.name; rt.textContent = 'Likely thinking trap: ' + trap.name + ' – ' + trap.desc; }
+  else rt.textContent = '';
+  document.getElementById('rhelp').innerHTML =
+    REFRAME_TECHNIQUES.slice(0,4).map(([n,q])=>'<li><b>'+n+':</b> '+q+'</li>').join('');
+}
+
+const HARSH = ['useless','worthless','stupid','idiot','loser','pathetic','hate myself',
+  'failure','disgusting','unlovable','hopeless'];
+function onReframeInput(){
+  const v = document.getElementById('rpos').value.trim();
+  const vl = v.toLowerCase();
+  const neg = document.getElementById('neg').value.trim().toLowerCase();
+  const nud = document.getElementById('rnudge');
+  const go = document.getElementById('rgo');
+  if(concerning(v)){ showCare(); go.disabled = true; return; }
+  const harsh = HARSH.some(w=>vl.includes(w));
+  const ok = v.length >= 8 && vl !== neg && !harsh;
+  nud.textContent = (v.length && harsh) ? 'This still sounds harsh – can you find one kinder, truer thing to say?'
+    : (v.length >= 3 && vl === neg) ? 'Try to change it, not just repeat it.'
+    : '';
+  go.disabled = !ok;
+}
+
+function transformAndRelease(){
   const ov = document.getElementById('pensieve');
   const orb = document.getElementById('orb');
   const cap = document.getElementById('pcap');
-  orb.querySelector('.txt').textContent = neg
-    ? (neg.length > 90 ? neg.slice(0,90) + '…' : neg)
-    : 'this thought';
-  orb.className = 'orb';
-  cap.className = 'cap';
-  cap.textContent = 'Letting it rise…';
-  ov.classList.add('show');
-  void orb.offsetWidth; // restart animation
+  const pos = document.getElementById('rpos').value.trim();
+  if(concerning(pos)){ showCare(); return; }
+  document.getElementById('pos').value = pos;
 
-  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const t = reduce ? {crack:100, burst:400, cap:600, close:2000}
-                   : {crack:2100, burst:2500, cap:2650, close:5200};
+  ov.classList.remove('reframe');
+  document.getElementById('rgo').disabled = true;
+  cap.textContent = 'Transformed. Letting the old thought go…';
+  cap.classList.add('show');
 
-  setTimeout(()=>{ orb.classList.add('crack'); }, t.crack);
-  setTimeout(()=>{ burst(orb); orb.classList.add('gone'); }, t.burst);
-  setTimeout(()=>{ cap.textContent = 'Released. It no longer has to weigh on you.'; cap.classList.add('show'); }, t.cap);
-  setTimeout(()=>{ closePensieve(); }, t.close);
+  const reduce = timings();
+  const d = reduce ? {shake:40,burst:200,kept:500,close:2000} : {shake:150,burst:520,kept:1300,close:3400};
+  setTimeout(()=>orb.classList.add('shake'), d.shake);
+  setTimeout(()=>{ burst(orb); orb.classList.add('pop'); }, d.burst);
+  setTimeout(()=>{ cap.textContent = '✨ Kept: “' + (pos.length>70?pos.slice(0,70)+'…':pos) + '”'; }, d.kept);
+  setTimeout(()=>{ saveFromFlow(); closePensieve(); }, d.close);
 }
 
+/* ---------- Ember burst ---------- */
+let fxRaf = null;
 function burst(orb){
   const canvas = document.getElementById('fx');
   const dpr = window.devicePixelRatio || 1;
@@ -469,20 +467,18 @@ function burst(orb){
   const r = orb.getBoundingClientRect();
   const cx = r.left + r.width/2, cy = r.top + r.height/2;
 
-  // Hot "volcano" lava sparks (with the rare cool wisp)
   const embers = ['#fff2b0','#ffd24d','#ff9a1f','#ff6a1a','#ff3b1e','#e01818'];
   const wisps  = ['#bfeaff','#e9f8ff'];
   const parts = [];
   const N = 150;
-  // central flash
-  parts.push({x:cx,y:cy,vx:0,vy:0,g:0,r:70,life:1,decay:0.09,c:'#ffd98a',flash:true});
+  parts.push({x:cx,y:cy,vx:0,vy:0,g:0,r:70,life:1,decay:0.09,c:'#ffd98a'});
   for(let i=0;i<N;i++){
     const ang = Math.random()*Math.PI*2;
     const sp = 3 + Math.random()*9;
-    const ember = Math.random() > 0.06; // ~94% fiery
+    const ember = Math.random() > 0.06;
     parts.push({
       x:cx, y:cy,
-      vx:Math.cos(ang)*sp, vy:Math.sin(ang)*sp - 5, // leap upward like lava
+      vx:Math.cos(ang)*sp, vy:Math.sin(ang)*sp - 5,
       g:0.16 + Math.random()*0.16,
       r:1.5 + Math.random()*4.5,
       life:1, decay:0.006 + Math.random()*0.014,
@@ -490,7 +486,7 @@ function burst(orb){
     });
   }
   let frames = 0;
-  function step(){
+  function stepFx(){
     ctx.clearRect(0,0,canvas.clientWidth,canvas.clientHeight);
     let alive = 0;
     parts.forEach(p=>{
@@ -505,23 +501,28 @@ function burst(orb){
     });
     ctx.globalAlpha = 1; ctx.shadowBlur = 0;
     frames++;
-    if(alive>0 && frames<240) fxRaf = requestAnimationFrame(step);
+    if(alive>0 && frames<240) fxRaf = requestAnimationFrame(stepFx);
     else ctx.clearRect(0,0,canvas.clientWidth,canvas.clientHeight);
   }
-  step();
+  stepFx();
 }
 
+function pensieveBgClick(e){
+  if(e.target.id !== 'pensieve') return;
+  if(document.getElementById('pensieve').classList.contains('reframe')) return; // don't lose a reframe by mis-tap
+  closePensieve();
+}
 function closePensieve(){
   const ov = document.getElementById('pensieve');
   if(!ov.classList.contains('show')) return;
   if(fxRaf) cancelAnimationFrame(fxRaf);
   const ctx = document.getElementById('fx').getContext('2d');
   ctx && ctx.clearRect(0,0,9999,9999);
-  ov.classList.remove('show');
+  ov.classList.remove('show','reframe');
 }
 
 /* ---------- init ---------- */
-buildTraps(); buildMoods(); buildChallenges();
+renderSaved();
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
 </script>
 </body>
