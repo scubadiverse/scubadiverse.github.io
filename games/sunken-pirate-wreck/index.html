@@ -1,0 +1,745 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>The Sunken Pirate Wreck &ndash; Dive Within Your Training</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Creepster&family=Luckiest+Guy&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0a0714;
+    --slime:#8bff5a;
+    --purple:#7b2ff7;
+    --grape:#2a1055;
+    --torch:#ffb64a;
+    --danger:#ff3b6b;
+    --sea:#0b3a5b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden;background:#000;font-family:'Nunito',system-ui,sans-serif;color:#fff;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+  #game{position:fixed;inset:0}
+  canvas{display:block;width:100%;height:100%}
+
+  /* underwater tint + vignette */
+  #tint{position:absolute;inset:0;pointer-events:none;mix-blend-mode:soft-light;
+    background:radial-gradient(120% 90% at 50% 0%, rgba(120,220,255,.35), rgba(0,20,40,.0) 55%);opacity:0;transition:opacity 1s}
+  #vig{position:absolute;inset:0;pointer-events:none;
+    box-shadow:inset 0 0 220px 60px rgba(0,0,0,.72), inset 0 0 60px 10px rgba(0,0,0,.35)}
+  #flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+
+  /* HUD */
+  #hud{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .5s;font-weight:800}
+  #hud.on{opacity:1}
+  .gauge{position:absolute;left:16px;bottom:16px;width:190px;background:rgba(6,2,16,.55);border:2px solid rgba(255,255,255,.25);border-radius:14px;padding:10px 12px;backdrop-filter:blur(3px)}
+  .gauge .lab{font-size:11px;letter-spacing:.14em;opacity:.8;text-transform:uppercase}
+  .bar{height:14px;margin-top:6px;border-radius:8px;background:#20122e;overflow:hidden;border:1px solid rgba(255,255,255,.15)}
+  .bar > i{display:block;height:100%;width:100%;border-radius:8px;
+    background:linear-gradient(90deg,#3bff9d,#c7ff3b);transition:width .12s linear}
+  #airval{font-family:'Luckiest Guy';font-size:22px;line-height:1}
+  #stats{position:absolute;right:16px;top:16px;text-align:right;font-size:13px;letter-spacing:.05em}
+  #stats span{display:inline-block;background:rgba(6,2,16,.55);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:5px 12px;margin:0 0 8px 8px}
+  #torchpill{color:#ffd89b}
+  /* compass */
+  #compass{position:absolute;right:18px;bottom:18px;width:96px;height:96px;border-radius:50%;
+    background:radial-gradient(circle,#10203a,#050b16);border:3px solid rgba(255,255,255,.35);
+    box-shadow:0 6px 24px rgba(0,0,0,.5);display:none;place-items:center}
+  #compass .card{position:absolute;font-size:10px;font-weight:900;color:#cfe6ff;opacity:.7}
+  #compass .n{top:5px}#compass .s{bottom:5px}#compass .e{right:6px;top:44px}#compass .w{left:6px;top:44px}
+  #needle{width:6px;height:70px;transform-origin:50% 50%}
+  #needle .red{position:absolute;top:0;left:0;width:6px;height:35px;background:linear-gradient(#ff3b6b,#a10e2c);border-radius:3px 3px 0 0}
+  #needle .wht{position:absolute;bottom:0;left:0;width:6px;height:35px;background:linear-gradient(#eef,#889);border-radius:0 0 3px 3px}
+  #objective{position:absolute;left:50%;top:16px;transform:translateX(-50%);text-align:center;
+    background:rgba(6,2,16,.6);border:1px solid rgba(139,255,90,.4);border-radius:30px;padding:8px 20px;
+    font-family:'Luckiest Guy';letter-spacing:.04em;color:var(--slime);text-shadow:0 2px 0 rgba(0,0,0,.6);font-size:16px}
+
+  /* narration ticker */
+  #narr{position:absolute;left:50%;bottom:96px;transform:translateX(-50%);width:min(760px,90%);
+    text-align:center;font-size:19px;font-weight:800;line-height:1.35;
+    text-shadow:0 2px 10px rgba(0,0,0,.9);opacity:0;transition:opacity .6s;pointer-events:none}
+  #narr.on{opacity:1}
+
+  /* screen overlays (title / choices / endings) */
+  #screen{position:absolute;inset:0;display:none;place-items:center;padding:20px;
+    background:radial-gradient(120% 120% at 50% -10%, rgba(60,10,90,.55), rgba(2,2,10,.86) 70%)}
+  #screen.on{display:grid}
+  .panel{width:min(880px,96%);text-align:center;animation:pop .5s cubic-bezier(.2,1.4,.4,1)}
+  @keyframes pop{from{transform:scale(.8) rotate(-1deg);opacity:0}to{transform:none;opacity:1}}
+  .kicker{font-family:'Creepster';letter-spacing:.08em;color:var(--slime);font-size:clamp(20px,4vw,34px);
+    text-shadow:0 0 18px rgba(139,255,90,.5)}
+  h1.title{font-family:'Creepster';font-size:clamp(42px,10vw,104px);line-height:.95;letter-spacing:.02em;
+    color:#fff;text-shadow:0 0 24px rgba(123,47,247,.9), 6px 6px 0 #3a0f6e;margin:6px 0 4px}
+  .sub{font-size:clamp(15px,2.4vw,20px);opacity:.92;max-width:640px;margin:8px auto 0;font-weight:700}
+  h2.big{font-family:'Luckiest Guy';font-size:clamp(30px,7vw,66px);line-height:1;margin:0 0 6px;
+    text-shadow:4px 4px 0 rgba(0,0,0,.45)}
+  .win h2{color:#7dff9b;text-shadow:0 0 26px rgba(60,255,120,.6),4px 4px 0 rgba(0,0,0,.4)}
+  .lose h2{color:var(--danger);text-shadow:0 0 26px rgba(255,60,110,.6),4px 4px 0 rgba(0,0,0,.4)}
+  .cards{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-top:26px}
+  .card-btn{width:min(360px,92%);cursor:pointer;text-align:left;
+    background:linear-gradient(180deg,#1b1030,#120a24);border:3px solid rgba(255,255,255,.14);
+    border-radius:20px;padding:20px 20px 18px;transition:transform .15s, border-color .15s, box-shadow .15s;pointer-events:auto}
+  .card-btn:hover{transform:translateY(-6px) rotate(-.6deg);border-color:var(--slime);
+    box-shadow:0 18px 40px rgba(0,0,0,.5), 0 0 0 4px rgba(139,255,90,.12)}
+  .card-btn .ico{font-size:40px}
+  .card-btn h3{font-family:'Luckiest Guy';font-size:22px;margin:8px 0 2px;letter-spacing:.02em}
+  .card-btn.good h3{color:#8bff5a}.card-btn.bad h3{color:#ff8fa6}
+  .card-btn p{font-size:14px;font-weight:600;opacity:.86;line-height:1.4}
+  .tag{display:inline-block;font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;
+    padding:3px 10px;border-radius:20px;margin-top:12px}
+  .tag.warn{background:rgba(255,59,107,.16);color:#ff9fb2;border:1px solid rgba(255,59,107,.5)}
+  .tag.safe{background:rgba(139,255,90,.14);color:#bfff9a;border:1px solid rgba(139,255,90,.5)}
+  .btn{cursor:pointer;pointer-events:auto;font-family:'Luckiest Guy';font-size:20px;letter-spacing:.03em;
+    color:#1a0b2e;background:linear-gradient(180deg,#ffd23f,#ff9f1c);border:none;border-radius:16px;
+    padding:14px 30px;margin:26px 8px 0;box-shadow:0 8px 0 #a85c00, 0 12px 22px rgba(0,0,0,.4);transition:transform .1s}
+  .btn:active{transform:translateY(4px);box-shadow:0 4px 0 #a85c00}
+  .btn.ghost{background:linear-gradient(180deg,#3a2a5e,#241640);color:#fff;box-shadow:0 8px 0 #150a2c,0 12px 22px rgba(0,0,0,.4)}
+  .lesson{margin:22px auto 0;max-width:640px;font-size:15px;font-weight:800;line-height:1.5;
+    background:rgba(139,255,90,.08);border:1px solid rgba(139,255,90,.35);border-radius:16px;padding:14px 18px}
+  .lesson b{color:var(--slime)}
+  .credit{position:absolute;left:0;right:0;bottom:14px;text-align:center;font-size:12px;opacity:.5}
+
+  /* touch dpad + look hint */
+  #pad{position:absolute;left:14px;bottom:120px;display:none;grid-template-columns:repeat(3,56px);
+    grid-template-rows:repeat(2,56px);gap:8px;pointer-events:none;z-index:5}
+  #pad.on{display:grid}
+  #pad button{pointer-events:auto;width:56px;height:56px;border-radius:14px;font-size:22px;color:#fff;
+    background:rgba(20,10,40,.6);border:2px solid rgba(255,255,255,.25);backdrop-filter:blur(3px)}
+  #pad button:active{background:rgba(139,255,90,.35)}
+  .b-up{grid-column:2;grid-row:1}.b-left{grid-column:1;grid-row:2}.b-down{grid-column:2;grid-row:2}.b-right{grid-column:3;grid-row:2}
+  #lookhint{position:absolute;left:50%;bottom:60px;transform:translateX(-50%);font-size:13px;font-weight:800;
+    opacity:0;transition:opacity .4s;pointer-events:none;background:rgba(6,2,16,.55);padding:6px 14px;border-radius:20px}
+  #lookhint.on{opacity:.85}
+
+  #loading{position:absolute;inset:0;display:grid;place-items:center;background:#05030d;z-index:20}
+  #loading .l{font-family:'Creepster';font-size:34px;color:var(--slime);animation:blink 1s infinite}
+  @keyframes blink{50%{opacity:.35}}
+</style>
+</head>
+<body>
+<div id="game">
+  <canvas id="c"></canvas>
+  <div id="tint"></div>
+  <div id="vig"></div>
+  <div id="flash"></div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div id="objective">Descend to the wreck</div>
+    <div class="gauge">
+      <div class="lab">Cylinder pressure</div>
+      <div id="airval">200<small style="font-size:12px"> bar</small></div>
+      <div class="bar"><i id="airbar"></i></div>
+    </div>
+    <div id="stats">
+      <div><span id="depthpill">Depth 0 m</span></div>
+      <div><span id="torchpill">Torch: primary</span></div>
+      <div><span id="buddypill">Buddy: with you</span></div>
+    </div>
+    <div id="compass">
+      <span class="card n">N</span><span class="card s">S</span><span class="card e">E</span><span class="card w">W</span>
+      <div id="needle"><div class="red"></div><div class="wht"></div></div>
+    </div>
+  </div>
+
+  <div id="narr"></div>
+
+  <!-- touch controls -->
+  <div id="pad">
+    <button class="b-up" data-dir="up">▲</button>
+    <button class="b-left" data-dir="left">◄</button>
+    <button class="b-down" data-dir="down">▼</button>
+    <button class="b-right" data-dir="right">►</button>
+  </div>
+  <div id="lookhint">Drag to look around &nbsp;•&nbsp; WASD / arrows to swim</div>
+
+  <div id="screen"></div>
+  <div id="loading"><div class="l">Loading the deep&hellip;</div></div>
+  <div class="credit">An educational dive game &bull; Dive within your training</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* =========================================================================
+   THE SUNKEN PIRATE WRECK  —  an educational game about qualification.
+   Scooby-Doo meets escape room. One self-contained file for github.io.
+   ========================================================================= */
+(function(){
+"use strict";
+if(!window.THREE){ document.getElementById('loading').innerHTML =
+  '<div class="l" style="font-size:20px">Could not load 3D engine.<br>Check your internet and reload.</div>'; return; }
+
+/* ---------- DOM ---------- */
+const cvs   = document.getElementById('c');
+const tint  = document.getElementById('tint');
+const flash = document.getElementById('flash');
+const hud   = document.getElementById('hud');
+const objEl = document.getElementById('objective');
+const narrEl= document.getElementById('narr');
+const scr   = document.getElementById('screen');
+const pad   = document.getElementById('pad');
+const lookhint = document.getElementById('lookhint');
+const airval= document.getElementById('airval');
+const airbar= document.getElementById('airbar');
+const depthpill=document.getElementById('depthpill');
+const torchpill=document.getElementById('torchpill');
+const buddypill=document.getElementById('buddypill');
+const compassEl=document.getElementById('compass');
+const needle=document.getElementById('needle');
+
+/* ---------- three basics ---------- */
+const renderer = new THREE.WebGLRenderer({canvas:cvs, antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setClearColor(0x03131f);
+const scene  = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(62, innerWidth/innerHeight, 0.1, 800);
+const clock  = new THREE.Clock();
+function resize(){ renderer.setSize(innerWidth,innerHeight); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); }
+addEventListener('resize',resize); resize();
+
+/* ---------- helpers ---------- */
+const R = (a,b)=> a + Math.random()*(b-a);
+function disposeObj(o){ o.traverse&&o.traverse(n=>{ if(n.geometry)n.geometry.dispose(); if(n.material){ (Array.isArray(n.material)?n.material:[n.material]).forEach(m=>m.dispose&&m.dispose()); } }); }
+function clearScene(){ for(let i=scene.children.length-1;i>=0;i--){ const o=scene.children[i]; scene.remove(o); disposeObj(o);} scene.fog=null; }
+function setTint(v){ tint.style.opacity=v; }
+function doFlash(){ flash.style.transition='none'; flash.style.opacity='.9'; requestAnimationFrame(()=>{ flash.style.transition='opacity .6s'; flash.style.opacity='0'; }); }
+function say(t){ narrEl.innerHTML=t; narrEl.classList.add('on'); }
+function hush(){ narrEl.classList.remove('on'); }
+function objective(t){ objEl.textContent=t; }
+function showHUD(on){ hud.classList.toggle('on',!!on); }
+
+/* screen overlay builder */
+function screen(html){ scr.innerHTML='<div class="panel">'+html+'</div>'; scr.classList.add('on'); }
+function hideScreen(){ scr.classList.remove('on'); scr.innerHTML=''; }
+scr.addEventListener('click',e=>{ const b=e.target.closest('[data-act]'); if(b) ACT[b.dataset.act] && ACT[b.dataset.act](b); });
+
+/* ---------- materials ---------- */
+const WOOD  = ()=> new THREE.MeshStandardMaterial({color:0x3b2a1b, roughness:.95});
+const WOOD2 = ()=> new THREE.MeshStandardMaterial({color:0x2a1d12, roughness:1});
+const CORAL = c => new THREE.MeshStandardMaterial({color:c, roughness:.6, emissive:new THREE.Color(c).multiplyScalar(.12)});
+
+/* ---------- builders ---------- */
+function makeWreck(){
+  const g=new THREE.Group();
+  // hull
+  const hull=new THREE.Mesh(new THREE.BoxGeometry(34,10,11), WOOD());
+  hull.scale.set(1,1,1); g.add(hull);
+  const bow=new THREE.Mesh(new THREE.ConeGeometry(5.5,12,4), WOOD());
+  bow.rotation.z=-Math.PI/2; bow.rotation.y=Math.PI/4; bow.position.x=22; bow.scale.z=.42; g.add(bow);
+  const deck=new THREE.Mesh(new THREE.BoxGeometry(30,1,9), WOOD2()); deck.position.y=5.2; g.add(deck);
+  // rear castle
+  const cabin=new THREE.Mesh(new THREE.BoxGeometry(8,6,9), WOOD()); cabin.position.set(-12,7,0); g.add(cabin);
+  // masts (broken)
+  const m1=new THREE.Mesh(new THREE.CylinderGeometry(.6,.8,20,8), WOOD2()); m1.position.set(4,12,0); m1.rotation.z=.5; g.add(m1);
+  const m2=new THREE.Mesh(new THREE.CylinderGeometry(.5,.7,9,8), WOOD2()); m2.position.set(-6,9,0); m2.rotation.z=-.25; g.add(m2);
+  const yard=new THREE.Mesh(new THREE.CylinderGeometry(.35,.35,16,6), WOOD2()); yard.rotation.x=Math.PI/2; yard.position.set(4,15,0); yard.rotation.z=.5; g.add(yard);
+  // tattered sail
+  const sailMat=new THREE.MeshStandardMaterial({color:0x6b6152,roughness:1,transparent:true,opacity:.55,side:THREE.DoubleSide});
+  const sail=new THREE.Mesh(new THREE.PlaneGeometry(12,8), sailMat); sail.position.set(4,12,.2); sail.rotation.z=.5; g.add(sail);
+  // cannons
+  for(let i=0;i<4;i++){ const c=new THREE.Mesh(new THREE.CylinderGeometry(.5,.6,4,10), new THREE.MeshStandardMaterial({color:0x1c1c22,roughness:.5,metalness:.6})); c.rotation.z=Math.PI/2; c.position.set(-8+i*7, 3.5, (i%2?1:-1)*6); g.add(c);}
+  // ship wheel
+  const wheel=new THREE.Group(); const ring=new THREE.Mesh(new THREE.TorusGeometry(1.6,.22,8,20), WOOD2()); wheel.add(ring);
+  for(let i=0;i<6;i++){ const s=new THREE.Mesh(new THREE.CylinderGeometry(.1,.1,3.6,6), WOOD2()); s.rotation.z=i*Math.PI/6; wheel.add(s);}
+  wheel.position.set(-12,9,-3); wheel.rotation.x=.4; g.add(wheel);
+  // treasure chest (glint)
+  const chest=new THREE.Mesh(new THREE.BoxGeometry(3,2,2), new THREE.MeshStandardMaterial({color:0x5a3a18,roughness:.7}));
+  chest.position.set(10,0.5,3); chest.rotation.y=.6; g.add(chest);
+  const gold=new THREE.Mesh(new THREE.SphereGeometry(1.1,10,10), new THREE.MeshStandardMaterial({color:0xffd76b,emissive:0x5a4300,roughness:.3,metalness:.7}));
+  gold.position.set(10,1.6,3); gold.scale.y=.4; g.add(gold);
+  // coral + barnacles
+  const cols=[0xff5e8a,0xff9f43,0x7b5bff,0x2ec7ff,0x5aff9d];
+  for(let i=0;i<40;i++){ const c=cols[i%cols.length];
+    const cor=new THREE.Mesh(new THREE.ConeGeometry(R(.4,1.1),R(1,3),6), CORAL(c));
+    cor.position.set(R(-17,17), R(-1,6), (Math.random()<.5?-1:1)*R(4.5,6)); cor.rotation.set(R(-.4,.4),0,R(-.4,.4)); g.add(cor);
+  }
+  g.rotation.z=-0.13; // listing on the seabed
+  g.position.y=-2;
+  return g;
+}
+function seabed(){
+  const g=new THREE.Group();
+  const floor=new THREE.Mesh(new THREE.PlaneGeometry(400,400,1,1), new THREE.MeshStandardMaterial({color:0x223d2f,roughness:1}));
+  floor.rotation.x=-Math.PI/2; floor.position.y=-8; g.add(floor);
+  for(let i=0;i<60;i++){ const r=new THREE.Mesh(new THREE.DodecahedronGeometry(R(.6,2.5)), new THREE.MeshStandardMaterial({color:0x2a3b30,roughness:1}));
+    r.position.set(R(-120,120),-7.5,R(-120,120)); g.add(r);}
+  return g;
+}
+function godRays(){
+  const g=new THREE.Group();
+  const mat=new THREE.MeshBasicMaterial({color:0x9fe8ff,transparent:true,opacity:.06,side:THREE.DoubleSide,depthWrite:false});
+  for(let i=0;i<7;i++){ const r=new THREE.Mesh(new THREE.ConeGeometry(R(6,12),90,8,1,true), mat.clone());
+    r.position.set(R(-60,60),45,R(-60,60)); r.rotation.z=R(-.15,.15); g.add(r);}
+  return g;
+}
+function particles(n,spread,color,size,yBase){
+  const geo=new THREE.BufferGeometry(); const pos=new Float32Array(n*3);
+  for(let i=0;i<n;i++){ pos[i*3]=R(-spread,spread); pos[i*3+1]=(yBase||0)+R(-spread,spread); pos[i*3+2]=R(-spread,spread);}
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  const mat=new THREE.PointsMaterial({color:color,size:size,transparent:true,opacity:.5,depthWrite:false});
+  return new THREE.Points(geo,mat);
+}
+function makeDiver(suit,opts){
+  opts=opts||{}; const g=new THREE.Group();
+  const skin=new THREE.MeshStandardMaterial({color:suit,roughness:.6});
+  const body=new THREE.Mesh(new THREE.CapsuleGeometry?new THREE.CapsuleGeometry(1,2.2,4,8):new THREE.CylinderGeometry(1,1,3.4,10), skin); g.add(body);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(.85,14,14), skin); head.position.y=2.2; g.add(head);
+  const mask=new THREE.Mesh(new THREE.SphereGeometry(.55,12,12), new THREE.MeshStandardMaterial({color:0x0b1a2a,metalness:.3,roughness:.2}));
+  mask.scale.set(1,.7,.6); mask.position.set(0,2.3,.6); g.add(mask);
+  const tank=new THREE.Mesh(new THREE.CylinderGeometry(.45,.45,2.4,10), new THREE.MeshStandardMaterial({color:0xf1c40f,metalness:.4,roughness:.4}));
+  tank.position.set(0,.2,-.95); g.add(tank);
+  // fins
+  const finM=new THREE.MeshStandardMaterial({color:0x111318,roughness:.8});
+  const f1=new THREE.Mesh(new THREE.BoxGeometry(.9,.15,2.2), finM); f1.position.set(.6,-2.2,-.4); g.add(f1);
+  const f2=new THREE.Mesh(new THREE.BoxGeometry(.9,.15,2.2), finM); f2.position.set(-.6,-2.2,-.4); g.add(f2);
+  // arms
+  const a1=new THREE.Mesh(new THREE.CylinderGeometry(.3,.3,2,8), skin); a1.position.set(1.2,.6,.4); a1.rotation.z=.9; g.add(a1);
+  const a2=new THREE.Mesh(new THREE.CylinderGeometry(.3,.3,2,8), skin); a2.position.set(-1.2,.6,.4); a2.rotation.z=-.9; g.add(a2);
+  g.userData={arm1:a1,arm2:a2,fin1:f1,fin2:f2};
+  if(opts.light){ const l=new THREE.SpotLight(0xffd08a,2,60,.5,.4,1); l.position.set(0,1,1); const t=new THREE.Object3D(); t.position.set(0,0,10); g.add(t); l.target=t; g.add(l); g.userData.torch=l;}
+  return g;
+}
+function fishSchool(n,center,radius,color){
+  const g=new THREE.Group(); const list=[];
+  for(let i=0;i<n;i++){ const f=new THREE.Group();
+    const b=new THREE.Mesh(new THREE.ConeGeometry(.35,1.2,8), new THREE.MeshStandardMaterial({color:color,roughness:.4,metalness:.2})); b.rotation.z=-Math.PI/2; f.add(b);
+    const tl=new THREE.Mesh(new THREE.ConeGeometry(.3,.6,4), new THREE.MeshStandardMaterial({color:color})); tl.rotation.z=Math.PI/2; tl.position.x=-.8; f.add(tl);
+    g.add(f); list.push({m:f,a:R(0,6.28),sp:R(.4,.9),rad:radius*R(.5,1.1),yo:R(-radius/2,radius/2),ph:R(0,6.28)});
+  }
+  g.position.copy(center); g.userData.list=list; return g;
+}
+
+/* ---------- lighting presets ---------- */
+function seaLights(){
+  scene.add(new THREE.HemisphereLight(0x69c6ff,0x08202b,.9));
+  const sun=new THREE.DirectionalLight(0xbfe9ff,1.1); sun.position.set(20,60,10); scene.add(sun);
+}
+
+/* =====================================================================
+   INPUT
+   ===================================================================== */
+const keys={}; addEventListener('keydown',e=>{keys[e.code]=true;}); addEventListener('keyup',e=>{keys[e.code]=false;});
+const touch={up:0,down:0,left:0,right:0};
+pad.querySelectorAll('button').forEach(b=>{ const d=b.dataset.dir;
+  const on=e=>{e.preventDefault();touch[d]=1;}; const off=e=>{e.preventDefault();touch[d]=0;};
+  b.addEventListener('touchstart',on,{passive:false}); b.addEventListener('touchend',off); b.addEventListener('touchcancel',off);
+  b.addEventListener('mousedown',on); addEventListener('mouseup',off);
+});
+// drag-look (only used in maze)
+let look={yaw:Math.PI,pitch:0}, dragging=false, lastX=0,lastY=0, lookEnabled=false;
+function pdown(e){ if(!lookEnabled)return; if(scr.classList.contains('on'))return; dragging=true; const p=e.touches?e.touches[0]:e; lastX=p.clientX; lastY=p.clientY; }
+function pmove(e){ if(!dragging)return; const p=e.touches?e.touches[0]:e; look.yaw-=(p.clientX-lastX)*0.005; look.pitch-=(p.clientY-lastY)*0.005; look.pitch=Math.max(-1.1,Math.min(1.1,look.pitch)); lastX=p.clientX; lastY=p.clientY; }
+function pup(){ dragging=false; }
+cvs.addEventListener('mousedown',pdown); addEventListener('mousemove',pmove); addEventListener('mouseup',pup);
+cvs.addEventListener('touchstart',pdown,{passive:true}); addEventListener('touchmove',pmove,{passive:true}); addEventListener('touchend',pup);
+
+/* =====================================================================
+   STATE MACHINE
+   ===================================================================== */
+let phase=null; // {update, cleanup}
+function setPhase(p){ if(phase&&phase.cleanup)phase.cleanup(); clearScene(); phase=p||{}; }
+
+let cert=null; // 'aow' | 'wreck'
+
+/* ---------- animate loop ---------- */
+function animate(){ requestAnimationFrame(animate); const dt=Math.min(clock.getDelta(),.05); if(phase&&phase.update)phase.update(dt); renderer.render(scene,camera); }
+
+/* =====================================================================
+   PHASE: TITLE / ENTRY CHOICE
+   ===================================================================== */
+function phaseTitle(){
+  setPhase({}); showHUD(false); setTint(0); pad.classList.remove('on'); lookhint.classList.remove('on'); lookEnabled=false;
+  seaLights(); scene.add(seabed()); scene.add(godRays());
+  scene.fog=new THREE.FogExp2(0x0a3550,0.012);
+  const wreck=makeWreck(); wreck.position.set(0,-2,-8); scene.add(wreck);
+  const bub=particles(400,90,0xa8e8ff,.5,0); scene.add(bub);
+  let t=0; camera.position.set(0,6,44);
+  phase.update=(dt)=>{ t+=dt; camera.position.x=Math.sin(t*.15)*10; camera.position.y=6+Math.sin(t*.3)*1.5; camera.lookAt(0,0,-8);
+    const pa=bub.geometry.attributes.position; for(let i=0;i<pa.count;i++){ let y=pa.getY(i)+dt*3; if(y>70)y=-20; pa.setY(i,y);} pa.needsUpdate=true; };
+  screen(`
+    <div class="kicker">An Educational Escape-Room Dive</div>
+    <h1 class="title">The Sunken<br>Pirate Wreck</h1>
+    <p class="sub">A gorgeous 300-year-old galleon rests on the seabed. Two divers stand at two entry points. Only one is trained to go <i>inside</i>. Which door do you take?</p>
+    <div class="cards">
+      <div class="card-btn bad" data-act="pickAOW">
+        <div class="ico">🤿</div>
+        <h3>Entry 1 &ndash; Advanced Open Water</h3>
+        <p>You have great buoyancy and 40 logged dives &mdash; but <b>no Wreck Diver speciality</b>. No reel, no penetration training, one torch.</p>
+        <span class="tag warn">Not trained to enter the wreck</span>
+      </div>
+      <div class="card-btn good" data-act="pickWreck">
+        <div class="ico">🪝</div>
+        <h3>Entry 2 &ndash; Wreck Diver Certified</h3>
+        <p>Trained in overhead environments: <b>guideline reel, primary + backup torch</b>, lost-line &amp; lost-buddy drills, gas planning.</p>
+        <span class="tag safe">Trained &amp; equipped to penetrate</span>
+      </div>
+    </div>
+    <div class="lesson">This little game is really about one big idea: <b>be qualified for what you do.</b> The right training turns a deadly place into a beautiful one.</div>
+  `);
+}
+const ACT={};
+ACT.pickAOW=()=>{ cert='aow'; hideScreen(); phaseDescend(); };
+ACT.pickWreck=()=>{ cert='wreck'; hideScreen(); phaseCertified(); };
+ACT.restart=()=>{ phaseTitle(); };
+ACT.retry=()=>{ cert='aow'; hideScreen(); phaseDescend(); };
+ACT.enterWreck=()=>{ hideScreen(); phaseSilt(); };
+ACT.swimAround=()=>{ hideScreen(); phaseSafe(); };
+ACT.noBackup=()=>{ hideScreen(); phaseLost(); };
+
+/* =====================================================================
+   PHASE: DESCEND (AOW) — see the beautiful wreck, then choose
+   ===================================================================== */
+function phaseDescend(){
+  setPhase({}); showHUD(true); setTint(.9); air=200; updateAir(); torchState('primary'); buddyState('with you');
+  compassEl.style.display='none'; objective('Explore the wreck');
+  seaLights(); scene.add(seabed()); scene.add(godRays());
+  scene.fog=new THREE.FogExp2(0x0c4a6b,0.014);
+  const wreck=makeWreck(); scene.add(wreck);
+  const school1=fishSchool(14,new THREE.Vector3(6,4,4),8,0xffd23f); scene.add(school1);
+  const school2=fishSchool(20,new THREE.Vector3(-8,6,-2),10,0x4fd0ff); scene.add(school2);
+  const bub=particles(300,60,0xbfefff,.4,0); scene.add(bub);
+  const buddy=makeDiver(0x22c1ff); buddy.position.set(-6,5,18); buddy.rotation.y=Math.PI; scene.add(buddy);
+  let t=0; camera.position.set(0,7,40);
+  say("You reach the wreck. It is breathtaking &mdash; coral, cannons, a glint of gold inside the dark hull&hellip;");
+  let choiceShown=false;
+  phase.update=(dt)=>{ t+=dt; depthReadout(18+Math.sin(t)*.5);
+    camera.position.x=Math.sin(t*.18)*14; camera.position.z=40-t*1.2>16?40-t*1.2:16; camera.position.y=7+Math.sin(t*.4);
+    camera.lookAt(2,1,0); animFish(school1,dt); animFish(school2,dt); riseBubbles(bub,dt);
+    finKick(buddy,t);
+    if(t>3.2 && !choiceShown){ choiceShown=true; hush(); showChoice(); }
+  };
+}
+function showChoice(){
+  objective('Make your call');
+  screen(`
+    <div class="kicker">The wreck yawns open&hellip;</div>
+    <h2 class="big" style="color:#fff">Inside or around?</h2>
+    <p class="sub">There is a dark doorway into the hull. Your training says one thing. Your curiosity says another.</p>
+    <div class="cards">
+      <div class="card-btn good" data-act="swimAround">
+        <div class="ico">🐠📸</div>
+        <h3>Swim around it</h3>
+        <p>Stay in the light with your buddy and the guide. Photograph the outside. Dive within your training.</p>
+        <span class="tag safe">Correct for Advanced Open Water</span>
+      </div>
+      <div class="card-btn bad" data-act="enterWreck">
+        <div class="ico">🚪🕳️</div>
+        <h3>Go inside the wreck</h3>
+        <p>Slip through the doorway to reach the gold. It looks easy from here&hellip;</p>
+        <span class="tag warn">Overhead environment &ndash; no training</span>
+      </div>
+    </div>
+  `);
+}
+
+/* =====================================================================
+   PHASE: SAFE ENDING — swim around, success
+   ===================================================================== */
+function phaseSafe(){
+  setPhase({}); showHUD(true); objective('Enjoy the dive'); air=200;
+  seaLights(); scene.add(seabed()); scene.add(godRays()); scene.fog=new THREE.FogExp2(0x0c4a6b,0.013);
+  const wreck=makeWreck(); scene.add(wreck);
+  const s1=fishSchool(18,new THREE.Vector3(4,4,3),9,0xffd23f); scene.add(s1);
+  const s2=fishSchool(22,new THREE.Vector3(-6,7,-3),11,0x4fd0ff); scene.add(s2);
+  const s3=fishSchool(10,new THREE.Vector3(8,2,6),6,0xff6ec7); scene.add(s3);
+  const bub=particles(300,60,0xbfefff,.4,0); scene.add(bub);
+  const me=makeDiver(0xffca3a); scene.add(me);
+  const buddy=makeDiver(0x22c1ff); scene.add(buddy);
+  let t=0; const flashes=[3,6,9]; let fi=0; let ended=false;
+  const lines=["You glide along the outside with your buddy, always in daylight.","A grouper drifts by. Click! A perfect photo, no danger.","Your guide points out a cannon crusted in coral. Gorgeous."];
+  say(lines[0]);
+  phase.update=(dt)=>{ t+=dt; depthReadout(18); air=Math.max(120,200-t*2); updateAir();
+    const ang=t*.4; const rad=26;
+    camera.position.set(Math.cos(ang)*rad, 8+Math.sin(t*.5)*2, Math.sin(ang)*rad); camera.lookAt(0,2,0);
+    me.position.set(Math.cos(ang+.3)*14, 4+Math.sin(t)*1, Math.sin(ang+.3)*14); me.lookAt(0,2,0); finKick(me,t);
+    buddy.position.set(Math.cos(ang+.7)*15, 5+Math.cos(t)*1, Math.sin(ang+.7)*15); buddy.lookAt(0,2,0); finKick(buddy,t*1.1);
+    animFish(s1,dt); animFish(s2,dt); animFish(s3,dt); riseBubbles(bub,dt);
+    if(fi<flashes.length && t>flashes[fi]){ doFlash(); if(lines[fi])say(lines[fi]); fi++; }
+    if(t>11 && !ended){ ended=true; hush(); safeEnd(); }
+  };
+}
+function safeEnd(){
+  objective('Dive complete');
+  screen(`
+    <div class="win">
+      <div class="kicker">Safety stop complete &bull; all divers up</div>
+      <h2 class="big">SUCCESS!</h2>
+      <p class="sub">You successfully passed the dive. You stayed with your buddy, kept the wreck outside your reach, and surfaced with a camera full of memories and plenty of air.</p>
+      <div class="lesson">You <b>dived within your training</b>. Advanced Open Water is perfect for exploring a wreck from the <b>outside</b>. To go <i>inside</i> an overhead environment, you first earn the <b>Wreck Diver</b> speciality. That is what being qualified means.</div>
+      <button class="btn" data-act="pickWreck">See the trained way in ▶</button>
+      <button class="btn ghost" data-act="restart">Play again</button>
+    </div>
+  `);
+}
+
+/* =====================================================================
+   PHASE: SILT — enters wreck, dust burst, buddy floats away
+   ===================================================================== */
+function phaseSilt(){
+  setPhase({}); showHUD(true); objective('Wait&hellip; something is wrong'); air=190; updateAir();
+  scene.add(new THREE.HemisphereLight(0x244,0x010203,.5));
+  const amb=new THREE.PointLight(0xa9743a,1.2,40); amb.position.set(0,4,10); scene.add(amb);
+  scene.fog=new THREE.FogExp2(0x1a0f06,0.03);
+  // interior hint walls
+  const box=new THREE.Mesh(new THREE.BoxGeometry(40,24,60), new THREE.MeshStandardMaterial({color:0x120a05,side:THREE.BackSide,roughness:1}));
+  scene.add(box);
+  const silt=particles(1200,18,0xb08a55,.9,0); silt.material.opacity=0; scene.add(silt);
+  const buddy=makeDiver(0x22c1ff); buddy.position.set(-3,0,8); scene.add(buddy);
+  let t=0; camera.position.set(0,1,20); look.yaw=Math.PI; look.pitch=0;
+  say("You slip through the doorway. Your fin taps the floor &mdash; and the silt explodes into a blinding brown cloud.");
+  let stage=0;
+  phase.update=(dt)=>{ t+=dt; camera.lookAt(0,0,0);
+    // silt cloud grows
+    silt.material.opacity=Math.min(.85,t*.4); silt.scale.setScalar(1+t*.25);
+    const pa=silt.geometry.attributes.position; for(let i=0;i<pa.count;i++){ pa.setY(i,pa.getY(i)+dt*R(.1,.6)); } pa.needsUpdate=true;
+    // buddy drifts away the wrong way
+    buddy.position.x-=dt*3; buddy.position.z+=dt*2; buddy.position.y+=dt*.6; buddy.rotation.y+=dt; finKick(buddy,t*2);
+    if(t>1.6 && stage===0){ stage=1; buddyState('drifting away!'); say("Your buddy is swept the other way, swallowed by the cloud. You are alone in the dark."); }
+    if(t>4){ hush(); phaseMaze(); }
+  };
+}
+
+/* =====================================================================
+   PHASE: MAZE — the ship's hold. Find torch, air drains, compass spins,
+   collide → drop torch → no backup → lost.
+   ===================================================================== */
+const MAZE=[
+ "#############",
+ "#S    #     #",
+ "# ### # ### #",
+ "# #   #   # #",
+ "# # ##### # #",
+ "# #     # # #",
+ "# ##### # # #",
+ "#     #   # #",
+ "##### ##### #",
+ "#   #   T # #",
+ "# # ### ### #",
+ "# #       # E",
+ "#############",
+];
+const CELL=9, WALL_H=14;
+let air=200, hasTorch=false, torchLight=null, compassSpin=false, mazeDone=false;
+let px=0,pz=0; // player world pos
+
+function cellAt(wx,wz){ const c=Math.floor(wx/CELL), r=Math.floor(wz/CELL); return {r,c}; }
+function isWall(r,c){ if(r<0||c<0||r>=MAZE.length||c>=MAZE[0].length)return true; return MAZE[r][c]==='#'; }
+
+function phaseMaze(){
+  setPhase({}); showHUD(true); pad.classList.add('on'); lookhint.classList.add('on'); lookEnabled=true;
+  hasTorch=false; compassSpin=false; mazeDone=false; torchLight=null;
+  objective('Find a torch &mdash; you cannot see!'); torchState('lost in the silt'); buddyState('separated');
+  setTint(0);
+  scene.fog=new THREE.FogExp2(0x050a12,0.06);
+  scene.add(new THREE.AmbientLight(0x223045,.28));
+  // build maze geometry
+  const wallMat=new THREE.MeshStandardMaterial({color:0x241a12,roughness:1});
+  const beamMat=new THREE.MeshStandardMaterial({color:0x0f0a06,roughness:1});
+  let start={r:1,c:1}, torchCell={r:9,c:9}, exit={r:11,c:12};
+  for(let r=0;r<MAZE.length;r++)for(let c=0;c<MAZE[r].length;c++){ const ch=MAZE[r][c];
+    if(ch==='#'){ const w=new THREE.Mesh(new THREE.BoxGeometry(CELL,WALL_H,CELL), Math.random()<.5?wallMat:beamMat);
+      w.position.set(c*CELL+CELL/2, WALL_H/2-2, r*CELL+CELL/2); scene.add(w); }
+    if(ch==='S')start={r,c}; if(ch==='T')torchCell={r,c}; if(ch==='E')exit={r,c};
+  }
+  // floor + ceiling
+  const w=MAZE[0].length*CELL, d=MAZE.length*CELL;
+  const floor=new THREE.Mesh(new THREE.PlaneGeometry(w,d), new THREE.MeshStandardMaterial({color:0x120c07,roughness:1}));
+  floor.rotation.x=-Math.PI/2; floor.position.set(w/2,-2,d/2); scene.add(floor);
+  const ceil=floor.clone(); ceil.position.y=WALL_H-2; ceil.rotation.x=Math.PI/2; scene.add(ceil);
+  // torch pickup (glowing)
+  const torchPickup=new THREE.Group();
+  const tb=new THREE.Mesh(new THREE.CylinderGeometry(.4,.5,3,10), new THREE.MeshStandardMaterial({color:0x222,metalness:.6,roughness:.3}));
+  const th=new THREE.Mesh(new THREE.SphereGeometry(.7,12,12), new THREE.MeshStandardMaterial({color:0xffe08a,emissive:0xffb23a,emissiveIntensity:2}));
+  th.position.y=1.8; torchPickup.add(tb,th);
+  const glow=new THREE.PointLight(0xffc46a,2.2,20); glow.position.y=2; torchPickup.add(glow);
+  torchPickup.position.set(torchCell.c*CELL+CELL/2, 0, torchCell.r*CELL+CELL/2); scene.add(torchPickup);
+  // floating debris/silt inside
+  const dust=particles(500,Math.max(w,d)/2,0x6b5533,.5,WALL_H/2); dust.position.set(w/2,0,d/2); scene.add(dust);
+  // headlamp (very weak until torch found)
+  torchLight=new THREE.SpotLight(0xffd9a0,0.0,55,.6,.5,1); camera.add(torchLight);
+  const tt=new THREE.Object3D(); tt.position.set(0,0,-10); camera.add(tt); torchLight.target=tt; scene.add(camera);
+  const faint=new THREE.PointLight(0x4a6b8a,.5,14); camera.add(faint);
+
+  // place player
+  px=start.c*CELL+CELL/2; pz=start.r*CELL+CELL/2; camera.position.set(px,3,pz); look.yaw=Math.PI/2; look.pitch=0;
+  let t=0, torchGrabbedAt=-1, warned=false, collisions=0, exitHintAt=-1;
+  say("Blind. Panicking. Your primary torch slipped from your hand in the cloud. Find it &mdash; every breath is burning air.");
+
+  phase.update=(dt)=>{ if(mazeDone)return; t+=dt;
+    // air drains fast; faster while moving/panicking
+    const moving = keys.KeyW||keys.KeyS||keys.KeyA||keys.KeyD||keys.ArrowUp||keys.ArrowDown||keys.ArrowLeft||keys.ArrowRight||touch.up||touch.down||touch.left||touch.right;
+    air-=dt*(moving?5.5:3.2); if(air<=0){ air=0; updateAir(); mazeDone=true; say("Out of air."); setTimeout(()=>phaseLost('air'),900); return; }
+    updateAir();
+    // look
+    camera.rotation.order='YXZ'; camera.rotation.y=look.yaw; camera.rotation.x=look.pitch;
+    // move (forward relative to yaw, on XZ plane)
+    let fwd=0,str=0;
+    if(keys.KeyW||keys.ArrowUp||touch.up)fwd+=1; if(keys.KeyS||keys.ArrowDown||touch.down)fwd-=1;
+    if(keys.KeyA||keys.ArrowLeft||touch.left)str-=1; if(keys.KeyD||keys.ArrowRight||touch.right)str+=1;
+    const spd=12*dt; const sinY=Math.sin(look.yaw), cosY=Math.cos(look.yaw);
+    // forward is -Z when yaw considered; derive dx,dz
+    let dx=(fwd*(-sinY)+str*(cosY))*spd;
+    let dz=(fwd*(-cosY)+str*(-sinY))*spd;
+    const nx=px+dx, nz=pz+dz; const rad=2.2;
+    let hit=false;
+    // simple grid collision: test the target cell corners
+    if(!blocked(nx,pz,rad)){ px=nx; } else { hit=true; }
+    if(!blocked(px,nz,rad)){ pz=nz; } else { hit=true; }
+    camera.position.set(px,3,pz);
+    // bob
+    camera.position.y=3+Math.sin(t*4)*.12;
+    // torch pickup
+    torchPickup.rotation.y+=dt*1.2; th.position.y=1.8+Math.sin(t*3)*.2;
+    if(!hasTorch){ const d=Math.hypot(px-torchPickup.position.x, pz-torchPickup.position.z);
+      if(d<4){ hasTorch=true; torchGrabbedAt=t; scene.remove(torchPickup); torchLight.intensity=2.6; faint.intensity=.2;
+        torchState('primary (found!)'); objective('Find the exit &mdash; check your compass'); compassEl.style.display='grid'; compassSpin=true;
+        say("You find the torch! But the wreck is a maze of iron. You look at your compass &mdash; the needle spins wildly. Magnetic metal everywhere. It is useless."); }
+    }
+    // after torch, first real collision drops it
+    if(hasTorch && hit){ collisions++; if(collisions>=2 && !mazeDone){ mazeDone=true; dropTorchPrompt(); return; } }
+    if(hasTorch && !warned && t-torchGrabbedAt>2){ warned=true; say("Which way did you come in? Left? Right? Every corridor looks the same in the torch beam."); }
+    // compass spin
+    if(compassSpin){ needle.style.transform='rotate('+(t*720%360)+'deg)'; }
+    // dust drift
+    const pa=dust.geometry.attributes.position; for(let i=0;i<pa.count;i++){ pa.setX(i,pa.getX(i)+Math.sin(t+i)*dt*.2);} pa.needsUpdate=true;
+  };
+  phase.cleanup=()=>{ pad.classList.remove('on'); lookhint.classList.remove('on'); lookEnabled=false; compassEl.style.display='none'; compassSpin=false; };
+}
+function blocked(wx,wz,rad){
+  // check the cell of several sample points around the player radius
+  const pts=[[wx+rad,wz],[wx-rad,wz],[wx,wz+rad],[wx,wz-rad]];
+  for(const [x,z] of pts){ const {r,c}=cellAt(x,z); if(isWall(r,c))return true; }
+  return false;
+}
+function dropTorchPrompt(){
+  torchState('DROPPED!'); if(torchLight)torchLight.intensity=0;
+  doFlash(); scene.fog.density=0.11;
+  say("CLANG! You slam into an iron beam in the dark. The torch spins away into the black&hellip;");
+  setTimeout(()=>{
+    screen(`
+      <div class="lose">
+        <div class="kicker">Total darkness</div>
+        <h2 class="big" style="color:#ffcf5a">Your torch is gone.</h2>
+        <p class="sub">You hit a beam and dropped your only light. Do you have a backup torch?</p>
+        <div class="cards">
+          <div class="card-btn bad" data-act="noBackup">
+            <div class="ico">🔦❌</div>
+            <h3>Check your pockets&hellip;</h3>
+            <p>You never carried a backup. Wreck divers always carry two lights. You have none.</p>
+            <span class="tag warn">No backup torch</span>
+          </div>
+        </div>
+      </div>
+    `);
+  },1400);
+}
+
+/* =====================================================================
+   PHASE: LOST — buddy struggling, certified divers calm above
+   ===================================================================== */
+function phaseLost(reason){
+  setPhase({}); showHUD(true); objective('&hellip;'); torchState('none'); buddyState('in trouble');
+  scene.add(new THREE.HemisphereLight(0x102035,0x000000,.6));
+  const moon=new THREE.PointLight(0x9fd8ff,1.4,120); moon.position.set(0,60,0); scene.add(moon);
+  scene.fog=new THREE.FogExp2(0x040912,0.02);
+  scene.add(seabed());
+  const wreckShadow=makeWreck(); wreckShadow.position.set(0,-6,-20); scene.add(wreckShadow);
+  // panicking you + buddy (below)
+  const me=makeDiver(0xffca3a); me.position.set(-4,-2,6); scene.add(me);
+  const buddy=makeDiver(0x22c1ff); buddy.position.set(5,0,4); scene.add(buddy);
+  // calm certified divers (above) with guideline + lights
+  const cd1=makeDiver(0x8bff5a,{light:true}); cd1.position.set(-3,16,-2); scene.add(cd1);
+  const cd2=makeDiver(0x5affd0,{light:true}); cd2.position.set(3,17,-4); scene.add(cd2);
+  // guideline between them and out
+  const lineMat=new THREE.LineBasicMaterial({color:0xffd23f});
+  const lg=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-3,16,-2),new THREE.Vector3(3,17,-4),new THREE.Vector3(30,22,20)]);
+  scene.add(new THREE.Line(lg,lineMat));
+  let t=0; camera.position.set(0,8,34);
+  say(reason==='air'?"Your gas ran out in the dark. Your buddy is somewhere in the wreck, also struggling.":"No backup. You claw through the black, lungs heaving, searching for your buddy&hellip;");
+  let shown=false;
+  phase.update=(dt)=>{ t+=dt; camera.position.x=Math.sin(t*.2)*6; camera.lookAt(0,7,0);
+    // panic thrash
+    thrash(me,t*3); thrash(buddy,t*3.3);
+    me.position.y=-2+Math.sin(t*2)*.5; buddy.position.y=Math.cos(t*2)*.5;
+    // calm hover
+    cd1.position.y=16+Math.sin(t)*.4; cd2.position.y=17+Math.cos(t*.9)*.4; finKick(cd1,t*.5); finKick(cd2,t*.6);
+    if(t>2 && !shown){ shown=true; say("High above, two <b>Wreck Diver certified</b> divers hover calmly &mdash; guideline laid, two lights each. They knew the equipment and the procedures. They dive this wreck for fun."); }
+    if(t>6.5 && shown===true){ shown='done'; hush(); lostEnd(); }
+  };
+}
+function lostEnd(){
+  objective('Dive failed');
+  screen(`
+    <div class="lose">
+      <div class="kicker">Rule of thirds ignored &bull; no guideline &bull; no backup light</div>
+      <h2 class="big">DIVE UNSUCCESSFUL</h2>
+      <p class="sub">You went into an overhead environment without the training or the gear. The silt, the maze, the spinning compass, the dropped torch &mdash; every one is a hazard the <b>Wreck Diver</b> course teaches you to handle.</p>
+      <div class="lesson">The two divers above weren&rsquo;t braver than you. They were <b>qualified</b>: guideline reel, primary + backup torch, gas planning, lost-buddy and lost-line drills. <b>Being qualified for what you do</b> is the whole difference between a nightmare and a beautiful dive.</div>
+      <button class="btn" data-act="retry">Repeat the dive ▶</button>
+      <button class="btn ghost" data-act="pickWreck">Try it trained &amp; equipped</button>
+    </div>
+  `);
+}
+
+/* =====================================================================
+   PHASE: CERTIFIED — the trained way in (good ending for Entry 2)
+   ===================================================================== */
+function phaseCertified(){
+  setPhase({}); showHUD(true); objective('Penetrate the wreck &mdash; the trained way'); air=200; updateAir(); torchState('primary + backup'); buddyState('on the line');
+  compassEl.style.display='none';
+  seaLights(); scene.add(seabed()); scene.add(godRays()); scene.fog=new THREE.FogExp2(0x0c4a6b,0.014);
+  const wreck=makeWreck(); scene.add(wreck);
+  const bub=particles(300,60,0xbfefff,.4,0); scene.add(bub);
+  const me=makeDiver(0x8bff5a,{light:true}); scene.add(me);
+  const buddy=makeDiver(0x5affd0,{light:true}); scene.add(buddy);
+  // guideline reel from entrance
+  const lineMat=new THREE.LineBasicMaterial({color:0xffd23f});
+  let t=0; camera.position.set(0,8,36);
+  const lines=["You clip a guideline reel at the entrance &mdash; your way back is now a golden thread.","Primary torch on, backup torch on your harness. You signal your buddy: OK.","You move slowly, no fin-down, no silt. You watch your gas: turn on thirds.","You follow your own line back out into the blue. Textbook."];
+  say(lines[0]); let li=0;
+  phase.update=(dt)=>{ t+=dt; depthReadout(20); air=Math.max(120,200-t*2); updateAir();
+    const ang=-t*.25; const rad=20-Math.min(8,t);
+    camera.position.set(Math.cos(ang)*(rad+6), 8+Math.sin(t*.4)*1.5, Math.sin(ang)*(rad+6)); camera.lookAt(0,3,0);
+    me.position.set(Math.cos(ang+.2)*rad, 4+Math.sin(t*.8), Math.sin(ang+.2)*rad); me.lookAt(0,3,0); finKick(me,t);
+    buddy.position.set(Math.cos(ang+.5)*(rad+2), 5, Math.sin(ang+.5)*(rad+2)); buddy.lookAt(0,3,0); finKick(buddy,t*1.1);
+    riseBubbles(bub,dt);
+    const idx=Math.min(lines.length-1, Math.floor(t/3)); if(idx!==li){ li=idx; say(lines[li]); }
+    if(t>12){ hush(); certEnd(); }
+  };
+}
+function certEnd(){
+  objective('Dive complete');
+  screen(`
+    <div class="win">
+      <div class="kicker">Guideline reeled in &bull; both lights working &bull; gas to spare</div>
+      <h2 class="big">SUCCESS!</h2>
+      <p class="sub">You penetrated the wreck and came home safe &mdash; because you were <b>trained and equipped</b> for it. The same doorway that trapped the untrained diver was, for you, the best dive of the trip.</p>
+      <div class="lesson">That is the lesson of the whole game: <b>be qualified for what you do.</b> Same wreck, same dark, same maze &mdash; training and the right gear are what turn danger into wonder. Earn the ticket, then enjoy the ride.</div>
+      <button class="btn" data-act="restart">Play again ▶</button>
+    </div>
+  `);
+}
+
+/* =====================================================================
+   SHARED HUD + ANIM UTILITIES
+   ===================================================================== */
+function updateAir(){ const v=Math.max(0,Math.round(air)); airval.innerHTML=v+'<small style="font-size:12px"> bar</small>';
+  const pct=Math.max(0,Math.min(100,air/200*100)); airbar.style.width=pct+'%';
+  airbar.style.background = pct>50?'linear-gradient(90deg,#3bff9d,#c7ff3b)': pct>25?'linear-gradient(90deg,#ffd23f,#ff9f1c)':'linear-gradient(90deg,#ff6b6b,#ff3b6b)';
+}
+function torchState(s){ torchpill.textContent='Torch: '+s; }
+function buddyState(s){ buddypill.textContent='Buddy: '+s; }
+function depthReadout(m){ depthpill.textContent='Depth '+Math.round(m)+' m'; }
+function finKick(d,t){ if(!d.userData)return; const k=Math.sin(t*4)*.4; if(d.userData.fin1)d.userData.fin1.rotation.x=k; if(d.userData.fin2)d.userData.fin2.rotation.x=-k; }
+function thrash(d,t){ if(!d.userData)return; if(d.userData.arm1)d.userData.arm1.rotation.z=.9+Math.sin(t)*.8; if(d.userData.arm2)d.userData.arm2.rotation.z=-.9-Math.cos(t*1.2)*.8; if(d.userData.fin1)d.userData.fin1.rotation.x=Math.sin(t*2)*.9; d.rotation.z=Math.sin(t*.7)*.3; }
+function animFish(g,dt){ const t=performance.now()*0.001; g.userData.list.forEach(f=>{ f.a+=dt*f.sp; f.m.position.set(Math.cos(f.a)*f.rad, f.yo+Math.sin(t+f.ph)*1.5, Math.sin(f.a)*f.rad); f.m.rotation.y=-f.a+Math.PI/2; }); }
+function riseBubbles(b,dt){ const pa=b.geometry.attributes.position; for(let i=0;i<pa.count;i++){ let y=pa.getY(i)+dt*4; if(y>70)y=-20; pa.setY(i,y);} pa.needsUpdate=true; }
+
+/* ---------- go ---------- */
+document.getElementById('loading').style.display='none';
+phaseTitle();
+animate();
+})();
+</script>
+</body>
+</html>
