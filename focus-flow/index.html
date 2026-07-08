@@ -149,6 +149,11 @@
     <input type="number" id="waterEvery" min="15" max="180" value="45" onchange="setWater()">
     <span class="muted" style="font-size:13px">min</span>
   </div>
+  <div class="row" style="margin-top:8px;justify-content:center">
+    <span class="muted" style="font-size:13px">⏸️ Force a 5-min time-out after:</span>
+    <input type="number" id="onlineLimit" min="20" max="240" value="60" onchange="setLimit()">
+    <span class="muted" style="font-size:13px">min online</span>
+  </div>
 </div>
 
 <div class="card" id="moodCard">
@@ -193,6 +198,13 @@
   <button onclick="hide('ground')">Close</button>
 </div>
 
+<div class="overlay" id="timeout" style="background:rgba(6,10,16,.98)">
+  <div class="otxt" style="font-size:30px;letter-spacing:1px">⏸️ TIME OUT</div>
+  <div id="toClock" style="font-size:76px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--accent)">5:00</div>
+  <div class="ohint" style="font-size:16px;max-width:20em">You've been at the screen a long time. Stand up, look away from the screen,
+    stretch and breathe. The app is paused until the timer ends – rest is not optional right now. 💙</div>
+</div>
+
 <div class="overlay" id="curfew">
   <div class="otxt">🌙 It's after 23:00 – time to stop</div>
   <div class="ohint">Your body needs rest more than the projects need another hour. The work will
@@ -225,6 +237,8 @@ function load(){
     block:50, lastProj:null,
     waterEvery:45,           // wall-clock minutes between water reminders
     lastWaterTs:0,           // timestamp of last water reminder
+    onlineLimit:60,          // continuous minutes online before a forced time-out
+    contStart:0,             // timestamp continuous online session began
     moods:[]                 // mood check-in history {e,ts,h}
   };
   if(!raw) return base;
@@ -366,6 +380,46 @@ function checkWater(){
   }
 }
 setInterval(checkWater,20000); // check the clock every 20s
+function setLimit(){
+  var v=parseInt(document.getElementById('onlineLimit').value,10)||60;
+  v=Math.max(20,Math.min(240,v)); S.onlineLimit=v; document.getElementById('onlineLimit').value=v;
+  S.contStart=Date.now(); save();
+}
+
+// ---- forced 5-minute time-out after too long online ----
+var inTimeout=false, toH=null;
+function checkOnline(){
+  if(inTimeout) return;
+  if(!S.contStart){ S.contStart=Date.now(); save(); return; }
+  if(Date.now()-S.contStart >= S.onlineLimit*60*1000){ startTimeout(); }
+}
+function startTimeout(){
+  inTimeout=true;
+  if(running){ stopBlock(); } // pause any focus block
+  notify("Time out","You've been online a long time. 5-minute break – step away now.");
+  show('timeout');
+  var left=5*60;
+  var tc=document.getElementById('toClock');
+  tc.textContent="5:00";
+  toH=setInterval(function(){
+    left--;
+    tc.textContent=Math.floor(left/60)+":"+(left%60<10?"0":"")+(left%60);
+    if(left<=0){ endTimeout(); }
+  },1000);
+}
+function endTimeout(){
+  clearInterval(toH); inTimeout=false;
+  S.contStart=Date.now(); save();  // fresh online session after the rest
+  hide('timeout'); beep();
+  document.getElementById('phase').textContent="Welcome back. 💙 "+motLine();
+}
+setInterval(checkOnline,20000); // check online time every 20s
+
+// If you leave for 5+ minutes, that counts as a break – restart the online clock.
+document.addEventListener('visibilitychange',function(){
+  if(document.hidden){ S._hiddenAt=Date.now(); }
+  else if(S._hiddenAt && Date.now()-S._hiddenAt>=5*60*1000){ S.contStart=Date.now(); save(); }
+});
 function shouldRest(){
   var totalMin=S.mins.dive+S.mins.video;
   var h=new Date().getHours();
@@ -633,7 +687,9 @@ buildMoods();
 if(afterCurfew()) showCurfew();
 document.getElementById('blockLen').value=S.block;
 document.getElementById('waterEvery').value=S.waterEvery;
+document.getElementById('onlineLimit').value=S.onlineLimit;
 if(!S.lastWaterTs){ S.lastWaterTs=Date.now(); save(); }
+if(!S.contStart){ S.contStart=Date.now(); save(); }
 remain=S.block*60;
 adaptBlock();
 paint(); paintStats();
