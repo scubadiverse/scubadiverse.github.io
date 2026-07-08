@@ -179,6 +179,10 @@
   <div class="otxt" id="bcue">Let's slow it down together</div>
   <div class="bcircle" id="bcircle">Breathe</div>
   <div class="ohint" id="bround">Follow the circle. In as it grows, out as it shrinks.</div>
+  <div class="row" style="justify-content:center;gap:10px">
+    <button id="sndRain" onclick="playSound('rain')">🌧️ Rain</button>
+    <button id="sndDry" onclick="playSound('dryer')">💨 Hairdryer</button>
+  </div>
   <button onclick="stopBreathe()">I'm calmer – done</button>
 </div>
 
@@ -530,6 +534,48 @@ function tinyStep(){
   if(r.getAttribute('data-tiny')!=='1'){ r.innerHTML+=extra; r.setAttribute('data-tiny','1'); }
 }
 
+// ---- calming sounds (generated live, no files) ----
+var actx=null, curSound=null;
+function audioCtx(){ if(!actx){ try{ actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return actx; }
+function noiseBuffer(a){
+  var len=a.sampleRate*2, buf=a.createBuffer(1,len,a.sampleRate), d=buf.getChannelData(0);
+  for(var i=0;i<len;i++) d[i]=Math.random()*2-1;
+  return buf;
+}
+function playSound(type){
+  var a=audioCtx(); if(!a) return;
+  if(a.state==='suspended') a.resume();
+  if(curSound && curSound.type===type){ stopSound(); return; } // tap again = off
+  stopSound();
+  var src=a.createBufferSource(); src.buffer=noiseBuffer(a); src.loop=true;
+  var g=a.createGain(); g.gain.value=0.0001;
+  if(type==='rain'){
+    var hp=a.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=500;
+    var lp=a.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=7000;
+    src.connect(hp); hp.connect(lp); lp.connect(g);
+  } else { // hairdryer / fan – steady low whoosh
+    var lp2=a.createBiquadFilter(); lp2.type='lowpass'; lp2.frequency.value=1100; lp2.Q.value=0.6;
+    var pk=a.createBiquadFilter(); pk.type='peaking'; pk.frequency.value=180; pk.gain.value=7;
+    src.connect(lp2); lp2.connect(pk); pk.connect(g);
+  }
+  g.connect(a.destination); src.start();
+  g.gain.exponentialRampToValueAtTime(type==='rain'?0.35:0.42, a.currentTime+0.7);
+  curSound={type:type,src:src,g:g};
+  soundBtns(type);
+}
+function stopSound(){
+  if(!curSound) { soundBtns(null); return; }
+  var a=audioCtx(), s=curSound.src, g=curSound.g;
+  try{ g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+0.3); }catch(e){}
+  setTimeout(function(){ try{ s.stop(); }catch(e){} },350);
+  curSound=null; soundBtns(null);
+}
+function soundBtns(active){
+  var r=document.getElementById('sndRain'), d=document.getElementById('sndDry');
+  if(r) r.textContent=(active==='rain')?'🌧️ Rain (on)':'🌧️ Rain';
+  if(d) d.textContent=(active==='dryer')?'💨 Hairdryer (on)':'💨 Hairdryer';
+}
+
 // ---- breathing (box breathing: in 4, hold 4, out 4, hold 4) ----
 var bTimers=[], bStop=false;
 function startBreathe(){ show('breathe'); bStop=false; runBreathe(0,4); }
@@ -555,7 +601,7 @@ function runBreathe(round,total){
     bTimers.push(setTimeout(next,s.ms));
   })();
 }
-function stopBreathe(){ bStop=true; bTimers.forEach(clearTimeout); bTimers=[];
+function stopBreathe(){ bStop=true; bTimers.forEach(clearTimeout); bTimers=[]; stopSound();
   document.getElementById('bcircle').classList.remove('grow'); hide('breathe'); }
 
 // ---- grounding 5-4-3-2-1 ----
