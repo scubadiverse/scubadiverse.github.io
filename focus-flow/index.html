@@ -150,9 +150,12 @@
     <span class="muted" style="font-size:13px">min</span>
   </div>
   <div class="row" style="margin-top:8px;justify-content:center">
-    <span class="muted" style="font-size:13px">⏸️ Force a 5-min time-out after:</span>
+    <span class="muted" style="font-size:13px">⏸️ Force a 2-min time-out after:</span>
     <input type="number" id="onlineLimit" min="20" max="240" value="60" onchange="setLimit()">
     <span class="muted" style="font-size:13px">min online</span>
+  </div>
+  <div class="row" id="guardRow" style="margin-top:8px;justify-content:center;display:none">
+    <button id="guardBtn" onclick="toggleGuard()">🔒 Whole-screen break lock: Off</button>
   </div>
 </div>
 
@@ -212,7 +215,7 @@
 
 <div class="overlay" id="timeout" style="background:rgba(6,10,16,.98)">
   <div class="otxt" style="font-size:30px;letter-spacing:1px">⏸️ TIME OUT</div>
-  <div id="toClock" style="font-size:76px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--accent)">5:00</div>
+  <div id="toClock" style="font-size:76px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--accent)">2:00</div>
   <div class="ohint" style="font-size:16px;max-width:20em">You've been at the screen a long time. Stand up, look away from the screen,
     stretch and breathe. The app is paused until the timer ends – rest is not optional right now. 💙</div>
 </div>
@@ -253,6 +256,7 @@ function load(){
     onlineLimit:60,          // continuous minutes online before a forced time-out
     contStart:0,             // timestamp continuous online session began
     timer:null,              // running block {proj,endAt,block} – survives refresh
+    guard:false,             // whole-screen break lock enabled (native app)
     moods:[]                 // mood check-in history {e,ts,h}
   };
   if(!raw) return base;
@@ -526,11 +530,33 @@ function setLimit(){
   var v=parseInt(document.getElementById('onlineLimit').value,10)||60;
   v=Math.max(20,Math.min(240,v)); S.onlineLimit=v; document.getElementById('onlineLimit').value=v;
   S.contStart=Date.now(); save();
+  if(inNativeApp && S.guard){ try{ window.AndroidBridge.startGuard(v); }catch(e){} }
 }
 
-// ---- forced 5-minute time-out after too long online ----
+// ---- whole-screen break lock (native Android only) ----
+function toggleGuard(){
+  var b=document.getElementById('guardBtn');
+  if(!inNativeApp) return;
+  if(!S.guard){
+    if(window.AndroidBridge.hasOverlay && !window.AndroidBridge.hasOverlay()){
+      window.AndroidBridge.requestOverlay();
+      document.getElementById('phase').textContent="Turn ON 'Display over other apps' for Focus & Flow, then tap the lock again.";
+      return;
+    }
+    S.guard=true; save();
+    try{ window.AndroidBridge.startGuard(S.onlineLimit); }catch(e){}
+    b.textContent='🔒 Whole-screen break lock: On';
+  } else {
+    S.guard=false; save();
+    try{ window.AndroidBridge.stopGuard(); }catch(e){}
+    b.textContent='🔒 Whole-screen break lock: Off';
+  }
+}
+
+// ---- forced 2-minute time-out after too long online ----
 var inTimeout=false, toH=null;
 function checkOnline(){
+  if(inNativeApp) return; // native screen-guard handles this over the whole phone
   if(inTimeout) return;
   if(!S.contStart){ S.contStart=Date.now(); save(); return; }
   if(Date.now()-S.contStart >= S.onlineLimit*60*1000){ startTimeout(); }
@@ -538,11 +564,11 @@ function checkOnline(){
 function startTimeout(){
   inTimeout=true;
   if(running){ stopBlock(); } // pause any focus block
-  notify("Time out","You've been online a long time. 5-minute break – step away now.");
+  notify("Time out","You've been online a long time. 2-minute break – step away now.");
   show('timeout');
-  var left=5*60;
+  var left=2*60;
   var tc=document.getElementById('toClock');
-  tc.textContent="5:00";
+  tc.textContent="2:00";
   toH=setInterval(function(){
     left--;
     tc.textContent=Math.floor(left/60)+":"+(left%60<10?"0":"")+(left%60);
@@ -932,6 +958,18 @@ adaptBlock();
 paint(); paintStats();
 refreshAlertBtn();
 resumeTimer();
+// whole-screen lock is a native-app feature – show and restore its state
+if(inNativeApp){
+  document.getElementById('guardRow').style.display='flex';
+  var gb=document.getElementById('guardBtn');
+  if(S.guard && window.AndroidBridge.hasOverlay && window.AndroidBridge.hasOverlay()){
+    try{ window.AndroidBridge.startGuard(S.onlineLimit); }catch(e){}
+    gb.textContent='🔒 Whole-screen break lock: On';
+  } else {
+    if(S.guard){ S.guard=false; save(); } // permission was revoked
+    gb.textContent='🔒 Whole-screen break lock: Off';
+  }
+}
 
 // ---- installable app (PWA) with auto cache-clear + self-update ----
 if('serviceWorker' in navigator){

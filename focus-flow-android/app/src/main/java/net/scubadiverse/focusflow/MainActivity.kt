@@ -9,6 +9,8 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.Settings
 import android.os.Build
 import android.os.Bundle
 import android.webkit.JavascriptInterface
@@ -111,6 +113,32 @@ class MainActivity : AppCompatActivity() {
         fun cancelAlert(id: String) {
             val am = getSystemService(Context.ALARM_SERVICE) as AlarmManager
             am.cancel(alarmPending(id, "", ""))
+        }
+
+        // Whole-screen break lock ("display over other apps").
+        @JavascriptInterface
+        fun hasOverlay(): Boolean = Settings.canDrawOverlays(this@MainActivity)
+
+        @JavascriptInterface
+        fun requestOverlay() {
+            runOnUiThread {
+                try {
+                    startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        Uri.parse("package:" + packageName)))
+                } catch (e: Exception) {}
+            }
+        }
+
+        @JavascriptInterface
+        fun startGuard(limitMin: Double) {
+            val i = Intent(this@MainActivity, ScreenGuardService::class.java)
+                .putExtra("limitMin", limitMin.toLong())
+            if (Build.VERSION.SDK_INT >= 26) startForegroundService(i) else startService(i)
+        }
+
+        @JavascriptInterface
+        fun stopGuard() {
+            stopService(Intent(this@MainActivity, ScreenGuardService::class.java))
         }
     }
 
