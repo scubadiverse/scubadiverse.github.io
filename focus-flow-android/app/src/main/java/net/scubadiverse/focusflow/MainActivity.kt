@@ -34,13 +34,24 @@ class MainActivity : AppCompatActivity() {
         createChannel()
         askNotifPermission()
         web = WebView(this)
-        web.webViewClient = WebViewClient()
+        web.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView, url: String) {
+                view.evaluateJavascript(
+                    "(function(){try{if(document.getElementById('nativebar'))return;" +
+                    "var d=document.createElement('div');d.id='nativebar';" +
+                    "d.textContent='\u2713 Native app v1.5 active - alerts & lock ready';" +
+                    "d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;" +
+                    "background:#0f8f7e;color:#fff;font:600 13px sans-serif;text-align:center;padding:6px';" +
+                    "document.body.appendChild(d);document.body.style.paddingTop='30px';}catch(e){}})();",
+                    null)
+            }
+        }
         web.settings.javaScriptEnabled = true
         web.settings.domStorageEnabled = true
         web.settings.mediaPlaybackRequiresUserGesture = false
         web.addJavascriptInterface(Bridge(), "AndroidBridge")
         setContentView(web)
-        Toast.makeText(this, "Focus \u0026 Flow v1.4 ready \u2713", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, "Focus \u0026 Flow v1.5 ready \u2713", Toast.LENGTH_LONG).show()
         web.loadUrl("https://scubadiverse.github.io/focus-flow/")
     }
 
