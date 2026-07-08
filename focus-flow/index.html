@@ -57,10 +57,12 @@
   .muted{color:var(--muted)}
   .banner{border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:14px;display:none}
   .banner.show{display:block}
+  .banner.warn{background:#3a3410;color:#ffe89a;border:1px solid #6a5f1f}
   .banner.water{background:#12384a;color:#9fe3ff;border:1px solid #1f5e78}
   .banner.rest{background:#4a2b12;color:#ffd8a8;border:1px solid #7a4a1f}
   .banner.switch{background:#2a1f4a;color:#d8c8ff;border:1px solid #4a3a7a}
   @media (prefers-color-scheme: light){
+    .banner.warn{background:#fdf3d0;color:#6a5518;border-color:#e6d38f}
     .banner.water{background:#e2f4ff;color:#0a5978;border-color:#a9dcf2}
     .banner.rest{background:#fff1e0;color:#8a4b16;border-color:#f2cfa0}
     .banner.switch{background:#efeaff;color:#4a3a7a;border-color:#cfc2f2}
@@ -108,6 +110,7 @@
 <h1>Focus &amp; Flow</h1>
 <p class="sub">Your day, paced. Seeded from your real work rhythm – learns as you go.</p>
 
+<div id="warnBanner" class="banner warn">⏳ 1 minute left – start wrapping up. Take a breath and finish gently.</div>
 <div id="waterBanner" class="banner water">💧 Time for water. Take a sip and stretch your eyes.</div>
 <div id="restBanner" class="banner rest">🌙 You've done a long day. Wind down soon – rest is part of the work.</div>
 <div id="switchBanner" class="banner switch">🔄 Good block. Switch projects to stay fresh?</div>
@@ -131,6 +134,10 @@
   <div class="big">
     <button class="primary" id="startBtn" onclick="startStop()">Start</button>
     <button id="tiredBtn" onclick="markTired()">😮‍💨 Getting tired</button>
+  </div>
+  <div class="row" style="margin-top:10px">
+    <button class="grow" style="background:#3a1f2a;color:#ffc2d1;border-color:#6a3348" onclick="startBreathe()">🫁 Panic? Breathe now</button>
+    <button id="alertBtn" onclick="enableAlerts()">🔔 Enable phone alerts</button>
   </div>
   <div class="row" style="margin-top:12px;justify-content:center">
     <span class="muted" style="font-size:13px">Focus block:</span>
@@ -182,6 +189,14 @@
   <button onclick="hide('ground')">Close</button>
 </div>
 
+<div class="overlay" id="curfew">
+  <div class="otxt">🌙 It's after 23:00 – time to stop</div>
+  <div class="ohint">Your body needs rest more than the projects need another hour. The work will
+    be here tomorrow, and you'll do it better after sleep. Close the laptop and be gentle
+    with yourself – you've done enough today.</div>
+  <button class="primary" onclick="hide('curfew')">Okay, I'll rest 💙</button>
+</div>
+
 <p class="foot">Runs fully on your device. Nothing leaves this page. Not medical advice –
 if hard feelings are frequent or heavy, talking to someone you trust helps.</p>
 
@@ -217,7 +232,20 @@ function load(){
 function save(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} }
 
 // ---- timer state ----
-var proj=null, running=false, endAt=0, remain=S.block*60, tickH=null, elapsedThisBlock=0;
+var proj=null, running=false, endAt=0, remain=S.block*60, tickH=null, elapsedThisBlock=0, warned=false;
+
+// Phone/system alerts (work in the installed app; fall back to sound + banner).
+function notify(title,body){
+  try{ if(window.Notification && Notification.permission==='granted'){
+    new Notification(title,{body:body,icon:'icon-192.png'}); } }catch(e){}
+  beep();
+}
+function enableAlerts(){
+  if(!window.Notification){ document.getElementById('alertBtn').textContent='Alerts not supported'; return; }
+  Notification.requestPermission().then(function(p){
+    document.getElementById('alertBtn').textContent=(p==='granted')?'🔔 Alerts on':'🔔 Enable phone alerts';
+  }).catch(function(){});
+}
 
 function pick(p){
   proj=p;
@@ -235,7 +263,8 @@ function setBlock(){
 function startStop(){
   if(!proj){ document.getElementById('phase').textContent="Pick a project first."; return; }
   if(running){ stopBlock(false); return; }
-  running=true; elapsedThisBlock=0;
+  if(afterCurfew()){ showCurfew(); return; }
+  running=true; elapsedThisBlock=0; warned=false; hide('warnBanner');
   endAt=Date.now()+remain*1000;
   document.getElementById('startBtn').textContent="Pause";
   document.getElementById('phase').textContent="Focusing on "+(proj==='dive'?'DiveScanner':'AI Videos')+"…";
@@ -252,22 +281,40 @@ function tick(){
     var h=new Date().getHours(); S.hourMins[h]=(S.hourMins[h]||0)+add;
     checkWater(); save(); paintStats();
   }
+  if(remain<=60 && remain>0 && !warned){
+    warned=true; show('warnBanner'); showTimed('warnBanner',60000);
+    notify("1 minute left","Start wrapping up – breathe and finish gently.");
+  }
   paint();
   if(remain<=0) blockDone();
 }
 function blockDone(){
-  clearInterval(tickH); running=false;
+  clearInterval(tickH); running=false; hide('warnBanner');
   S.blocks++; save();
   document.getElementById('startBtn').textContent="Start";
-  beep();
   var restNow=shouldRest();
+  notify(restNow?"Time to rest":"Break time", restNow
+    ? "You've done a long day. Step away and rest now."
+    : "Nice block. Take a real break: "+restIdea());
   document.getElementById('phase').textContent= restNow
     ? "Block done. That's a long day – time to rest. "+motLine()
-    : "Block done! 💪 "+motLine();
+    : "Block done! 💪 Break idea: "+restIdea();
   if(restNow){ show('restBanner'); }
   else { suggestSwitch(); }
   remain=S.block*60; paint(); paintStats();
 }
+// Real-world reset ideas – get away from the screen.
+var REST_IDEAS=[
+  "go for a short walk outside",
+  "message or call a friend",
+  "step outside for fresh air",
+  "make a coffee or tea and enjoy it away from the desk",
+  "stretch and roll your shoulders",
+  "look out of a window at something far away",
+  "drink a glass of water slowly",
+  "sit outside for a few minutes"
+];
+function restIdea(){ return REST_IDEAS[(S.blocks+ (S.moods?S.moods.length:0)) % REST_IDEAS.length]; }
 function stopBlock(){
   clearInterval(tickH); running=false;
   document.getElementById('startBtn').textContent="Start";
@@ -455,6 +502,7 @@ function pickMood(k,btn){
   if(m.tools.indexOf('b')>=0) acts+='<button class="primary" onclick="startBreathe()">Breathe with me</button>';
   if(m.tools.indexOf('g')>=0) acts+='<button onclick="startGround()">Grounding (5-4-3-2-1)</button>';
   if(m.tools.indexOf('s')>=0) acts+='<button onclick="tinyStep()">Break it into one tiny step</button>';
+  if(k!=='happy') acts+='<button onclick="showReset()">🚶 Step away &amp; reset</button>';
   var give = (k==='frustrated'||k==='overwhelmed')
     ? '<div class="foot" style="text-align:left;margin-top:10px">Before you give up: take a 5-minute break, drink water, then do just ONE tiny piece. If it is still too heavy after that, stopping to rest is okay too – that is not failure.</div>'
     : '';
@@ -463,6 +511,18 @@ function pickMood(k,btn){
     '<div class="mot">💪 '+motLine()+'</div>'+
     (acts?'<div class="acts">'+acts+'</div>':'');
   r.classList.add('show');
+  // Stress feelings launch breathing straight away – coping is one tap, or zero.
+  var STRESS=['anxious','panicked','overwhelmed','angry','frustrated'];
+  if(STRESS.indexOf(k)>=0) startBreathe();
+}
+var resetI=0;
+function showReset(){
+  var idea=REST_IDEAS[resetI % REST_IDEAS.length]; resetI++;
+  var r=document.getElementById('moodResp');
+  var box=document.getElementById('resetBox');
+  if(!box){ box=document.createElement('div'); box.id='resetBox'; box.className='msg';
+    box.style.marginTop='12px'; r.appendChild(box); }
+  box.innerHTML='🌿 Try this now: <b>'+idea+'</b>. Real rest away from the screen is how the anxiety settles and focus comes back. Another idea? Tap again.';
 }
 function tinyStep(){
   var r=document.getElementById('moodResp');
@@ -518,8 +578,13 @@ function groundNext(){
   else { hide('ground'); }
 }
 
+// ---- 23:00 wind-down lock (within this app) ----
+function afterCurfew(){ var h=new Date().getHours(); return h>=23 || h<6; }
+function showCurfew(){ show('curfew'); }
+
 // ---- init ----
 buildMoods();
+if(afterCurfew()) showCurfew();
 document.getElementById('blockLen').value=S.block;
 document.getElementById('waterEvery').value=S.waterEvery;
 if(!S.lastWaterTs){ S.lastWaterTs=Date.now(); save(); }

@@ -1,7 +1,7 @@
 {
   "name": "Focus & Flow \u2013 Time Manager",
   "short_name": "Focus & Flow",
-  "description": "Paces your projects with focus blocks, water, break and rest reminders.",
+  "description": "Focus blocks with water, break and rest reminders.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
