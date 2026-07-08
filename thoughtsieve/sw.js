@@ -1,5 +1,5 @@
 /* Thoughtsieve service worker – offline cache of the app shell */
-const CACHE = 'thoughtsieve-v2';
+const CACHE = 'thoughtsieve-v3';
 const ASSETS = ['./', './index.html', './manifest.webmanifest'];
 
 self.addEventListener('install', e => {

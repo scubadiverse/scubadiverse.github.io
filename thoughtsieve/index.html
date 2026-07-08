@@ -116,7 +116,9 @@
   .rhelp li{font-size:13px;padding:8px 0;border-bottom:1px dashed var(--line);line-height:1.5}
   .rhelp li:last-child{border-bottom:0}
   .rhelp li b{color:var(--calm)}
-  .rpanel textarea{width:100%;min-height:82px}
+  .rpanel textarea{width:100%;min-height:82px;margin-top:10px}
+  .rsuggest{width:100%;background:transparent;border:1px dashed var(--calm);color:var(--calm);
+    font-size:13.5px;font-weight:600;border-radius:12px}
   .rnudge{font-size:12.5px;color:var(--warn);margin:8px 0 0;min-height:1em;line-height:1.4}
   .rpanel .primary{width:100%;margin-top:12px}
   .rpanel .rclose{width:100%;margin-top:8px;background:transparent;border:0;
@@ -192,7 +194,8 @@
     <p class="rtrap" id="rtrap"></p>
     <p class="rlead">Turn it into something kinder to release it. Here is how psychologists reframe – then write your own version, in your own words:</p>
     <ul class="rhelp" id="rhelp"></ul>
-    <textarea id="rpos" oninput="onReframeInput()" placeholder="The more balanced, kinder version…"></textarea>
+    <button class="rsuggest" id="rsuggest" onclick="suggestReframe()">✨ Help me turn it into a small win</button>
+    <textarea id="rpos" oninput="onReframeInput()" placeholder="The more balanced, kinder version… (write your own, or use the help above and edit it)"></textarea>
     <p class="rnudge" id="rnudge"></p>
     <button class="primary" id="rgo" disabled onclick="transformAndRelease()">✨ Transform &amp; let it go</button>
     <button class="rclose" onclick="closePensieve()">Not now</button>
@@ -247,10 +250,21 @@ const CONCERN = ['suicide','suicidal','kill myself','killing myself','end my lif
   'end it all','want to die','wanna die','better off dead','no reason to live',
   "don't want to live","dont want to live",'take my life','hurt myself','harm myself',
   'self harm','self-harm','cut myself','cutting myself','overdose','kill me'];
-function concerning(text){
-  const t = (text||'').toLowerCase();
-  return CONCERN.some(w => t.includes(w));
+// A negation shortly before a phrase flips its meaning ("it won't kill me",
+// "I'm not a failure") so those occurrences are not flagged.
+const NEGBEFORE = /(won'?t|wont|will not|not|never|isn'?t|doesn'?t|don'?t|can'?t|cannot|no longer|wouldn'?t|would never|hardly)\s+(\S+\s+){0,3}$/;
+function phraseHit(text, list){
+  const t = (' ' + (text||'').toLowerCase() + ' ').replace(/[.,!?;:\n]/g,' ');
+  return list.some(w => {
+    let idx = t.indexOf(w);
+    while(idx !== -1){
+      if(!NEGBEFORE.test(t.slice(0, idx))) return true;
+      idx = t.indexOf(w, idx + 1);
+    }
+    return false;
+  });
 }
+function concerning(text){ return phraseHit(text, CONCERN); }
 function showCare(){ document.getElementById('care').classList.add('show'); }
 function closeCare(){ document.getElementById('care').classList.remove('show'); }
 
@@ -425,13 +439,37 @@ function onReframeInput(){
   const neg = document.getElementById('neg').value.trim().toLowerCase();
   const nud = document.getElementById('rnudge');
   const go = document.getElementById('rgo');
-  if(concerning(v)){ showCare(); go.disabled = true; return; }
-  const harsh = HARSH.some(w=>vl.includes(w));
-  const ok = v.length >= 8 && vl !== neg && !harsh;
-  nud.textContent = (v.length && harsh) ? 'This still sounds harsh – can you find one kinder, truer thing to say?'
+  const harsh = phraseHit(v, HARSH);
+  const crisis = concerning(v); // gentle nudge only – no pop-up while typing
+  const ok = v.length >= 8 && vl !== neg && !harsh && !crisis;
+  nud.textContent = crisis
+      ? 'If you’re having thoughts of harming yourself, you deserve real support – tap “Not now” and reach out. 💛'
+    : (v.length && harsh) ? 'This still sounds harsh – can you find one kinder, truer thing to say?'
     : (v.length >= 3 && vl === neg) ? 'Try to change it, not just repeat it.'
     : '';
   go.disabled = !ok;
+}
+
+/* ---------- Optional algorithmic help: draft a small-win reframe ---------- */
+function generateReframe(neg){
+  const t = (neg||'').toLowerCase();
+  const has = (...a)=>a.some(w=>t.includes(w));
+  if(has('useless','stupid','worthless','failure','loser','pathetic','idiot','dumb','not good enough','not enough'))
+    return "I had a hard moment, and that doesn’t define who I am. I’ve done things well before, and one small win I can aim for now is …";
+  if(has('always','never','everyone','no one','nobody','everything','nothing'))
+    return "It feels this way right now, but “always” and “never” are rarely the whole truth. One small, real thing that went okay is …";
+  if(has('disaster','terrible','awful','worst','catastrophe',"can't cope",'unbearable','hopeless'))
+    return "This feels overwhelming, but the worst case isn’t the most likely one. I can handle the next small step, which is …";
+  if(has('they think','must think','they hate','everyone thinks','judging'))
+    return "I can’t really know what others think, and most people are kinder than my fears. One thing in my control right now is …";
+  return "This thought is understandable, and it isn’t the whole story. I’m doing my best, and one small win I can aim for is …";
+}
+function suggestReframe(){
+  const neg = document.getElementById('neg').value.trim();
+  const t = document.getElementById('rpos');
+  t.value = generateReframe(neg);
+  t.focus();
+  onReframeInput();
 }
 
 function transformAndRelease(){
