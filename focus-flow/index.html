@@ -647,9 +647,18 @@ function shouldRest(){
   return totalMin>=8*60 || h>=22 || h<6; // long day, or late (your real churn zone)
 }
 function suggestSwitch(){
-  // suggest switching if you've done 2+ back-to-back blocks on same project
-  if(S.lastProj===proj){ show('switchBanner'); }
   S.lastProj=proj; save();
+  var others=S.projects.filter(function(p){ return p.id!==proj; });
+  if(!others.length) return;
+  // suggest the project you've worked LEAST today, to keep both moving
+  others.sort(function(a,b){ return projMins(a.id)-projMins(b.id); });
+  var next=others[0];
+  var el=document.getElementById('switchBanner');
+  el.innerHTML="🔄 Good session on <b>"+esc(projName(proj))+"</b>. Next up: time to take on <b>"+
+    esc(next.name)+"</b>. <span style=\"text-decoration:underline\">Tap to switch</span>.";
+  el.onclick=function(){ pick(next.id); hide('switchBanner'); };
+  show('switchBanner');
+  notify("Time to switch project", "Next up: "+next.name);
 }
 function show(id){ if(id) document.getElementById(id).classList.add('show'); }
 function hide(id){ if(id) document.getElementById(id).classList.remove('show'); }
