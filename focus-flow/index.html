@@ -738,8 +738,8 @@ function tinyStep(){
 // ---- calming sounds (generated live, no files) ----
 var actx=null, curSound=null;
 function audioCtx(){ if(!actx){ try{ actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return actx; }
-function noiseBuffer(a){
-  var len=a.sampleRate*2, buf=a.createBuffer(1,len,a.sampleRate), d=buf.getChannelData(0);
+function noiseBuffer(a,secs){
+  var len=Math.floor(a.sampleRate*(secs||2)), buf=a.createBuffer(1,len,a.sampleRate), d=buf.getChannelData(0);
   for(var i=0;i<len;i++) d[i]=Math.random()*2-1;
   return buf;
 }
@@ -748,27 +748,49 @@ function playSound(type){
   if(a.state==='suspended') a.resume();
   if(curSound && curSound.type===type){ stopSound(); return; } // tap again = off
   stopSound();
-  var src=a.createBufferSource(); src.buffer=noiseBuffer(a); src.loop=true;
-  var g=a.createGain(); g.gain.value=0.0001;
+  var g=a.createGain(); g.gain.value=0.0001; g.connect(a.destination);
+  var sources=[], timers=[], extra=null;
   if(type==='rain'){
-    var hp=a.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=500;
-    var lp=a.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=7000;
-    src.connect(hp); hp.connect(lp); lp.connect(g);
+    // soft low background (no bright hiss)
+    var s=a.createBufferSource(); s.buffer=noiseBuffer(a,3); s.loop=true;
+    var lp=a.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=900; lp.Q.value=0.2;
+    var lp2=a.createBiquadFilter(); lp2.type='lowpass'; lp2.frequency.value=520;
+    var bgg=a.createGain(); bgg.gain.value=0.45;
+    s.connect(lp); lp.connect(lp2); lp2.connect(bgg); bgg.connect(g); s.start();
+    sources.push(s);
+    // gentle water droplets on top
+    var stopped=false; extra=function(){ stopped=true; };
+    (function drop(){
+      if(stopped) return;
+      var d=a.createBufferSource(); d.buffer=noiseBuffer(a,0.3);
+      var bp=a.createBiquadFilter(); bp.type='bandpass';
+      bp.frequency.value=550+Math.random()*1500; bp.Q.value=9+Math.random()*12;
+      var dg=a.createGain(); dg.gain.value=0.0001;
+      d.connect(bp); bp.connect(dg); dg.connect(g);
+      var t=a.currentTime;
+      dg.gain.exponentialRampToValueAtTime(0.4+Math.random()*0.4, t+0.006);
+      dg.gain.exponentialRampToValueAtTime(0.0001, t+0.10+Math.random()*0.12);
+      try{ d.start(t); d.stop(t+0.35); }catch(e){}
+      timers.push(setTimeout(drop, 60+Math.random()*260));
+    })();
   } else { // hairdryer / fan – steady low whoosh
-    var lp2=a.createBiquadFilter(); lp2.type='lowpass'; lp2.frequency.value=1100; lp2.Q.value=0.6;
+    var s2=a.createBufferSource(); s2.buffer=noiseBuffer(a,2); s2.loop=true;
+    var l3=a.createBiquadFilter(); l3.type='lowpass'; l3.frequency.value=1100; l3.Q.value=0.6;
     var pk=a.createBiquadFilter(); pk.type='peaking'; pk.frequency.value=180; pk.gain.value=7;
-    src.connect(lp2); lp2.connect(pk); pk.connect(g);
+    s2.connect(l3); l3.connect(pk); pk.connect(g); s2.start();
+    sources.push(s2);
   }
-  g.connect(a.destination); src.start();
-  g.gain.exponentialRampToValueAtTime(type==='rain'?0.35:0.42, a.currentTime+0.7);
-  curSound={type:type,src:src,g:g};
+  g.gain.exponentialRampToValueAtTime(type==='rain'?0.6:0.42, a.currentTime+0.7);
+  curSound={type:type,gain:g,sources:sources,timers:timers,extra:extra};
   soundBtns(type);
 }
 function stopSound(){
   if(!curSound) { soundBtns(null); return; }
-  var a=audioCtx(), s=curSound.src, g=curSound.g;
-  try{ g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+0.3); }catch(e){}
-  setTimeout(function(){ try{ s.stop(); }catch(e){} },350);
+  var a=audioCtx(), cs=curSound;
+  if(cs.extra) cs.extra();
+  cs.timers.forEach(clearTimeout);
+  try{ cs.gain.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+0.3); }catch(e){}
+  setTimeout(function(){ cs.sources.forEach(function(s){ try{ s.stop(); }catch(e){} }); },350);
   curSound=null; soundBtns(null);
 }
 function soundBtns(active){
