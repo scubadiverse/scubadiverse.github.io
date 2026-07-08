@@ -150,28 +150,58 @@ const R=(a,b)=>a+Math.random()*(b-a);
 
 /* ---------- visual state driven by the tutorial flow ---------- */
 const V={ underwater:false, maskOn:false, bubbles:false, water:0, signal:null, holdYou:false, reef:false, regOut:false, kick:0, look:0 };
+/* real-time swim controls */
+const IN={fwd:0,left:0,right:0,up:0,down:0,fast:0};
+let warnCd=0, schoolCenters=[], diveTick=null, armWiggle=0;
+addEventListener('keydown',e=>{ const k=e.code; if(k==='KeyW'||k==='ArrowUp')IN.fwd=1; else if(k==='KeyA'||k==='ArrowLeft')IN.left=1; else if(k==='KeyD'||k==='ArrowRight')IN.right=1; else if(k==='KeyQ'||k==='PageUp')IN.up=1; else if(k==='KeyE'||k==='KeyZ'||k==='PageDown')IN.down=1; else if(k==='ShiftLeft'||k==='ShiftRight')IN.fast=1; else return; e.preventDefault(); });
+addEventListener('keyup',e=>{ const k=e.code; if(k==='KeyW'||k==='ArrowUp')IN.fwd=0; else if(k==='KeyA'||k==='ArrowLeft')IN.left=0; else if(k==='KeyD'||k==='ArrowRight')IN.right=0; else if(k==='KeyQ'||k==='PageUp')IN.up=0; else if(k==='KeyE'||k==='KeyZ'||k==='PageDown')IN.down=0; else if(k==='ShiftLeft'||k==='ShiftRight')IN.fast=0; });
 
 /* ---------- world ---------- */
-let instructor=null, fishG=null, propMask=null, propReg=null, propHand=null, bubbleP=null, signFish=null;
+let instructor=null, fishG=null, propMask=null, propReg=null, propHand=null, bubbleP=null, signFish=null, fpArms=null;
 
-function makeDiver(suit){
+// A recognizable human scuba diver in horizontal trim (head +Z, fins -Z):
+// wetsuit body, head with two-lens mask + regulator, tank, arms reaching
+// forward with hands clasped, legs together with fins.
+function makeDiver(accent){
   const g=new THREE.Group(), rig=new THREE.Group(); g.add(rig);
-  const wet=new THREE.MeshStandardMaterial({color:suit,roughness:.55});
-  const blk=new THREE.MeshStandardMaterial({color:0x14171d,roughness:.75});
-  const glass=new THREE.MeshStandardMaterial({color:0x0b1a2a,metalness:.5,roughness:.12});
-  const chest=new THREE.Mesh(new THREE.CylinderGeometry(.6,.68,1.7,16),wet); chest.rotation.x=Math.PI/2; chest.position.z=.55; rig.add(chest);
-  const hips=new THREE.Mesh(new THREE.CylinderGeometry(.5,.4,1.2,16),wet); hips.rotation.x=Math.PI/2; hips.position.z=-.65; rig.add(hips);
-  const hood=new THREE.Mesh(new THREE.SphereGeometry(.44,16,16),blk); hood.position.set(0,.12,1.5); rig.add(hood);
-  const face=new THREE.Mesh(new THREE.SphereGeometry(.33,16,16),wet); face.scale.set(1,1,.7); face.position.set(0,.02,1.74); rig.add(face);
-  const mask=new THREE.Mesh(new THREE.BoxGeometry(.46,.22,.16),glass); mask.position.set(0,.06,1.9); rig.add(mask);
-  const tank=new THREE.Mesh(new THREE.CylinderGeometry(.3,.3,1.55,14),new THREE.MeshStandardMaterial({color:0xd8b23a,metalness:.5,roughness:.35})); tank.rotation.x=Math.PI/2; tank.position.set(0,.6,-.1); rig.add(tank);
-  const armGeo=new THREE.CylinderGeometry(.15,.13,1.5,10);
-  const a1=new THREE.Mesh(armGeo,wet); a1.rotation.x=Math.PI/2; a1.position.set(.6,-.02,.85); rig.add(a1);
-  const a2=new THREE.Mesh(armGeo.clone(),wet); a2.rotation.x=Math.PI/2; a2.position.set(-.6,-.02,.85); rig.add(a2);
-  const finM=new THREE.MeshStandardMaterial({color:0x111318,roughness:.85});
-  const f1=new THREE.Mesh(new THREE.BoxGeometry(.58,.1,1.4),finM); f1.position.set(.24,-.04,-2.5); rig.add(f1);
-  const f2=new THREE.Mesh(new THREE.BoxGeometry(.58,.1,1.4),finM); f2.position.set(-.24,-.04,-2.5); rig.add(f2);
-  g.userData={rig,arm1:a1,arm2:a2,fin1:f1,fin2:f2};
+  const suit =new THREE.MeshStandardMaterial({color:0x1b1f27, roughness:.6});
+  const acc  =new THREE.MeshStandardMaterial({color:accent||0x1fb6d6, roughness:.5});
+  const skin =new THREE.MeshStandardMaterial({color:0xe7b489, roughness:.6});
+  const dark =new THREE.MeshStandardMaterial({color:0x0e0f13, roughness:.8});
+  const glass=new THREE.MeshStandardMaterial({color:0x8fd0ec, metalness:.4, roughness:.15, transparent:true, opacity:.75});
+  const tankM=new THREE.MeshStandardMaterial({color:0x2f6f92, metalness:.5, roughness:.35});
+  // torso: shoulders -> hips, lying along Z
+  const chest=new THREE.Mesh(new THREE.CylinderGeometry(.4,.46,1.15,16), suit); chest.rotation.x=Math.PI/2; chest.position.z=.5; rig.add(chest);
+  const hips =new THREE.Mesh(new THREE.CylinderGeometry(.42,.34,1.0,16), suit); hips.rotation.x=Math.PI/2; hips.position.z=-.55; rig.add(hips);
+  const shoulder=new THREE.Mesh(new THREE.SphereGeometry(.46,16,12), acc); shoulder.scale.set(1.1,.7,.7); shoulder.position.set(0,.05,.95); rig.add(shoulder);
+  // neck + hooded head + face + mask + regulator
+  const neck=new THREE.Mesh(new THREE.CylinderGeometry(.17,.19,.28,10), skin); neck.rotation.x=Math.PI/2; neck.position.set(0,.05,1.2); rig.add(neck);
+  const hood=new THREE.Mesh(new THREE.SphereGeometry(.32,18,16), suit); hood.position.set(0,.08,1.45); rig.add(hood);
+  const face=new THREE.Mesh(new THREE.SphereGeometry(.25,16,14), skin); face.scale.set(1,.92,.82); face.position.set(0,.0,1.6); rig.add(face);
+  const mframe=new THREE.Mesh(new THREE.BoxGeometry(.4,.19,.13), dark); mframe.position.set(0,.05,1.72); rig.add(mframe);
+  const lensL=new THREE.Mesh(new THREE.CircleGeometry(.085,16), glass); lensL.position.set(-.1,.05,1.79); rig.add(lensL);
+  const lensR=new THREE.Mesh(new THREE.CircleGeometry(.085,16), glass); lensR.position.set(.1,.05,1.79); rig.add(lensR);
+  const reg=new THREE.Mesh(new THREE.BoxGeometry(.13,.11,.1), dark); reg.position.set(0,-.13,1.62); rig.add(reg);
+  const hose=new THREE.Mesh(new THREE.TorusGeometry(.24,.03,6,14,2), dark); hose.position.set(.2,.1,1.2); hose.rotation.set(.4,0,.3); rig.add(hose);
+  // tank + BCD on the back (+Y)
+  const bcd=new THREE.Mesh(new THREE.BoxGeometry(.7,.3,1.3), acc); bcd.position.set(0,.42,.05); rig.add(bcd);
+  const tank=new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,1.25,14), tankM); tank.rotation.x=Math.PI/2; tank.position.set(0,.6,.05); rig.add(tank);
+  // arms reaching forward, forearms angled in to clasped hands
+  const upGeo=new THREE.CylinderGeometry(.12,.11,.9,10);
+  const upL=new THREE.Mesh(upGeo,suit); upL.rotation.x=Math.PI/2; upL.position.set(.34,-.04,1.0); rig.add(upL);
+  const upR=new THREE.Mesh(upGeo.clone(),suit); upR.rotation.x=Math.PI/2; upR.position.set(-.34,-.04,1.0); rig.add(upR);
+  const foGeo=new THREE.CylinderGeometry(.1,.085,.85,10);
+  const foL=new THREE.Mesh(foGeo,suit); foL.position.set(.19,-.05,1.65); foL.rotation.set(Math.PI/2,0,.34); rig.add(foL);
+  const foR=new THREE.Mesh(foGeo.clone(),suit); foR.position.set(-.19,-.05,1.65); foR.rotation.set(Math.PI/2,0,-.34); rig.add(foR);
+  const hands=new THREE.Mesh(new THREE.SphereGeometry(.15,12,12), suit); hands.position.set(0,-.05,2.05); rig.add(hands);
+  // legs together with fins
+  const legGeo=new THREE.CylinderGeometry(.16,.12,1.35,10);
+  const legL=new THREE.Mesh(legGeo,suit); legL.rotation.x=Math.PI/2; legL.position.set(.17,-.02,-1.25); rig.add(legL);
+  const legR=new THREE.Mesh(legGeo.clone(),suit); legR.rotation.x=Math.PI/2; legR.position.set(-.17,-.02,-1.25); rig.add(legR);
+  const finGeo=new THREE.BoxGeometry(.4,.07,1.05);
+  const finL=new THREE.Mesh(finGeo,dark); finL.position.set(.17,-.02,-2.15); rig.add(finL);
+  const finR=new THREE.Mesh(finGeo.clone(),dark); finR.position.set(-.17,-.02,-2.15); rig.add(finR);
+  g.userData={rig,finL,finR,legL,legR};
   return g;
 }
 // A recognizable fish drawn as a side-on silhouette sprite (real fish shape).
@@ -217,9 +247,10 @@ function buildWorld(){
     const cor=new THREE.Mesh(new THREE.ConeGeometry(R(.4,1.1),R(1,3),6),new THREE.MeshStandardMaterial({color:c,roughness:.6,emissive:new THREE.Color(c).multiplyScalar(.1)}));
     cor.position.set(R(-30,30),-3.6+R(0,1.2),R(-40,-8)); cor.rotation.set(R(-.3,.3),0,R(-.3,.3)); fishG.add(cor);
   }
-  fishG.add(fishSchool(10,new THREE.Vector3(8,0,-16),5,0xffd23f));
-  fishG.add(fishSchool(8,new THREE.Vector3(-10,1,-20),6,0x4fd0ff));
-  const turtle=makeTurtle(); turtle.position.set(6,1,-14); turtle.name='turtle'; fishG.add(turtle);
+  const schools=[[8,0,-16,5,0xffd23f],[-10,1,-20,6,0x4fd0ff],[0,2,-27,6,0xff6ec7],[16,-1,-24,5,0x8bff9d],[-18,.5,-31,6,0xffa53f]];
+  schoolCenters=[];
+  for(const s of schools){ fishG.add(fishSchool(7,new THREE.Vector3(s[0],s[1],s[2]),s[3],s[4])); schoolCenters.push({x:s[0],z:s[2]}); }
+  const turtle=makeTurtle(); turtle.position.set(6,1,-14); fishG.add(turtle);
   fishG.visible=false;
   // the fish that turns and holds up a "protect the marine life" sign
   signFish=new THREE.Group();
@@ -234,6 +265,13 @@ function buildWorld(){
   propMask=makeMaskProp(); camera.add(propMask); propMask.visible=false;
   propReg=makeRegProp(); camera.add(propReg); propReg.visible=false;
   propHand=makeHandProp(); camera.add(propHand); propHand.visible=false;
+  // first-person arms reaching forward with hands clasped (your own body)
+  fpArms=new THREE.Group();
+  const faMat=new THREE.MeshStandardMaterial({color:0x1b1f27,roughness:.7});
+  const faL=new THREE.Mesh(new THREE.CylinderGeometry(.085,.07,1.3,10),faMat); faL.position.set(.27,-.66,-1.05); faL.rotation.set(1.26,0,-.16); fpArms.add(faL);
+  const faR=new THREE.Mesh(new THREE.CylinderGeometry(.085,.07,1.3,10),faMat); faR.position.set(-.27,-.66,-1.05); faR.rotation.set(1.26,0,.16); fpArms.add(faR);
+  const fGloves=new THREE.Mesh(new THREE.SphereGeometry(.11,12,10),faMat); fGloves.scale.set(1.7,.8,1); fGloves.position.set(0,-.46,-1.6); fpArms.add(fGloves);
+  camera.add(fpArms); fpArms.visible=false;
   scene.add(camera);
   camera.position.set(0,0,0);
 }
@@ -298,6 +336,10 @@ function hold(label,secs,opt){ opt=opt||{}; return new Promise(res=>{ clearActio
 function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 // persistent control button (does NOT clear the action row on click)
 function mkbtn(label,cls,onClick){ const b=document.createElement('button'); b.className='abtn '+(cls||''); b.innerHTML=label; b.onclick=onClick; return b; }
+// a hold-to-act button that sets a flag while pressed (for continuous kicking)
+function mkhold(label,cls,onDown,onUp){ const b=document.createElement('button'); b.className='abtn '+(cls||''); b.innerHTML=label;
+  const dn=e=>{e.preventDefault(); onDown&&onDown();}; const up=e=>{e.preventDefault(); onUp&&onUp();};
+  b.addEventListener('pointerdown',dn); b.addEventListener('pointerup',up); b.addEventListener('pointerleave',up); b.addEventListener('pointercancel',up); return b; }
 function setControls(nodes){ clearActions(); const wrap=document.createElement('div'); wrap.style.cssText='display:flex;gap:12px;flex-wrap:wrap;justify-content:center'; nodes.forEach(n=>wrap.appendChild(n)); actEl.appendChild(wrap); }
 let warnTimer=null;
 function warnMsg(text,ms){ warnEl.innerHTML='⚠ '+text; warnEl.classList.add('on'); sChime(false); doFlash();
@@ -329,6 +371,7 @@ function sPurge(){ if(!AC)return; const s=nz(),bp=AC.createBiquadFilter(); bp.ty
 function sChime(ok){ if(!AC)return; const o=AC.createOscillator(); o.type='sine'; const t=AC.currentTime; o.frequency.setValueAtTime(ok?660:280,t); o.frequency.exponentialRampToValueAtTime(ok?990:200,t+.18); const g=AC.createGain(); g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.25,t+.03); g.gain.exponentialRampToValueAtTime(.0001,t+.4); o.connect(g); g.connect(master); o.start(t); o.stop(t+.42); }
 function startBreathing(){ if(!AC||breathing)return; breathing=true; let inh=true; (function cyc(){ if(!breathing)return; sBreath(inh); inh=!inh; breathTimer=setTimeout(cyc, inh?1000:900); })(); }
 function stopBreathing(){ breathing=false; if(breathTimer)clearTimeout(breathTimer); breathTimer=null; }
+function sBreathOnce(){ if(!AC)return; sBreath(true); setTimeout(()=>{ if(AC)sBreath(false); },420); }
 function setMuted(m){ muted=m; if(master)master.gain.value=m?0:.5; mutebtn.textContent=m?'🔇':'🔊'; }
 mutebtn.addEventListener('click',()=>setMuted(!muted));
 exitbtn.addEventListener('click',()=>location.reload());
@@ -346,8 +389,7 @@ function animate(){ requestAnimationFrame(animate); const dt=Math.min(clock.getD
   else { renderer.setClearColor(0x8fd4ef); scene.fog=null; }
   // instructor idle bob + optional hold + signal arm
   if(instructor){ instructor.position.y=-.6+Math.sin(t*.9)*.1; const u=instructor.userData;
-    if(u.fin1)u.fin1.rotation.x=Math.sin(t*3)*.4; if(u.fin2)u.fin2.rotation.x=-Math.sin(t*3)*.4;
-    if(u.arm1){ if(V.signal){ u.arm1.rotation.set(Math.PI/2,-.6,-1.1+Math.sin(t*4)*.1); } else u.arm1.rotation.set(Math.PI/2,0,0); }
+    if(u.finL)u.finL.rotation.x=Math.sin(t*3)*.4; if(u.finR)u.finR.rotation.x=-Math.sin(t*3)*.4;
     instructor.visible = V.underwater;
   }
   // bubbles from your reg
@@ -362,22 +404,35 @@ function animate(){ requestAnimationFrame(animate); const dt=Math.min(clock.getD
   if(propReg&&propReg.visible) propReg.rotation.z=Math.sin(t*2)*.05;
   // breathing bar
   meter(breathM, bp);
-  // multi-camera controlled swim (stage 7): the diver stays HORIZONTAL; you pick the view
+  // first-person arms (your own hands, clasped in front) + arm-mistake wiggle
+  if(fpArms){ fpArms.visible=V.diveActive; if(armWiggle>0){ armWiggle-=dt; const w=Math.sin(t*22)*.25; fpArms.children[0].rotation.z=-.13+w; fpArms.children[1].rotation.z=.13-w; } else { fpArms.children[0].rotation.z=-.13; fpArms.children[1].rotation.z=.13; } }
+  // real-time first-person dive loop
+  if(diveTick) diveTick(dt);
+  // real-time controllable swim: you PILOT the diver; the diver stays HORIZONTAL
+  warnCd-=dt;
   if(V.swimActive && V.diver){ const d=V.diver, p=V.pd;
-    d.position.set(p.x, p.y+Math.sin(t*1.5)*.08, p.z); d.rotation.set(0, V.hd, 0);
-    const u=d.userData, k=Math.sin(t*6)*(V.moving?.6:.15);
-    if(u.fin1)u.fin1.rotation.x=k; if(u.fin2)u.fin2.rotation.x=-k;
+    const turn=1.5*dt; if(IN.left)V.hd+=turn; if(IN.right)V.hd-=turn;
     const fx=Math.sin(V.hd), fz=Math.cos(V.hd), rx=Math.cos(V.hd), rz=-Math.sin(V.hd);
+    V.moving=!!(IN.fwd||IN.fast);
+    const spd=(IN.fast?7:3)*dt; if(V.moving){ p.x+=fx*spd; p.z+=fz*spd; }
+    if(IN.up)p.y+=2.2*dt; if(IN.down)p.y-=2.2*dt; p.y=Math.max(-2.6,Math.min(2.2,p.y));
+    p.x=Math.max(-34,Math.min(34,p.x)); p.z=Math.max(-46,Math.min(34,p.z));
+    d.position.set(p.x, p.y+Math.sin(t*1.5)*.05, p.z); d.rotation.set(0,V.hd,0);
+    const u=d.userData, k=Math.sin(t*7)*(V.moving?.6:.12);
+    if(u.finL)u.finL.rotation.x=k; if(u.finR)u.finR.rotation.x=-k;
+    // real-time coaching
+    if(IN.fast && warnCd<=0){ warnCd=3.5; warnMsg('You are swimming too fast &ndash; using too much air and tiring out. Slow down and enjoy the dive.'); }
+    if(V.moving && warnCd<=0){ for(const c of schoolCenters){ if(Math.hypot(p.x-c.x,p.z-c.z)<4.5){ warnCd=4; warnMsg("Don't chase or touch the fish &ndash; we are not home pets. Protect the marine life."); break; } } }
+    // camera for the selected perspective
     let cx,cy,cz, lx=p.x,ly=p.y,lz=p.z;
     switch(V.camMode){
-      case 'eyes':  cx=p.x-fx*.2; cy=p.y+.35; cz=p.z-fz*.2; lx=p.x+fx*8; ly=p.y+.1; lz=p.z+fz*8; break;
+      case 'eyes':  cx=p.x-fx*.2; cy=p.y+.32; cz=p.z-fz*.2; lx=p.x+fx*8; ly=p.y+.05; lz=p.z+fz*8; break;
       case 'front': cx=p.x+fx*6.5; cy=p.y+1.1; cz=p.z+fz*6.5; break;
       case 'left':  cx=p.x-rx*6.5; cy=p.y+1.1; cz=p.z-rz*6.5; break;
       case 'right': cx=p.x+rx*6.5; cy=p.y+1.1; cz=p.z+rz*6.5; break;
-      default:      cx=p.x-fx*7; cy=p.y+2.3; cz=p.z-fz*7; break; // behind
+      default:      cx=p.x-fx*7; cy=p.y+2.4; cz=p.z-fz*7; break; // behind
     }
-    d.visible = (V.camMode!=='eyes');
-    camera.position.set(cx,cy,cz); camera.lookAt(lx,ly,lz);
+    d.visible=(V.camMode!=='eyes'); camera.position.set(cx,cy,cz); camera.lookAt(lx,ly,lz);
   }
   renderer.render(scene,camera);
 }
@@ -407,13 +462,46 @@ async function stage1(){
   say("You're <b>fully kitted up</b> on the beach &ndash; wetsuit, tank, BCD, regulator, mask and fins all on and checked. Time to get wet.");
   await button('Walk into the water ▶','good');
   // slow entry — wade in and settle
-  say("You wade in slowly, put your face in the water, and start breathing off the regulator.");
+  say("You wade in slowly, put your face in the water, and start breathing through your regulator.");
   await enterWater();
-  stage2();
+  interactiveDive();
 }
-async function enterWater(){ V.underwater=true; setMask(true); V.bubbles=true; startBreathing(); showMeter(breathM,true);
+async function enterWater(){ V.underwater=true; V.reef=true; setMask(true); V.bubbles=true; startBreathing(); showMeter(breathM,true);
   // ease the depth from the surface down to 1.5 m
   await new Promise(res=>{ let dp=0; const id=setInterval(()=>{ dp+=.08; depthReadout(Math.min(1.5,dp)); if(dp>=1.5){clearInterval(id);res();} },70); });
+}
+
+/* THE DIVE — first-person, you pilot the diver and juggle the real skills live */
+function interactiveDive(){
+  objective('Your dive'); showSignal(null); stopBreathing(); V.bubbles=false;
+  const diver=makeDiver(0xffcf3f); scene.add(diver);
+  V.pd={x:0,y:-.3,z:6}; V.hd=Math.PI; V.diver=diver; V.camMode='eyes'; V.swimActive=true; V.moving=false; V.diveActive=true;
+  setMask(true); showMeter(breathM,true); showMeter(earM,true); showMeter(trimM,false);
+  let breath=1, ear=0, water=0, air=200, timeLeft=42, earTimer=6, waterTimer=11, done=false;
+  meter(breathM,1); meter(earM,0);
+  say("You're diving! Fish ahead. Kick with your <b>legs</b> (hands still), keep <b>breathing</b> through your mouth, <b>equalise</b> your ears, and <b>clear your mask</b> if water gets in.");
+  const kick   =mkhold('🦵 Kick (hold)','good',()=>{IN.fwd=1;},()=>{IN.fwd=0;});
+  const breathe=mkbtn('🫁 Breathe','',()=>{ breath=Math.min(1,breath+.5); sBreathOnce(); });
+  const eq     =mkbtn('🤏 Equalise','',()=>{ if(ear>.12){ ear=0; meter(earM,0); earTimer=R(7,11); sChime(true); } });
+  const clr    =mkbtn('😮‍💨 Clear mask','',()=>{ if(water>.1){ water=0; setWater(0); waterTimer=R(10,15); sChime(true); } });
+  const arms   =mkbtn('🖐 Use arms','warn',()=>{ armWiggle=.8; if(warnCd<=0){ warnCd=3; warnMsg('Legs only! Keep your hands together or alongside your body.'); } });
+  setControls([kick,breathe,eq,clr,arms]);
+  diveTick=(dt)=>{ if(done)return;
+    breath-=dt*.13; meter(breathM,Math.max(0,breath));
+    if(breath<=.1 && warnCd<=0){ warnCd=3; warnMsg('Keep breathing through your mouth &ndash; never hold your breath!'); breath=.1; }
+    air-=dt*(V.moving?1.1:.6); airReadout(Math.max(0,air));
+    earTimer-=dt; if(earTimer<=0){ ear=Math.min(1,ear+dt*.16); meter(earM,ear); if(ear>=1 && warnCd<=0){ warnCd=3; warnMsg('Equalise now &ndash; pinch your nose and gently blow!'); } }
+    waterTimer-=dt; if(waterTimer<=0){ water=Math.min(1,water+dt*.11); setWater(water*.85); if(water>=1 && warnCd<=0){ warnCd=3; warnMsg('Water in your mask &ndash; look up and exhale to clear it.'); } }
+    timeLeft-=dt; objective('Enjoy the dive &bull; '+Math.max(0,Math.ceil(timeLeft))+'s');
+    if(timeLeft<=0){ done=true; diveTick=null; V.diveActive=false; V.swimActive=false; IN.fwd=0; scene.remove(diver); V.diver=null; setWater(0); showMeter(earM,false); diveSuccess(); }
+  };
+}
+function diveSuccess(){ stopBreathing(); showHUD(true); objective('Great first dive!');
+  screenEl.className='on'; screenEl.innerHTML='<div class="panel"><div class="kick">Safety stop done &bull; back on the beach</div>'+
+    '<h1>Great first <span class="b">dive!</span></h1>'+
+    '<p class="sub">You kicked with your legs, kept your hands still, kept breathing through your mouth, equalised your ears and cleared your mask &ndash; all while enjoying the reef.</p>'+
+    '<button class="big" id="againb">Dive again ▶</button></div>';
+  $('againb').onclick=()=>location.reload();
 }
 
 /* STAGE 2 — FIRST BREATHS */
