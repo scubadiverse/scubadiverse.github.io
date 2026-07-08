@@ -80,6 +80,12 @@
   a{color:var(--accent)}
   input[type=number]{width:64px;background:var(--card2);color:var(--ink);border:1px solid var(--line);
     border-radius:8px;padding:6px 8px;font:inherit}
+  .qrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 0;
+    border-bottom:1px dashed var(--line);font-size:14px}
+  .qrow .q{flex:1;min-width:170px}
+  .qrow label{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--muted);cursor:pointer}
+  .qrow input[type=checkbox]{width:18px;height:18px}
+  .qrow label.dive{color:var(--dive)} .qrow label.video{color:var(--video)}
   .moods{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
   .mood{border-radius:999px;padding:9px 14px;font-size:14px;background:var(--card2)}
   .mood.sel{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
@@ -153,6 +159,18 @@
     <span class="muted" style="font-size:13px">⏸️ Force a 5-min time-out after:</span>
     <input type="number" id="onlineLimit" min="20" max="240" value="60" onchange="setLimit()">
     <span class="muted" style="font-size:13px">min online</span>
+  </div>
+</div>
+
+<div class="card">
+  <div class="row"><b class="grow">Can't decide which project?</b>
+    <button class="pill" onclick="toggleDecide()" id="decideBtn">🤔 Help me choose</button></div>
+  <div id="decideBody" style="display:none">
+    <div class="foot" style="text-align:left;margin:8px 0 4px">Tick what's true for each project.
+      Scored with the Eisenhower, RICE and WSJF methods.</div>
+    <div id="qlist"></div>
+    <button class="primary" style="margin-top:12px;width:100%" onclick="decide()">See what to do now</button>
+    <div class="resp" id="decideResp"></div>
   </div>
 </div>
 
@@ -515,6 +533,65 @@ function beep(){
     g.gain.exponentialRampToValueAtTime(.001,a.currentTime+.5);
     o.start();o.stop(a.currentTime+.5);
   }catch(e){}
+}
+
+// ---- priority helper (Eisenhower + RICE + WSJF, made simple) ----
+// Each criterion has a weight; ticking it for a project adds that weight.
+// 'quick' is a small tie-breaker (a quick win / small job) as in WSJF/RICE effort.
+var CRIT=[
+  {c:'pay',w:3,q:'💰 You get paid / earn income from it'},
+  {c:'deadline',w:3,q:'⏰ It has a real deadline coming up'},
+  {c:'waiting',w:2,q:'👥 Someone is waiting on it / it blocks others'},
+  {c:'important',w:2,q:'🎯 It matters most to your bigger goals'},
+  {c:'stress',w:2,q:'😣 It will nag or stress you if left undone'},
+  {c:'quick',w:1,q:'⚡ You can make real progress on it quickly today'}
+];
+var PROJ=[{k:'dive',n:'DiveScanner'},{k:'video',n:'AI Videos'}];
+function toggleDecide(){
+  var b=document.getElementById('decideBody');
+  var open=b.style.display!=='none';
+  b.style.display=open?'none':'block';
+  document.getElementById('decideBtn').textContent=open?'🤔 Help me choose':'Hide';
+  if(!open && !document.getElementById('qlist').childNodes.length) buildDecide();
+}
+function buildDecide(){
+  var el=document.getElementById('qlist'); el.innerHTML="";
+  CRIT.forEach(function(cr){
+    var row=document.createElement('div'); row.className='qrow';
+    var labels=PROJ.map(function(p){
+      return '<label class="'+p.k+'"><input type="checkbox" data-c="'+cr.c+'" data-p="'+p.k+'"> '+p.n+'</label>';
+    }).join('');
+    row.innerHTML='<span class="q">'+cr.q+'</span>'+labels;
+    el.appendChild(row);
+  });
+}
+function decide(){
+  var score={dive:0,video:0}, reasons={dive:[],video:[]}, quick={dive:false,video:false};
+  CRIT.forEach(function(cr){
+    PROJ.forEach(function(p){
+      var cb=document.querySelector('input[data-c="'+cr.c+'"][data-p="'+p.k+'"]');
+      if(cb && cb.checked){ score[p.k]+=cr.w; if(cr.c==='quick') quick[p.k]=true; else reasons[p.k].push(cr.q); }
+    });
+  });
+  var r=document.getElementById('decideResp'); r.classList.add('show');
+  if(score.dive===0 && score.video===0){
+    r.innerHTML='<div class="msg">Nothing ticked yet. If they honestly feel equal, do the one you can <b>start in the next 5 minutes</b> – momentum decides it.</div>';
+    return;
+  }
+  var winKey, loseKey;
+  if(score.dive===score.video){
+    // tie: prefer the quick win, else say it's a coin-flip
+    if(quick.dive!==quick.video){ winKey=quick.dive?'dive':'video'; }
+    else { r.innerHTML='<div class="msg">It\'s genuinely a tie ('+score.dive+' each). Do the <b>quicker</b> one first to build momentum, then switch. You do not have to choose perfectly – just start.</div><div class="mot">💪 '+motLine()+'</div>'; return; }
+  } else { winKey = score.dive>score.video?'dive':'video'; }
+  loseKey = winKey==='dive'?'video':'dive';
+  var winN = winKey==='dive'?'DiveScanner':'AI Videos';
+  var rs = reasons[winKey].slice(0,3);
+  var why = rs.length ? '<ul style="margin:8px 0 0;padding-left:18px">'+rs.map(function(x){return '<li>'+x+'</li>';}).join('')+'</ul>' : '';
+  r.innerHTML='<div class="msg">👉 Start with <b>'+winN+'</b> now ('+score[winKey]+' vs '+score[loseKey]+').'+why+
+    '<div style="margin-top:10px">Give it one focus block, then reassess. You are not abandoning the other – it is just next, not now.</div></div>'+
+    '<div class="mot">💪 '+motLine()+'</div>'+
+    '<div class="acts"><button class="primary" onclick="pick(\''+winKey+'\')">Pick '+winN+' &amp; focus</button></div>';
 }
 
 // ---- mood check-in + coping ----
