@@ -174,24 +174,26 @@ function makeDiver(suit){
   g.userData={rig,arm1:a1,arm2:a2,fin1:f1,fin2:f2};
   return g;
 }
-// a proper little reef fish (body, tail, fins, eyes) facing +X
-function makeFish(color,scale){ scale=scale||1; const g=new THREE.Group();
-  const bMat=new THREE.MeshStandardMaterial({color,roughness:.45,metalness:.1});
-  const body=new THREE.Mesh(new THREE.SphereGeometry(.5,16,12),bMat); body.scale.set(1.5,.78,.5); g.add(body);
-  const tail=new THREE.Mesh(new THREE.ConeGeometry(.4,.62,4),bMat); tail.scale.set(1,1,.22); tail.rotation.z=Math.PI/2; tail.position.x=-.86; g.add(tail);
-  const dorsal=new THREE.Mesh(new THREE.ConeGeometry(.2,.5,3),bMat); dorsal.scale.set(1,1,.18); dorsal.position.set(-.1,.4,0); g.add(dorsal);
-  const finMat=new THREE.MeshStandardMaterial({color,roughness:.6,transparent:true,opacity:.85,side:THREE.DoubleSide});
-  const pf=new THREE.Mesh(new THREE.ConeGeometry(.16,.42,3),finMat); pf.scale.set(1,1,.18); pf.rotation.z=-.7; pf.position.set(.18,-.08,.28); g.add(pf);
-  const pf2=pf.clone(); pf2.position.z=-.28; pf2.rotation.z=-.7; g.add(pf2);
-  const white=new THREE.MeshStandardMaterial({color:0xffffff}), black=new THREE.MeshStandardMaterial({color:0x111});
-  for(const z of [.2,-.2]){ const e=new THREE.Mesh(new THREE.SphereGeometry(.1,8,8),white); e.position.set(.52,.13,z); g.add(e);
-    const pp=new THREE.Mesh(new THREE.SphereGeometry(.05,8,8),black); pp.position.set(.6,.13,z); g.add(pp); }
-  g.scale.setScalar(scale); g.userData.tail=tail; return g;
+// A recognizable fish drawn as a side-on silhouette sprite (real fish shape).
+function fishTexture(color){
+  if(typeof color==='number') color='#'+color.toString(16).padStart(6,'0');
+  const cv=document.createElement('canvas'); cv.width=140; cv.height=80; const x=cv.getContext('2d');
+  x.fillStyle=color;
+  x.beginPath(); x.ellipse(80,40,42,23,0,0,Math.PI*2); x.fill();                 // body
+  x.beginPath(); x.moveTo(42,40); x.lineTo(8,16); x.lineTo(8,64); x.closePath(); x.fill(); // tail
+  x.beginPath(); x.moveTo(74,18); x.lineTo(96,4); x.lineTo(104,20); x.closePath(); x.fill(); // dorsal
+  x.beginPath(); x.moveTo(74,60); x.lineTo(90,72); x.lineTo(98,58); x.closePath(); x.fill(); // anal fin
+  x.fillStyle='rgba(255,255,255,.35)'; x.beginPath(); x.ellipse(88,50,24,8,0,0,Math.PI*2); x.fill(); // belly
+  x.fillStyle='#fff'; x.beginPath(); x.arc(106,32,7,0,7); x.fill();
+  x.fillStyle='#111'; x.beginPath(); x.arc(108,32,3.5,0,7); x.fill();
+  const tex=new THREE.CanvasTexture(cv); tex.minFilter=THREE.LinearFilter; return tex;
 }
+const FISHCOL=['#ffcf3f','#ff7a45','#5ad0ff','#ff6ec7','#8bff9d','#c58bff','#ff5470'];
+function makeFishSprite(color,size){ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:fishTexture(color),transparent:true,depthWrite:false})); sp.scale.set(size*1.75,size,1); sp.userData.base=size*1.75; return sp; }
 function fishSchool(n,center,radius,color){
   const g=new THREE.Group(),list=[];
-  for(let i=0;i<n;i++){ const f=makeFish(color,R(.6,1.0)); g.add(f);
-    list.push({m:f,a:R(0,6.28),sp:R(.3,.7),rad:radius*R(.5,1.1),yo:R(-radius/2,radius/2),ph:R(0,6.28)});
+  for(let i=0;i<n;i++){ const f=makeFishSprite(color||FISHCOL[i%FISHCOL.length],R(.9,1.5)); g.add(f);
+    list.push({m:f,a:R(0,6.28),sp:R(.2,.5),rad:radius*R(.5,1.1),yo:R(-radius/2,radius/2),ph:R(0,6.28)});
   }
   g.position.copy(center); g.userData.list=list; return g;
 }
@@ -225,7 +227,7 @@ function buildWorld(){
   const sign=makeSign("Don't touch us - we are not home pets. Protect the marine life."); sign.position.set(0,2.1,0); signFish.add(sign);
   signFish.position.set(2.4,.6,-7.5); signFish.rotation.y=Math.PI; signFish.visible=false; scene.add(signFish);
   // instructor, in front of you the whole time, facing you (head toward camera)
-  instructor=makeDiver(0x1f8ecb); instructor.position.set(1.3,-1.7,-9.4); instructor.rotation.set(-Math.PI/2,0,0); scene.add(instructor);
+  instructor=makeDiver(0x1f8ecb); instructor.position.set(2.4,-.6,-7.6); instructor.rotation.set(0,-0.6,0); scene.add(instructor); // horizontal, angled toward you
   // rising bubbles from your own reg
   bubbleP=particles(120,4,0xbfefff,.16,0); bubbleP.position.set(-.3,-1,-1.2); scene.add(bubbleP); bubbleP.visible=false;
   // first-person props attached to the camera
@@ -343,7 +345,7 @@ function animate(){ requestAnimationFrame(animate); const dt=Math.min(clock.getD
   if(V.underwater){ renderer.setClearColor(0x0e6f96); if(!scene.fog)scene.fog=new THREE.FogExp2(0x0e6f96,0.02); }
   else { renderer.setClearColor(0x8fd4ef); scene.fog=null; }
   // instructor idle bob + optional hold + signal arm
-  if(instructor){ instructor.position.y=-1.7+Math.sin(t*.9)*.1; const u=instructor.userData;
+  if(instructor){ instructor.position.y=-.6+Math.sin(t*.9)*.1; const u=instructor.userData;
     if(u.fin1)u.fin1.rotation.x=Math.sin(t*3)*.4; if(u.fin2)u.fin2.rotation.x=-Math.sin(t*3)*.4;
     if(u.arm1){ if(V.signal){ u.arm1.rotation.set(Math.PI/2,-.6,-1.1+Math.sin(t*4)*.1); } else u.arm1.rotation.set(Math.PI/2,0,0); }
     instructor.visible = V.underwater;
@@ -351,7 +353,7 @@ function animate(){ requestAnimationFrame(animate); const dt=Math.min(clock.getD
   // bubbles from your reg
   if(bubbleP){ bubbleP.visible=V.bubbles; if(V.bubbles){ const pa=bubbleP.geometry.attributes.position; for(let i=0;i<pa.count;i++){ let y=pa.getY(i)+dt*3; if(y>8)y=-2; pa.setY(i,y);} pa.needsUpdate=true; } }
   // reef in trim stage
-  if(fishG){ fishG.visible=V.reef; if(V.reef){ fishG.children.forEach(c=>{ if(c.userData.list) c.userData.list.forEach(f=>{ f.a+=dt*f.sp; f.m.position.set(Math.cos(f.a)*f.rad,f.yo+Math.sin(t+f.ph),Math.sin(f.a)*f.rad); f.m.rotation.y=-f.a-Math.PI/2; if(f.m.userData.tail)f.m.userData.tail.rotation.y=Math.sin(t*8+f.ph)*.35; }); }); } }
+  if(fishG){ fishG.visible=V.reef; if(V.reef){ fishG.children.forEach(c=>{ if(c.userData.list) c.userData.list.forEach(f=>{ f.a+=dt*f.sp; f.m.position.set(Math.cos(f.a)*f.rad,f.yo+Math.sin(t*.8+f.ph)*.6,Math.sin(f.a)*f.rad); const bb=f.m.userData.base; f.m.scale.x=(Math.sin(f.a)>0?-bb:bb); }); }); } }
   // the sign fish turns to face the diver when chased
   if(signFish&&signFish.visible){ const tgtY = V.chaseTurn ? Math.atan2(camera.position.x-signFish.position.x, camera.position.z-signFish.position.z) : Math.PI;
     signFish.rotation.y += (tgtY-signFish.rotation.y)*0.08; signFish.position.y=.6+Math.sin(t*1.5)*.15; }
@@ -360,6 +362,23 @@ function animate(){ requestAnimationFrame(animate); const dt=Math.min(clock.getD
   if(propReg&&propReg.visible) propReg.rotation.z=Math.sin(t*2)*.05;
   // breathing bar
   meter(breathM, bp);
+  // multi-camera controlled swim (stage 7): the diver stays HORIZONTAL; you pick the view
+  if(V.swimActive && V.diver){ const d=V.diver, p=V.pd;
+    d.position.set(p.x, p.y+Math.sin(t*1.5)*.08, p.z); d.rotation.set(0, V.hd, 0);
+    const u=d.userData, k=Math.sin(t*6)*(V.moving?.6:.15);
+    if(u.fin1)u.fin1.rotation.x=k; if(u.fin2)u.fin2.rotation.x=-k;
+    const fx=Math.sin(V.hd), fz=Math.cos(V.hd), rx=Math.cos(V.hd), rz=-Math.sin(V.hd);
+    let cx,cy,cz, lx=p.x,ly=p.y,lz=p.z;
+    switch(V.camMode){
+      case 'eyes':  cx=p.x-fx*.2; cy=p.y+.35; cz=p.z-fz*.2; lx=p.x+fx*8; ly=p.y+.1; lz=p.z+fz*8; break;
+      case 'front': cx=p.x+fx*6.5; cy=p.y+1.1; cz=p.z+fz*6.5; break;
+      case 'left':  cx=p.x-rx*6.5; cy=p.y+1.1; cz=p.z-rz*6.5; break;
+      case 'right': cx=p.x+rx*6.5; cy=p.y+1.1; cz=p.z+rz*6.5; break;
+      default:      cx=p.x-fx*7; cy=p.y+2.3; cz=p.z-fz*7; break; // behind
+    }
+    d.visible = (V.camMode!=='eyes');
+    camera.position.set(cx,cy,cz); camera.lookAt(lx,ly,lz);
+  }
   renderer.render(scene,camera);
 }
 
@@ -384,31 +403,18 @@ function titleScreen(){
 async function stage1(){
   V.underwater=false; setMask(false); showMeter(breathM,false);
   depthReadout(0); airReadout(200);
-  objective('Stage 1 &bull; Kit up on the beach');
-  say("On the beach before your first dive, let's put your gear on in the right order. First, your <b>wetsuit</b>.");
-  await button('Pull on the wetsuit');
-  say("Good. Now the most important fit check of the dive &ndash; your <b>mask</b>. Your hair is across your forehead.");
-  propMask.visible=true;
-  let ok=false;
-  while(!ok){
-    const c=await choose([
-      {label:'Tuck your hair out of the seal, then test',cls:'good',key:'tuck'},
-      {label:'Just press the mask on',cls:'warn',key:'skip'} ]);
-    if(c==='skip'){ doFlash(); say("Hair under the skirt breaks the seal &ndash; the mask leaks. Move the hair first."); await wait(400); }
-    else ok=true;
-  }
-  say("Now hold the mask to your face <b>without the strap</b>, look up, and gently <b>breathe IN through your nose</b>. Hold it&hellip;");
-  await hold('◉ Breathe in through your nose (hold)', 1.6, {onStart:()=>{}, onStop:()=>{}});
-  sChime(true); say("It seals and stays on its own &ndash; a <b>hands-free fit</b>. That's how you know a mask fits. Defog and fit the strap.");
-  await button('Defog &amp; fit the strap','good');
-  propMask.visible=false;
-  say("Last thing on land: your <b>fins</b> go on at the water's edge &ndash; you never walk around in fins.");
-  await button('Put fins on at the edge');
-  say("Kitted up correctly. Let's get in the water.");
-  await button('Enter the water ▶','good');
-  enterWater(); stage2();
+  objective('Ready to dive');
+  say("You're <b>fully kitted up</b> on the beach &ndash; wetsuit, tank, BCD, regulator, mask and fins all on and checked. Time to get wet.");
+  await button('Walk into the water ▶','good');
+  // slow entry — wade in and settle
+  say("You wade in slowly, put your face in the water, and start breathing off the regulator.");
+  await enterWater();
+  stage2();
 }
-function enterWater(){ doFlash(); V.underwater=true; setMask(true); V.bubbles=true; startBreathing(); showMeter(breathM,true); depthReadout(1.5); }
+async function enterWater(){ V.underwater=true; setMask(true); V.bubbles=true; startBreathing(); showMeter(breathM,true);
+  // ease the depth from the surface down to 1.5 m
+  await new Promise(res=>{ let dp=0; const id=setInterval(()=>{ dp+=.08; depthReadout(Math.min(1.5,dp)); if(dp>=1.5){clearInterval(id);res();} },70); });
+}
 
 /* STAGE 2 — FIRST BREATHS */
 async function stage2(){
@@ -515,47 +521,42 @@ async function stage6(){
   stage7();
 }
 
-/* STAGE 7 — TRIM & FINNING (interactive arm/leg controls + live warnings) */
-function swimForward(amount){ camera.position.z=Math.max(-3, camera.position.z-(amount||1)*0.4); }
+/* STAGE 7 — SWIM IN HORIZONTAL TRIM (you control the diver; switch camera views) */
+function swimStep(amount){ const s=(amount||1)*0.5; V.pd.x+=Math.sin(V.hd)*s; V.pd.z+=Math.cos(V.hd)*s; }
 async function stage7(){
-  objective('Stage 7 &bull; Trim &amp; finning'); V.reef=true; showMeter(trimM,true);
+  objective('Stage 7 &bull; Swim in horizontal trim'); V.reef=true; showMeter(trimM,true); showSignal(null);
+  const diver=makeDiver(0xffca3a); scene.add(diver);
+  V.pd={x:0,y:-0.4,z:2}; V.hd=Math.PI; V.diver=diver; V.camMode='behind'; V.swimActive=true; V.moving=false;
+  setMask(false);
   let trim=.6; const setTrim=v=>{ trim=Math.max(0,Math.min(1,v)); meter(trimM,trim); }; setTrim(.6);
-  V.holdYou=true;
-  say("Your instructor steadies you at the <b>tank valve</b>. Now you swim &ndash; the golden rule of moving is <b>legs only, slow and relaxed</b>.");
-  await button("I'm ready to swim",'good');
+  const kick=()=>{ V.moving=true; setTimeout(()=>V.moving=false,500); };
+  const setView=m=>{ V.camMode=m; setMask(m==='eyes'); };
+  const viewBtns=()=>[ mkbtn('👁 Eyes','',()=>setView('eyes')), mkbtn('🎥 Behind','',()=>setView('behind')),
+                       mkbtn('⬆ Front','',()=>setView('front')), mkbtn('◀ Left','',()=>setView('left')), mkbtn('▶ Right','',()=>setView('right')) ];
+  say("Now <b>you</b> swim. Good scuba is <b>flat and horizontal, legs only, slow</b>. Switch the camera to watch yourself from every angle.");
 
-  // BEAT 1 — legs vs arms
-  say("Swim forward. You have two controls: your <b>legs</b> and your <b>arms</b>. Give it a go.");
+  // PART A — legs (correct) vs arms / too fast (warnings)
   let kicks=0;
   await new Promise(res=>{
-    const leg=mkbtn('🦵 Kick with your legs','good',()=>{ kicks++; setTrim(trim+.05); swimForward(1.2); say('Slow, gentle leg kicks &ndash; that\'s the idea.'); if(kicks>=4){ res(); } });
-    const arm=mkbtn('🖐 Pull with your arms','warn',()=>{ setTrim(trim-.08); warnMsg('Use your legs only! Hold your hands together or keep them alongside your body.'); });
-    setControls([leg,arm]);
+    const leg=mkbtn('🦵 Kick (legs)','good',()=>{ kicks++; kick(); setTrim(trim+.05); swimStep(1.2); say('Flat, slow, legs only &ndash; good.'); if(kicks>=5) res(); });
+    const arm=mkbtn('🖐 Use arms','warn',()=>{ setTrim(trim-.08); warnMsg('Use your legs only! Hold your hands together or keep them alongside your body.'); });
+    const fast=mkbtn('⏩ Swim fast','warn',()=>{ setTrim(trim-.1); kick(); swimStep(2.4); warnMsg('You are swimming too fast &ndash; getting tired too quickly and using too much air. Slow down and enjoy the dive.'); });
+    setControls(viewBtns().concat([leg,arm,fast]));
   });
   clearActions(); sChime(true);
 
-  // BEAT 2 — too fast
-  say("Flat and level. The group is ahead and you feel the urge to hurry after them.");
-  let slow=0;
-  await new Promise(res=>{
-    const easy=mkbtn('🦵 Slow, easy kicks','good',()=>{ slow++; setTrim(trim+.05); swimForward(1); say('Slow is good diving.'); if(slow>=3){ res(); } });
-    const fast=mkbtn('⏩ Swim fast to keep up','warn',()=>{ setTrim(trim-.1); swimForward(2.5); warnMsg('You are swimming too fast &ndash; getting tired too quickly and using too much air. Slow down and enjoy the dive.'); });
-    setControls([easy,fast]);
-  });
-  clearActions(); sChime(true);
-
-  // BEAT 3 — respect marine life
+  // PART B — respect marine life
   say("A curious fish hovers just ahead of you.");
   signFish.visible=true; V.chaseTurn=false;
   await new Promise(res=>{
-    const watch=mkbtn('👀 Stay in trim and watch it','good',()=>{ setTrim(trim+.06); res(); });
-    const chase=mkbtn('🐟 Swim over and touch it','warn',()=>{ V.chaseTurn=true; swimForward(1.5); warnMsg("Don't touch us &ndash; we are not home pets. Protect the marine life.",4200); });
-    setControls([watch,chase]);
+    const watch=mkbtn('👀 Watch it, stay in trim','good',()=>{ setTrim(trim+.06); res(); });
+    const chase=mkbtn('🐟 Swim over and touch it','warn',()=>{ V.chaseTurn=true; kick(); swimStep(1.5); warnMsg("Don't touch us &ndash; we are not home pets. Protect the marine life.",4200); });
+    setControls(viewBtns().concat([watch,chase]));
   });
-  clearActions(); await wait(400); signFish.visible=false; V.chaseTurn=false; sChime(true);
+  clearActions(); await wait(500); signFish.visible=false; V.chaseTurn=false; sChime(true);
 
-  V.holdYou=false; showMeter(trimM,false);
-  say("Legs only, slow, hands still, the animals respected &ndash; that is a real diver.");
+  V.swimActive=false; V.diver=null; scene.remove(diver); showMeter(trimM,false); setMask(true);
+  say("Flat, slow, legs only, animals respected &ndash; that's a diver.");
   await button('Finish the dive ▶','good');
   finish();
 }
