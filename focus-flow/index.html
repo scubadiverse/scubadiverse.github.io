@@ -122,16 +122,10 @@
 <div id="switchBanner" class="banner switch">🔄 Good block. Switch projects to stay fresh?</div>
 
 <div class="card">
-  <div class="row">
-    <button class="proj dive" id="pDive" onclick="pick('dive')">
-      <div class="nm"><span class="dot dive"></span>DiveScanner.net</div>
-      <div class="mn" id="mnDive">0 min today</div>
-    </button>
-    <button class="proj video" id="pVideo" onclick="pick('video')">
-      <div class="nm"><span class="dot video"></span>AI Videos</div>
-      <div class="mn" id="mnVideo">0 min today</div>
-    </button>
-  </div>
+  <div class="row"><b class="grow">Projects</b>
+    <button class="pill" id="editProjBtn" onclick="toggleEditProj()">✏️ Edit</button></div>
+  <div class="row" id="projList" style="margin-top:10px"></div>
+  <div id="projEdit" style="display:none;margin-top:12px"></div>
 </div>
 
 <div class="card">
@@ -186,8 +180,8 @@
   <div class="stat"><span>Total focused</span><b id="sTotal">0 min</b></div>
   <div class="stat"><span>Blocks done</span><b id="sBlocks">0</b></div>
   <div class="stat"><span>Suggested split now</span><b id="sSplitTxt">–</b></div>
-  <div class="split" id="splitBar"><div class="s dive" style="width:50%"></div><div class="s video" style="width:50%"></div></div>
-  <div class="foot" id="splitWhy">Split balances focus quality with keeping both projects moving.</div>
+  <div class="split" id="splitBar"></div>
+  <div class="foot" id="splitWhy">Split keeps every project moving, leaning to the ones you've touched least.</div>
 </div>
 
 <div class="card">
@@ -249,7 +243,8 @@ function load(){
   var raw=null; try{raw=localStorage.getItem(KEY);}catch(e){}
   var base={
     day:todayKey(),
-    mins:{dive:0,video:0}, blocks:0,
+    projects:[{id:'dive',name:'DiveScanner.net'},{id:'video',name:'AI Videos'}],
+    mins:{}, blocks:0,
     tiredPoints:[],          // minutes-into-block when user tapped tired
     hourMins:{},             // learned: focused minutes per hour-of-day
     block:50, lastProj:null,
@@ -261,10 +256,14 @@ function load(){
   };
   if(!raw) return base;
   var s; try{s=JSON.parse(raw);}catch(e){return base;}
-  if(s.day!==todayKey()){ s.day=todayKey(); s.mins={dive:0,video:0}; s.blocks=0; s.lastProj=null; }
+  if(s.day!==todayKey()){ s.day=todayKey(); s.mins={}; s.blocks=0; s.lastProj=null; }
   for(var k in base) if(!(k in s)) s[k]=base[k];
+  if(!s.projects || !s.projects.length) s.projects=base.projects;
+  if(!s.mins) s.mins={};
   return s;
 }
+function projName(id){ for(var i=0;i<S.projects.length;i++) if(S.projects[i].id===id) return S.projects[i].name; return id; }
+function projMins(id){ return S.mins[id]||0; }
 function save(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} }
 
 // ---- timer state ----
@@ -283,12 +282,70 @@ function enableAlerts(){
   }).catch(function(){});
 }
 
+// ---- projects (add / rename / delete) ----
+var PALETTE=['#2ea6ff','#ff7a59','#3ddc97','#c792ff','#ffcf5c','#ff6b9d','#5ad1e6','#f0a35e'];
+function projColor(id){
+  for(var i=0;i<S.projects.length;i++) if(S.projects[i].id===id) return PALETTE[i%PALETTE.length];
+  return '#888';
+}
+function newId(){ var n=0; for(var i=0;i<S.projects.length;i++){ var m=/^p(\d+)$/.exec(S.projects[i].id); if(m) n=Math.max(n,+m[1]); } return 'p'+(n+1); }
+function renderProjects(){
+  var el=document.getElementById('projList'); el.innerHTML="";
+  if(!S.projects.length){ el.innerHTML='<span class="muted" style="font-size:13px">No projects yet – tap Edit to add one.</span>'; }
+  S.projects.forEach(function(p){
+    var c=projColor(p.id), active=(proj===p.id);
+    var b=document.createElement('button'); b.className='proj';
+    b.style.cssText='flex:1;min-width:130px;text-align:left;border-radius:14px;padding:14px'+
+      (active?';box-shadow:0 0 0 2px '+c+' inset;border-color:'+c:'');
+    b.innerHTML='<div class="nm"><span class="dot" style="background:'+c+'"></span>'+esc(p.name)+'</div>'+
+      '<div class="mn">'+projMins(p.id)+' min today</div>';
+    b.onclick=function(){ pick(p.id); };
+    el.appendChild(b);
+  });
+}
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function toggleEditProj(){
+  var b=document.getElementById('projEdit'), open=b.style.display!=='none';
+  b.style.display=open?'none':'block';
+  document.getElementById('editProjBtn').textContent=open?'✏️ Edit':'Done';
+  if(!open) renderProjEdit();
+}
+function renderProjEdit(){
+  var el=document.getElementById('projEdit'); el.innerHTML="";
+  S.projects.forEach(function(p){
+    var row=document.createElement('div'); row.className='qrow';
+    row.innerHTML='<input type="text" value="'+esc(p.name)+'" style="flex:1;min-width:140px;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px" '+
+      'onchange="renameProject(\''+p.id+'\',this.value)">'+
+      '<button class="pill" onclick="deleteProject(\''+p.id+'\')">🗑 Delete</button>';
+    el.appendChild(row);
+  });
+  var add=document.createElement('div'); add.className='row'; add.style.marginTop='10px';
+  add.innerHTML='<input type="text" id="newProjName" placeholder="New project name…" '+
+    'style="flex:1;min-width:140px;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px">'+
+    '<button class="primary" onclick="addProject()">＋ Add</button>';
+  el.appendChild(add);
+}
+function addProject(){
+  var inp=document.getElementById('newProjName'); var name=(inp.value||'').trim();
+  if(!name) return;
+  S.projects.push({id:newId(),name:name}); save();
+  renderProjects(); renderProjEdit(); paintStats();
+}
+function renameProject(id,name){
+  name=(name||'').trim(); if(!name) return;
+  for(var i=0;i<S.projects.length;i++) if(S.projects[i].id===id) S.projects[i].name=name;
+  save(); renderProjects(); paintStats();
+}
+function deleteProject(id){
+  S.projects=S.projects.filter(function(p){return p.id!==id;});
+  delete S.mins[id];
+  if(proj===id) proj=null;
+  save(); renderProjects(); renderProjEdit(); paintStats();
+}
 function pick(p){
   proj=p;
-  document.getElementById('pDive').classList.toggle('active',p==='dive');
-  document.getElementById('pVideo').classList.toggle('active',p==='video');
-  if(!running){ document.getElementById('phase').textContent=
-    "Ready on "+(p==='dive'?'DiveScanner':'AI Videos')+" – press Start."; }
+  renderProjects();
+  if(!running){ document.getElementById('phase').textContent="Ready on "+projName(p)+" – press Start."; }
   hide('switchBanner');
 }
 function setBlock(){
@@ -303,7 +360,7 @@ function startStop(){
   running=true; elapsedThisBlock=0; warned=false; hide('warnBanner');
   endAt=Date.now()+remain*1000;
   document.getElementById('startBtn').textContent="Pause";
-  document.getElementById('phase').textContent="Focusing on "+(proj==='dive'?'DiveScanner':'AI Videos')+"…";
+  document.getElementById('phase').textContent="Focusing on "+projName(proj)+"…";
   tickH=setInterval(tick,250); tick();
 }
 function tick(){
@@ -313,7 +370,7 @@ function tick(){
   if(doneMin-elapsedThisBlock>=60){
     var add=Math.floor((doneMin-elapsedThisBlock)/60);
     elapsedThisBlock+=add*60;
-    S.mins[proj]+=add;
+    S.mins[proj]=(S.mins[proj]||0)+add;
     var h=new Date().getHours(); S.hourMins[h]=(S.hourMins[h]||0)+add;
     checkWater(); save(); paintStats();
   }
@@ -439,7 +496,7 @@ document.addEventListener('visibilitychange',function(){
   else if(S._hiddenAt && Date.now()-S._hiddenAt>=5*60*1000){ S.contStart=Date.now(); save(); }
 });
 function shouldRest(){
-  var totalMin=S.mins.dive+S.mins.video;
+  var totalMin=0; S.projects.forEach(function(p){ totalMin+=projMins(p.id); });
   var h=new Date().getHours();
   return totalMin>=8*60 || h>=22 || h<6; // long day, or late (your real churn zone)
 }
@@ -452,20 +509,17 @@ function show(id){ if(id) document.getElementById(id).classList.add('show'); }
 function hide(id){ if(id) document.getElementById(id).classList.remove('show'); }
 function showTimed(id,ms){ show(id); setTimeout(function(){hide(id);},ms); }
 
-// ---- suggested split ----
-function computeSplit(){
-  // Balance: keep both moving, but lean toward the project you sustain focus on best.
-  // Base 50/50, nudge by relative time already spent (catch up the neglected one),
-  // capped so neither drops below 35%.
-  var d=S.mins.dive, v=S.mins.video, t=d+v;
-  var diveShare=0.5;
-  if(t>0){
-    // give more of the *remaining* day to whichever is behind
-    diveShare = v/(t) ; // if video has more, dive gets more next
-    diveShare = 0.35 + 0.30*diveShare; // map into 35–65%
-  }
-  diveShare=Math.max(0.35,Math.min(0.65,diveShare));
-  return diveShare;
+// ---- suggested split (N projects: lean to the least-worked) ----
+function splitShares(){
+  var ps=S.projects, n=ps.length, sh={};
+  if(n===0) return sh;
+  if(n===1){ sh[ps[0].id]=1; return sh; }
+  var t=0; ps.forEach(function(p){ t+=projMins(p.id); });
+  if(t===0){ ps.forEach(function(p){ sh[p.id]=1/n; }); return sh; }
+  var sum=0, w={};
+  ps.forEach(function(p){ var x=t-projMins(p.id); if(x<0.0001)x=0.0001; w[p.id]=x; sum+=x; });
+  ps.forEach(function(p){ sh[p.id]=w[p.id]/sum; });
+  return sh;
 }
 
 // ---- paint ----
@@ -474,16 +528,20 @@ function paint(){
   document.getElementById('clock').textContent=two(Math.floor(remain/60))+":"+two(remain%60);
 }
 function paintStats(){
-  document.getElementById('mnDive').textContent=S.mins.dive+" min today";
-  document.getElementById('mnVideo').textContent=S.mins.video+" min today";
-  var tot=S.mins.dive+S.mins.video;
+  renderProjects();
+  var tot=0; S.projects.forEach(function(p){ tot+=projMins(p.id); });
   document.getElementById('sTotal').textContent=tot+" min";
   document.getElementById('sBlocks').textContent=S.blocks;
-  var ds=computeSplit(), vs=1-ds;
-  document.getElementById('splitBar').children[0].style.width=Math.round(ds*100)+"%";
-  document.getElementById('splitBar').children[1].style.width=Math.round(vs*100)+"%";
-  document.getElementById('sSplitTxt').textContent=
-    "Dive "+Math.round(ds*100)+"% · Video "+Math.round(vs*100)+"%";
+  var bar=document.getElementById('splitBar'); bar.innerHTML=""; var txt=[];
+  var sh=splitShares();
+  S.projects.forEach(function(p){
+    var pct=Math.round((sh[p.id]||0)*100);
+    var seg=document.createElement('div'); seg.className='s';
+    seg.style.cssText='height:100%;width:'+pct+'%;background:'+projColor(p.id);
+    bar.appendChild(seg);
+    txt.push(p.name.split(' ')[0]+' '+pct+'%');
+  });
+  document.getElementById('sSplitTxt').textContent = S.projects.length? txt.join(' · ') : '–';
   // tired point
   if(S.tiredPoints.length){
     var sum=0;for(var i=0;i<S.tiredPoints.length;i++)sum+=S.tiredPoints[i];
@@ -517,7 +575,7 @@ function paintBars(){
   }
 }
 function resetDay(){
-  S.mins={dive:0,video:0}; S.blocks=0; S.lastProj=null; S.lastWaterTs=Date.now();
+  S.mins={}; S.blocks=0; S.lastProj=null; S.lastWaterTs=Date.now();
   hide('restBanner');hide('switchBanner');hide('waterBanner');
   save(); paintStats();
 }
@@ -546,52 +604,64 @@ var CRIT=[
   {c:'stress',w:2,q:'😣 It will nag or stress you if left undone'},
   {c:'quick',w:1,q:'⚡ You can make real progress on it quickly today'}
 ];
-var PROJ=[{k:'dive',n:'DiveScanner'},{k:'video',n:'AI Videos'}];
 function toggleDecide(){
   var b=document.getElementById('decideBody');
   var open=b.style.display!=='none';
   b.style.display=open?'none':'block';
   document.getElementById('decideBtn').textContent=open?'🤔 Help me choose':'Hide';
-  if(!open && !document.getElementById('qlist').childNodes.length) buildDecide();
+  if(!open) buildDecide();
 }
 function buildDecide(){
   var el=document.getElementById('qlist'); el.innerHTML="";
+  if(S.projects.length<2){
+    el.innerHTML='<div class="foot" style="text-align:left">Add at least two projects (tap Edit above) to compare them.</div>';
+    return;
+  }
   CRIT.forEach(function(cr){
     var row=document.createElement('div'); row.className='qrow';
-    var labels=PROJ.map(function(p){
-      return '<label class="'+p.k+'"><input type="checkbox" data-c="'+cr.c+'" data-p="'+p.k+'"> '+p.n+'</label>';
+    var labels=S.projects.map(function(p){
+      return '<label style="color:'+projColor(p.id)+'"><input type="checkbox" data-c="'+cr.c+'" data-p="'+p.id+'"> '+esc(p.name)+'</label>';
     }).join('');
     row.innerHTML='<span class="q">'+cr.q+'</span>'+labels;
     el.appendChild(row);
   });
 }
 function decide(){
-  var score={dive:0,video:0}, reasons={dive:[],video:[]}, quick={dive:false,video:false};
+  var r=document.getElementById('decideResp'); r.classList.add('show');
+  if(S.projects.length<2){ r.innerHTML='<div class="msg">Add at least two projects to compare.</div>'; return; }
+  var score={}, reasons={}, quick={};
+  S.projects.forEach(function(p){ score[p.id]=0; reasons[p.id]=[]; quick[p.id]=false; });
   CRIT.forEach(function(cr){
-    PROJ.forEach(function(p){
-      var cb=document.querySelector('input[data-c="'+cr.c+'"][data-p="'+p.k+'"]');
-      if(cb && cb.checked){ score[p.k]+=cr.w; if(cr.c==='quick') quick[p.k]=true; else reasons[p.k].push(cr.q); }
+    S.projects.forEach(function(p){
+      var cb=document.querySelector('input[data-c="'+cr.c+'"][data-p="'+p.id+'"]');
+      if(cb && cb.checked){ score[p.id]+=cr.w; if(cr.c==='quick') quick[p.id]=true; else reasons[p.id].push(cr.q); }
     });
   });
-  var r=document.getElementById('decideResp'); r.classList.add('show');
-  if(score.dive===0 && score.video===0){
+  var ids=S.projects.map(function(p){return p.id;});
+  var top=ids.slice().sort(function(a,b){ return score[b]-score[a]; });
+  var best=top[0], second=top[1];
+  if(score[best]===0){
     r.innerHTML='<div class="msg">Nothing ticked yet. If they honestly feel equal, do the one you can <b>start in the next 5 minutes</b> – momentum decides it.</div>';
     return;
   }
-  var winKey, loseKey;
-  if(score.dive===score.video){
-    // tie: prefer the quick win, else say it's a coin-flip
-    if(quick.dive!==quick.video){ winKey=quick.dive?'dive':'video'; }
-    else { r.innerHTML='<div class="msg">It\'s genuinely a tie ('+score.dive+' each). Do the <b>quicker</b> one first to build momentum, then switch. You do not have to choose perfectly – just start.</div><div class="mot">💪 '+motLine()+'</div>'; return; }
-  } else { winKey = score.dive>score.video?'dive':'video'; }
-  loseKey = winKey==='dive'?'video':'dive';
-  var winN = winKey==='dive'?'DiveScanner':'AI Videos';
-  var rs = reasons[winKey].slice(0,3);
-  var why = rs.length ? '<ul style="margin:8px 0 0;padding-left:18px">'+rs.map(function(x){return '<li>'+x+'</li>';}).join('')+'</ul>' : '';
-  r.innerHTML='<div class="msg">👉 Start with <b>'+winN+'</b> now ('+score[winKey]+' vs '+score[loseKey]+').'+why+
-    '<div style="margin-top:10px">Give it one focus block, then reassess. You are not abandoning the other – it is just next, not now.</div></div>'+
+  var winId=best;
+  if(score[best]===score[second]){
+    // tie on top: prefer the quick win among the tied
+    var tied=ids.filter(function(i){return score[i]===score[best];});
+    var q=tied.filter(function(i){return quick[i];});
+    if(q.length===1){ winId=q[0]; }
+    else {
+      r.innerHTML='<div class="msg">It\'s a tie ('+score[best]+' each) between <b>'+tied.map(function(i){return esc(projName(i));}).join('</b> and <b>')+'</b>. Do the <b>quicker</b> one first to build momentum, then switch. Just start – you don\'t have to choose perfectly.</div><div class="mot">💪 '+motLine()+'</div>';
+      return;
+    }
+  }
+  var winN=projName(winId);
+  var rs=reasons[winId].slice(0,3);
+  var why=rs.length ? '<ul style="margin:8px 0 0;padding-left:18px">'+rs.map(function(x){return '<li>'+x+'</li>';}).join('')+'</ul>' : '';
+  r.innerHTML='<div class="msg">👉 Start with <b>'+esc(winN)+'</b> now (score '+score[winId]+').'+why+
+    '<div style="margin-top:10px">Give it one focus block, then reassess. You are not abandoning the others – they are just next, not now.</div></div>'+
     '<div class="mot">💪 '+motLine()+'</div>'+
-    '<div class="acts"><button class="primary" onclick="pick(\''+winKey+'\')">Pick '+winN+' &amp; focus</button></div>';
+    '<div class="acts"><button class="primary" onclick="pick(\''+winId+'\')">Pick '+esc(winN)+' &amp; focus</button></div>';
 }
 
 // ---- mood check-in + coping ----
@@ -761,6 +831,7 @@ function showCurfew(){ show('curfew'); }
 
 // ---- init ----
 buildMoods();
+renderProjects();
 if(afterCurfew()) showCurfew();
 document.getElementById('blockLen').value=S.block;
 document.getElementById('waterEvery').value=S.waterEvery;
