@@ -1,7 +1,7 @@
 /* Thoughtsieve service worker – NETWORK-FIRST.
    Always loads the newest version when online; the cache is only a fallback
    for offline use, so a new deploy never gets stuck behind an old cached copy. */
-const CACHE = 'thoughtsieve-v4';
+const CACHE = 'thoughtsieve-v5';
 
 self.addEventListener('install', e => {
   self.skipWaiting();

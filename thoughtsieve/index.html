@@ -208,7 +208,7 @@
     <p class="rtrap" id="rtrap"></p>
     <p class="rlead">Turn it into something kinder to release it. Here is how psychologists reframe – then write your own version, in your own words:</p>
     <ul class="rhelp" id="rhelp"></ul>
-    <button class="rsuggest" id="rsuggest" onclick="suggestReframe()">✨ Help me turn it into a small win</button>
+    <button class="rsuggest" id="rsuggest" onclick="suggestReframe()">✨ Help me turn it into a small win – tap again for another</button>
     <textarea id="rpos" oninput="onReframeInput()" placeholder="The more balanced, kinder version… (write your own, or use the help above and edit it)"></textarea>
     <p class="rnudge" id="rnudge"></p>
     <button class="primary" id="rgo" disabled onclick="transformAndRelease()">✨ Transform &amp; let it go</button>
@@ -465,24 +465,67 @@ function onReframeInput(){
   go.disabled = !ok;
 }
 
-/* ---------- Optional algorithmic help: draft a small-win reframe ---------- */
+/* ---------- Optional algorithmic help: draft a small-win reframe ----------
+   Several tailored reframes per kind of thought; tapping again cycles them. */
+const REFRAMES = {
+  label: [
+    "I had a hard moment, and that doesn’t define who I am. I’ve handled tough things before, and one small win I can aim for now is …",
+    "Making a mistake doesn’t make me a bad person – it makes me human. One kind thing I can do for myself next is …",
+    "I’m being harder on myself than I’d ever be on a friend. If a friend felt this way, I’d gently remind them that …",
+    "This is one moment, not the whole story of me. Something I honestly do well is …",
+  ],
+  absolutes: [
+    "It feels this way right now, but “always” and “never” are rarely the full truth. One time it actually went differently was …",
+    "This is how it feels today, not a fact fixed forever. One small exception I can think of is …",
+    "Feelings aren’t forecasts – feeling like it’s total doesn’t make it total. A more balanced way to say it is …",
+  ],
+  catastrophe: [
+    "This feels overwhelming, but the worst case isn’t the most likely one. What’s far more likely to happen is …",
+    "Even if part of this is true, I can cope with the next small step, which is …",
+    "I’ve got through hard days before and I can get through this one too. The very next thing I can handle is …",
+  ],
+  mindread: [
+    "I can’t really know what others are thinking, and most people are kinder than my fears. A more likely explanation is …",
+    "People are usually far more focused on themselves than on judging me. What I actually know for sure is …",
+    "This is a guess about others, not a fact. One thing that is genuinely in my control right now is …",
+  ],
+  should: [
+    "“Should” is a heavy word to carry. I’m allowed to be human – what I’d genuinely like is …",
+    "Whose rule is this, really? A gentler, fairer expectation of myself would be …",
+    "I don’t have to be perfect to be okay. One realistic, kind goal instead is …",
+  ],
+  fortune: [
+    "I’m treating a prediction as if it were certain, but it isn’t written yet. One hopeful, realistic outcome is …",
+    "I don’t actually know how this ends. A small step that could help it go better is …",
+    "The story isn’t finished. What I can influence today is …",
+  ],
+  default: [
+    "This thought is understandable, and it isn’t the whole story. I’m doing my best, and one small win I can aim for is …",
+    "I can notice this feeling without letting it decide the facts. A kinder, truer version is …",
+    "Hard feelings are allowed, and they do pass. One gentle thing I can do next is …",
+    "I can be on my own side here. A more balanced thing to tell myself is …",
+  ],
+};
+function reframeCategory(neg){
+  const t = (neg||'').toLowerCase(); const has = (...a)=>a.some(w=>t.includes(w));
+  if(has('useless','stupid','worthless','failure','loser','pathetic','idiot','dumb','not good enough','not enough','ugly','unlovable','hate myself')) return 'label';
+  if(has('they think','must think','she thinks','he thinks','everyone thinks','think i am','think im',"think i'm",'they hate','judging','laugh at me','look at me')) return 'mindread';
+  if(has('will fail','going to fail',"won't",'wont','no point','pointless','will go wrong','never will')) return 'fortune';
+  if(has('disaster','terrible','awful','worst','catastrophe',"can't cope",'unbearable','hopeless','ruin')) return 'catastrophe';
+  if(has('should','shouldn','must ','have to','ought','supposed to')) return 'should';
+  if(has('always','never','everyone','no one','nobody','everything','nothing','every time')) return 'absolutes';
+  return 'default';
+}
+let suggestIdx = 0;
 function generateReframe(neg){
-  const t = (neg||'').toLowerCase();
-  const has = (...a)=>a.some(w=>t.includes(w));
-  if(has('useless','stupid','worthless','failure','loser','pathetic','idiot','dumb','not good enough','not enough'))
-    return "I had a hard moment, and that doesn’t define who I am. I’ve done things well before, and one small win I can aim for now is …";
-  if(has('always','never','everyone','no one','nobody','everything','nothing'))
-    return "It feels this way right now, but “always” and “never” are rarely the whole truth. One small, real thing that went okay is …";
-  if(has('disaster','terrible','awful','worst','catastrophe',"can't cope",'unbearable','hopeless'))
-    return "This feels overwhelming, but the worst case isn’t the most likely one. I can handle the next small step, which is …";
-  if(has('they think','must think','they hate','everyone thinks','judging'))
-    return "I can’t really know what others think, and most people are kinder than my fears. One thing in my control right now is …";
-  return "This thought is understandable, and it isn’t the whole story. I’m doing my best, and one small win I can aim for is …";
+  const arr = REFRAMES[reframeCategory(neg)];
+  return arr[suggestIdx % arr.length];
 }
 function suggestReframe(){
   const neg = document.getElementById('neg').value.trim();
   const t = document.getElementById('rpos');
   t.value = generateReframe(neg);
+  suggestIdx++;                 // next tap offers a different one
   t.focus();
   onReframeInput();
 }
