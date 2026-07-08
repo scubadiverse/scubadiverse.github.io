@@ -1,23 +1,29 @@
-/* Thoughtsieve service worker – offline cache of the app shell */
-const CACHE = 'thoughtsieve-v3';
-const ASSETS = ['./', './index.html', './manifest.webmanifest'];
+/* Thoughtsieve service worker – NETWORK-FIRST.
+   Always loads the newest version when online; the cache is only a fallback
+   for offline use, so a new deploy never gets stuck behind an old cached copy. */
+const CACHE = 'thoughtsieve-v4';
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  self.skipWaiting();
 });
+
 self.addEventListener('activate', e => {
   e.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+    caches.keys()
+      .then(keys => Promise.all(keys.map(k => caches.delete(k)))) // wipe every old cache
       .then(() => self.clients.claim())
   );
 });
+
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   e.respondWith(
-    caches.match(e.request).then(hit => hit || fetch(e.request).then(res => {
-      const copy = res.clone();
-      caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
-      return res;
-    }).catch(() => caches.match('./index.html')))
+    fetch(e.request)
+      .then(res => {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
+        return res;
+      })
+      .catch(() => caches.match(e.request).then(hit => hit || caches.match('./index.html')))
   );
 });

@@ -101,8 +101,21 @@
   @keyframes orbShake{0%,100%{margin-left:0}25%{margin-left:-7px}75%{margin-left:7px}}
   .orb.pop{animation:none;transform:scale(1.5);opacity:0;
     transition:transform .4s ease-out,opacity .4s ease-out}
+  /* burn sequence: darken -> scramble -> sink into lava */
+  .orb.char{background:radial-gradient(circle at 50% 42%, #4a2418 0%, #200f08 70%);
+    color:#ff7a3d;text-shadow:0 0 8px rgba(255,90,20,.7);
+    box-shadow:0 0 54px rgba(255,80,20,.6), inset 0 0 40px rgba(140,25,0,.65);
+    transition:background .5s ease-in, box-shadow .5s ease-in, color .5s ease-in, text-shadow .5s}
+  .orb.char .txt{opacity:1;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:1px}
+  .orb.sink{animation:none;transform:translateY(62vh) scale(.28) rotate(9deg);opacity:0;
+    transition:transform 1s cubic-bezier(.5,0,.9,.6), opacity 1s ease-in}
+  .lava{position:absolute;left:0;right:0;bottom:0;height:36%;z-index:1;opacity:0;pointer-events:none;
+    background:radial-gradient(130% 90% at 50% 125%, #ffcf3a 0%, #ff7a12 30%, #e3200a 55%, #7d0d00 72%, rgba(120,10,0,0) 84%);
+    filter:blur(7px);transition:opacity .6s}
+  .lava.show{opacity:.92;animation:lavaFlicker 1.5s ease-in-out infinite .4s}
+  @keyframes lavaFlicker{0%,100%{filter:blur(7px) brightness(1)}50%{filter:blur(9px) brightness(1.18)}}
   @media (prefers-reduced-motion: reduce){
-    .orbhold{animation:none} .orb{animation:none} }
+    .orbhold{animation:none} .orb{animation:none} .lava.show{animation:none} }
   .pensieve .cap{z-index:2;color:#cfe6f2;font-size:15px;text-align:center;max-width:22em;
     padding:0 10px;margin-top:10px;opacity:0;transition:opacity .6s;line-height:1.5}
   .pensieve .cap.show{opacity:1}
@@ -188,6 +201,7 @@
 <!-- Pensieve float + reframe overlay -->
 <div class="pensieve" id="pensieve" onclick="pensieveBgClick(event)">
   <canvas id="fx"></canvas>
+  <div class="lava" id="lava"></div>
   <div class="orbhold" id="orbhold"><div class="orb" id="orb"><span class="txt"></span></div></div>
   <div class="cap" id="pcap"></div>
   <div class="rpanel" id="rpanel" onclick="event.stopPropagation()">
@@ -394,6 +408,7 @@ function sendToPensieve(){
   orb.querySelector('.txt').textContent = neg.length > 90 ? neg.slice(0,90)+'…' : neg;
   hold.className = 'orbhold'; orb.className = 'orb';
   cap.className = 'cap';
+  document.getElementById('lava').classList.remove('show');
   ov.classList.remove('reframe');
   ov.classList.add('show');
   void hold.offsetWidth; // restart float
@@ -472,38 +487,62 @@ function suggestReframe(){
   onReframeInput();
 }
 
+/* Scramble the letters of an element into random glyphs, worsening over ms */
+function scramble(el, ms){
+  const original = el.textContent;
+  const chars = '!<>-_\\/[]{}—=+*^?#@ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let start = null;
+  function frame(ts){
+    if(start === null) start = ts;
+    const p = Math.min(1, (ts - start) / ms);
+    el.textContent = original.split('').map(c =>
+      c === ' ' ? ' ' : (Math.random() < p ? chars[Math.floor(Math.random()*chars.length)] : c)
+    ).join('');
+    if(p < 1) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
 function transformAndRelease(){
   const ov = document.getElementById('pensieve');
   const orb = document.getElementById('orb');
   const cap = document.getElementById('pcap');
+  const lava = document.getElementById('lava');
+  const txt = orb.querySelector('.txt');
   const pos = document.getElementById('rpos').value.trim();
   if(concerning(pos)){ showCare(); return; }
   document.getElementById('pos').value = pos;
 
   ov.classList.remove('reframe');
   document.getElementById('rgo').disabled = true;
-  cap.textContent = 'Transformed. Letting the old thought go…';
+  cap.textContent = 'The old thought darkens, scrambles, and burns away…';
   cap.classList.add('show');
 
   const reduce = timings();
-  const d = reduce ? {shake:40,burst:200,kept:500,close:2000} : {shake:150,burst:520,kept:1300,close:3400};
-  setTimeout(()=>orb.classList.add('shake'), d.shake);
-  setTimeout(()=>{ burst(orb); orb.classList.add('pop'); }, d.burst);
+  orb.classList.add('char');                 // darken / char
+  scramble(txt, reduce ? 200 : 780);         // scramble the letters
+  const d = reduce
+    ? {lava:60, sink:180, burst:240, kept:520, close:1900}
+    : {lava:620, sink:900, burst:1220, kept:1750, close:3700};
+  setTimeout(()=>lava.classList.add('show'), d.lava);
+  setTimeout(()=>orb.classList.add('sink'), d.sink);                       // fall into the lava
+  setTimeout(()=>burst(orb, window.innerWidth/2, window.innerHeight*0.74), d.burst); // erupt from lava
   setTimeout(()=>{ cap.textContent = '✨ Kept: “' + (pos.length>70?pos.slice(0,70)+'…':pos) + '”'; }, d.kept);
   setTimeout(()=>{ saveFromFlow(); closePensieve(); }, d.close);
 }
 
 /* ---------- Ember burst ---------- */
 let fxRaf = null;
-function burst(orb){
+function burst(orb, ox, oy){
   const canvas = document.getElementById('fx');
   const dpr = window.devicePixelRatio || 1;
   canvas.width = canvas.clientWidth * dpr;
   canvas.height = canvas.clientHeight * dpr;
   const ctx = canvas.getContext('2d');
   ctx.scale(dpr, dpr);
-  const r = orb.getBoundingClientRect();
-  const cx = r.left + r.width/2, cy = r.top + r.height/2;
+  let cx, cy;
+  if(ox != null && oy != null){ cx = ox; cy = oy; }
+  else { const r = orb.getBoundingClientRect(); cx = r.left + r.width/2; cy = r.top + r.height/2; }
 
   const embers = ['#fff2b0','#ffd24d','#ff9a1f','#ff6a1a','#ff3b1e','#e01818'];
   const wisps  = ['#bfeaff','#e9f8ff'];
@@ -556,12 +595,14 @@ function closePensieve(){
   if(fxRaf) cancelAnimationFrame(fxRaf);
   const ctx = document.getElementById('fx').getContext('2d');
   ctx && ctx.clearRect(0,0,9999,9999);
+  document.getElementById('lava').classList.remove('show');
+  document.getElementById('orb').classList.remove('char','sink');
   ov.classList.remove('show','reframe');
 }
 
 /* ---------- init ---------- */
 renderSaved();
-if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js', {updateViaCache:'none'}).catch(()=>{}); }
 </script>
 </body>
 </html>
