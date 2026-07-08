@@ -283,7 +283,8 @@ function load(){
   var raw=null; try{raw=localStorage.getItem(KEY);}catch(e){}
   var base={
     day:todayKey(),
-    projects:[{id:'p1',name:'Project 1'},{id:'p2',name:'Project 2'}],
+    projects:[{id:'p1',name:'Project 1',target:0},{id:'p2',name:'Project 2',target:0}],
+    targetNotified:{},       // projects already nudged for hitting target today
     mins:{}, blocks:0,
     tiredPoints:[],          // minutes-into-block when user tapped tired
     hourMins:{},             // learned: focused minutes per hour-of-day
@@ -312,11 +313,13 @@ function load(){
       s.history.push({day:s.day, min:tot, blocks:s.blocks||0, wins:(s.wins?s.wins.length:0)});
       if(s.history.length>180) s.history=s.history.slice(-180);
     }
-    s.day=todayKey(); s.mins={}; s.blocks=0; s.lastProj=null; s.wins=[];
+    s.day=todayKey(); s.mins={}; s.blocks=0; s.lastProj=null; s.wins=[]; s.targetNotified={};
   }
   for(var k in base) if(!(k in s)) s[k]=base[k];
   if(!s.projects || !s.projects.length) s.projects=base.projects;
+  s.projects.forEach(function(p){ if(typeof p.target!=='number') p.target=0; });
   if(!s.mins) s.mins={};
+  if(!s.targetNotified) s.targetNotified={};
   return s;
 }
 function projName(id){ for(var i=0;i<S.projects.length;i++) if(S.projects[i].id===id) return S.projects[i].name; return id; }
@@ -400,8 +403,9 @@ function renderProjects(){
     var b=document.createElement('button'); b.className='proj';
     b.style.cssText='flex:1;min-width:130px;text-align:left;border-radius:14px;padding:14px'+
       (active?';box-shadow:0 0 0 2px '+c+' inset;border-color:'+c:'');
+    var mn = p.target>0 ? (projMins(p.id)+' / '+p.target+' min'+(projMins(p.id)>=p.target?' ✓':'')) : (projMins(p.id)+' min today');
     b.innerHTML='<div class="nm"><span class="dot" style="background:'+c+'"></span>'+esc(p.name)+'</div>'+
-      '<div class="mn">'+projMins(p.id)+' min today</div>';
+      '<div class="mn">'+mn+'</div>';
     b.onclick=function(){ pick(p.id); };
     el.appendChild(b);
   });
@@ -417,9 +421,12 @@ function renderProjEdit(){
   var el=document.getElementById('projEdit'); el.innerHTML="";
   S.projects.forEach(function(p){
     var row=document.createElement('div'); row.className='qrow';
-    row.innerHTML='<input type="text" value="'+esc(p.name)+'" style="flex:1;min-width:140px;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px" '+
+    row.innerHTML='<input type="text" value="'+esc(p.name)+'" style="flex:1;min-width:120px;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px" '+
       'onchange="renameProject(\''+p.id+'\',this.value)">'+
-      '<button class="pill" onclick="deleteProject(\''+p.id+'\')">🗑 Delete</button>';
+      '<input type="number" min="0" max="720" value="'+(p.target||0)+'" title="daily target minutes" '+
+      'style="width:70px;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px" '+
+      'onchange="setProjTarget(\''+p.id+'\',this.value)"><span class="muted" style="font-size:12px">min/day</span>'+
+      '<button class="pill" onclick="deleteProject(\''+p.id+'\')">🗑</button>';
     el.appendChild(row);
   });
   var add=document.createElement('div'); add.className='row'; add.style.marginTop='10px';
@@ -438,6 +445,12 @@ function renameProject(id,name){
   name=(name||'').trim(); if(!name) return;
   for(var i=0;i<S.projects.length;i++) if(S.projects[i].id===id) S.projects[i].name=name;
   save(); renderProjects(); paintStats();
+}
+function setProjTarget(id,v){
+  var n=Math.max(0,Math.min(720,parseInt(v,10)||0));
+  for(var i=0;i<S.projects.length;i++) if(S.projects[i].id===id) S.projects[i].target=n;
+  if(S.targetNotified) delete S.targetNotified[id];
+  save(); renderProjects();
 }
 function deleteProject(id){
   S.projects=S.projects.filter(function(p){return p.id!==id;});
@@ -477,7 +490,7 @@ function tick(){
     elapsedThisBlock+=add*60;
     S.mins[proj]=(S.mins[proj]||0)+add;
     var h=new Date().getHours(); S.hourMins[h]=(S.hourMins[h]||0)+add;
-    checkWater(); save(); paintStats();
+    checkWater(); checkTarget(); save(); paintStats();
   }
   if(remain<=60 && remain>0 && !warned){
     warned=true; show('warnBanner'); showTimed('warnBanner',60000);
@@ -645,6 +658,33 @@ function shouldRest(){
   var totalMin=0; S.projects.forEach(function(p){ totalMin+=projMins(p.id); });
   var h=new Date().getHours();
   return totalMin>=8*60 || h>=22 || h<6; // long day, or late (your real churn zone)
+}
+// Nudge when the current project hits its daily time target – time to move on.
+function checkTarget(){
+  if(!proj) return;
+  var p=null; for(var i=0;i<S.projects.length;i++) if(S.projects[i].id===proj) p=S.projects[i];
+  if(!p || !p.target) return;
+  if(!S.targetNotified) S.targetNotified={};
+  if(projMins(proj) < p.target || S.targetNotified[proj]) return;
+  S.targetNotified[proj]=true; save();
+  // next = project furthest BELOW its target (or least worked if no target)
+  var others=S.projects.filter(function(x){ return x.id!==proj; });
+  var next=null;
+  if(others.length){
+    others.sort(function(a,b){
+      var da=(a.target?projMins(a.id)-a.target:projMins(a.id));
+      var db=(b.target?projMins(b.id)-b.target:projMins(b.id));
+      return da-db;
+    });
+    next=others[0];
+  }
+  var el=document.getElementById('switchBanner');
+  var msg="🎯 You've hit your target on <b>"+esc(p.name)+"</b> ("+p.target+" min).";
+  if(next){ msg+=" Time to move to <b>"+esc(next.name)+"</b>. <span style=\"text-decoration:underline\">Tap to switch</span>.";
+    el.onclick=function(){ pick(next.id); hide('switchBanner'); }; }
+  else { el.onclick=null; }
+  el.innerHTML=msg; show('switchBanner');
+  notify("Target reached: "+p.name, next?("Time to move to "+next.name):"Great work today.");
 }
 function suggestSwitch(){
   S.lastProj=proj; save();
