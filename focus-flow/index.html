@@ -150,6 +150,9 @@
     <span class="muted" style="font-size:13px">min</span>
   </div>
   <div class="row" style="margin-top:8px;justify-content:center">
+    <button onclick="drankWater()">💧 I drank water</button>
+  </div>
+  <div class="row" style="margin-top:8px;justify-content:center">
     <span class="muted" style="font-size:13px">⏸️ Force a 2-min time-out after:</span>
     <input type="number" id="onlineLimit" min="20" max="240" value="60" onchange="setLimit()">
     <span class="muted" style="font-size:13px">min online</span>
@@ -176,6 +179,14 @@
   <div class="foot" style="text-align:left;margin:4px 0 0">Tap what's true right now. No judgement – naming it helps.</div>
   <div class="moods" id="moods"></div>
   <div class="resp" id="moodResp"></div>
+</div>
+
+<div class="card">
+  <div class="row"><b class="grow">Feelings log</b>
+    <button class="pill" onclick="clearMoodLog()">Clear</button></div>
+  <div class="foot" style="text-align:left;margin:4px 0 8px">Each check-in, with the time,
+    what you were working on, and whether you'd had water.</div>
+  <div id="moodLog" style="font-size:13px"></div>
 </div>
 
 <div class="card">
@@ -257,7 +268,8 @@ function load(){
     contStart:0,             // timestamp continuous online session began
     timer:null,              // running block {proj,endAt,block} – survives refresh
     guard:false,             // whole-screen break lock enabled (native app)
-    moods:[]                 // mood check-in history {e,ts,h}
+    lastDrankTs:0,           // when water was actually drunk (logged by you)
+    moods:[]                 // mood check-in history {e,ts,h,act,water}
   };
   if(!raw) return base;
   var s; try{s=JSON.parse(raw);}catch(e){return base;}
@@ -780,6 +792,28 @@ var MOT=[
   "Rest is not quitting. Breaks are how focus comes back."
 ];
 function motLine(){ return MOT[Math.floor((S.blocks+ (S.moods?S.moods.length:0)) % MOT.length)]; }
+function drankWater(){
+  S.lastDrankTs=Date.now(); S.lastWaterTs=Date.now(); save();
+  hide('waterBanner');
+  document.getElementById('phase').textContent="Water logged 💧 well done.";
+  renderMoodLog();
+}
+function renderMoodLog(){
+  var el=document.getElementById('moodLog'); if(!el) return;
+  if(!S.moods || !S.moods.length){
+    el.innerHTML='No check-ins yet. Tap a feeling above to start logging.'; return;
+  }
+  el.innerHTML=S.moods.slice(-25).reverse().map(function(m){
+    var d=new Date(m.ts), t=two(d.getHours())+':'+two(d.getMinutes());
+    var name=m.e.charAt(0).toUpperCase()+m.e.slice(1);
+    var emo=(MOODS[m.e]?MOODS[m.e].emo:'');
+    var act=m.act?esc(m.act):'—';
+    var w=m.water?'💧 water yes':'✗ no water';
+    return '<div style="padding:6px 0;border-bottom:1px dashed var(--line);color:var(--ink)">'+
+      '<b>'+t+'</b> &nbsp;'+emo+' '+name+' &nbsp;·&nbsp; '+act+' &nbsp;·&nbsp; <span class="muted">'+w+'</span></div>';
+  }).join('');
+}
+function clearMoodLog(){ S.moods=[]; save(); renderMoodLog(); paintStats(); }
 function buildMoods(){
   var el=document.getElementById('moods'); el.innerHTML="";
   Object.keys(MOODS).forEach(function(k){
@@ -794,7 +828,11 @@ function pickMood(k,btn){
   for(var i=0;i<all.length;i++) all[i].classList.remove('sel');
   btn.classList.add('sel');
   if(!S.moods) S.moods=[];
-  S.moods.push({e:k,ts:Date.now(),h:new Date().getHours()}); save();
+  var now=Date.now();
+  var waterRecent = !!(S.lastDrankTs && (now-S.lastDrankTs) < 90*60*1000);
+  S.moods.push({e:k, ts:now, h:new Date().getHours(),
+    act:(proj?projName(proj):'not working'), water:waterRecent}); save();
+  renderMoodLog();
   var m=MOODS[k];
   var acts="";
   if(m.tools.indexOf('b')>=0) acts+='<button class="primary" onclick="startBreathe()">Breathe with me</button>';
@@ -946,6 +984,7 @@ function showCurfew(){ show('curfew'); }
 
 // ---- init ----
 buildMoods();
+renderMoodLog();
 renderProjects();
 if(afterCurfew()) showCurfew();
 document.getElementById('blockLen').value=S.block;
