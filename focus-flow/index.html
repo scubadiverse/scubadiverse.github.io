@@ -841,12 +841,13 @@ var WINS_QUICK=[
   ["💪","You kept going when it was hard"],["🧹","You did one small task"],
   ["🙏","You were kind to yourself"]
 ];
+function winDoneToday(t){ return (S.wins||[]).some(function(w){ return w.t===t; }); }
 function buildWinChips(){
   var el=document.getElementById('winChips'); if(!el) return; el.innerHTML="";
   WINS_QUICK.forEach(function(w){
-    var b=document.createElement('button'); b.className='mood pill';
+    var b=document.createElement('button'); b.className='mood pill'+(winDoneToday(w[1])?' sel':'');
     b.textContent=w[0]+' '+w[1].replace('You ','');
-    b.onclick=function(){ addWin(w[1]); };
+    b.onclick=function(){ addWin(w[1]); b.classList.add('sel'); };
     el.appendChild(b);
   });
   var c=document.createElement('button'); c.className='mood pill';
