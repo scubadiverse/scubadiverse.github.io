@@ -270,14 +270,24 @@ function save(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} }
 // ---- timer state ----
 var proj=null, running=false, endAt=0, remain=S.block*60, tickH=null, elapsedThisBlock=0, warned=false;
 
-// Phone/system alerts (work in the installed app; fall back to sound + banner).
+// Phone/system alerts. In the native Android app we go through AndroidBridge
+// (WebView blocks web notifications); in a browser we use the web Notification API.
+var inNativeApp = !!(window.AndroidBridge && window.AndroidBridge.notify);
 function notify(title,body){
-  try{ if(window.Notification && Notification.permission==='granted'){
-    new Notification(title,{body:body,icon:'icon-192.png'}); } }catch(e){}
+  try{
+    if(inNativeApp){ window.AndroidBridge.notify(title, body||''); }
+    else if('Notification' in window && Notification.permission==='granted'){
+      new Notification(title,{body:body,icon:'icon-192.png'}); }
+  }catch(e){}
   beep();
 }
 function enableAlerts(){
   var b=document.getElementById('alertBtn');
+  if(inNativeApp){
+    try{ window.AndroidBridge.requestNotif(); window.AndroidBridge.notify('Focus & Flow',"Alerts are on. I'll nudge you for breaks and water."); b.textContent='🔔 Alerts on'; }
+    catch(e){ b.textContent='🔕 Not available'; }
+    return;
+  }
   if(!('Notification' in window)){ b.textContent='🔕 Not supported here'; return; }
   if(Notification.permission==='denied'){
     b.textContent='🔕 Blocked – allow in settings';
@@ -293,7 +303,9 @@ function enableAlerts(){
   }catch(e){ b.textContent='🔕 Not available'; }
 }
 function refreshAlertBtn(){
-  var b=document.getElementById('alertBtn'); if(!b || !('Notification' in window)) return;
+  var b=document.getElementById('alertBtn'); if(!b) return;
+  if(inNativeApp){ b.textContent='🔔 Enable phone alerts'; return; }
+  if(!('Notification' in window)) return;
   if(Notification.permission==='granted') b.textContent='🔔 Alerts on';
   else if(Notification.permission==='denied') b.textContent='🔕 Blocked – allow in settings';
 }
