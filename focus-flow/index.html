@@ -842,10 +842,25 @@ remain=S.block*60;
 adaptBlock();
 paint(); paintStats();
 
-// ---- installable app (PWA) ----
+// ---- installable app (PWA) with auto cache-clear + self-update ----
 if('serviceWorker' in navigator){
+  var _reloaded=false;
+  // When a new service worker takes over, reload once so you always run the newest app.
+  navigator.serviceWorker.addEventListener('controllerchange',function(){
+    if(_reloaded) return; _reloaded=true; location.reload();
+  });
   window.addEventListener('load',function(){
-    navigator.serviceWorker.register('sw.js').catch(function(){});
+    navigator.serviceWorker.register('sw.js').then(function(reg){
+      reg.update(); // check for a newer version every launch
+      // if a waiting worker exists, tell it to activate immediately
+      if(reg.waiting) reg.waiting.postMessage('skipWaiting');
+      reg.addEventListener('updatefound',function(){
+        var nw=reg.installing;
+        if(nw) nw.addEventListener('statechange',function(){
+          if(nw.state==='installed' && reg.waiting) reg.waiting.postMessage('skipWaiting');
+        });
+      });
+    }).catch(function(){});
   });
 }
 </script>

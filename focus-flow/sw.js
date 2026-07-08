@@ -1,7 +1,7 @@
 // Focus & Flow – service worker.
 // Network-first for the page so you always get the newest version when online,
 // cache as offline fallback. Bump CACHE to force old caches out.
-var CACHE = "focusflow-v7";
+var CACHE = "focusflow-v8";
 var ASSETS = [
   "./",
   "./index.html",
@@ -15,6 +15,11 @@ var ASSETS = [
 self.addEventListener("install", function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(ASSETS); }));
   self.skipWaiting();
+});
+
+// Page can ask a waiting worker to take over right away.
+self.addEventListener("message", function (e) {
+  if (e.data === "skipWaiting") self.skipWaiting();
 });
 
 self.addEventListener("activate", function (e) {
