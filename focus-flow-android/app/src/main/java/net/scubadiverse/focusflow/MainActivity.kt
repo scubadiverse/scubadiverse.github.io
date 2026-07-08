@@ -13,6 +13,7 @@ import android.net.Uri
 import android.provider.Settings
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -39,6 +40,7 @@ class MainActivity : AppCompatActivity() {
         web.settings.mediaPlaybackRequiresUserGesture = false
         web.addJavascriptInterface(Bridge(), "AndroidBridge")
         setContentView(web)
+        Toast.makeText(this, "Focus \u0026 Flow v1.4 ready \u2713", Toast.LENGTH_LONG).show()
         web.loadUrl("https://scubadiverse.github.io/focus-flow/")
     }
 
