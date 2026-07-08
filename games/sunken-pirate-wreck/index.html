@@ -116,6 +116,8 @@
     font-family:'Nunito';font-weight:900;font-size:13px;letter-spacing:.03em;color:#fff;
     background:rgba(10,4,22,.6);border:2px solid rgba(255,255,255,.28);border-radius:12px;padding:8px 14px;backdrop-filter:blur(3px)}
   #exitbtn:hover{border-color:var(--danger);color:#ffb6c6}
+  #mutebtn{position:absolute;left:120px;top:14px;display:none;z-index:8;pointer-events:auto;cursor:pointer;
+    font-size:16px;line-height:1;background:rgba(10,4,22,.6);border:2px solid rgba(255,255,255,.28);border-radius:12px;padding:7px 12px;backdrop-filter:blur(3px)}
   #playbtn{position:absolute;left:50%;bottom:150px;transform:translateX(-50%);display:none;z-index:8;pointer-events:auto;cursor:pointer;
     font-family:'Luckiest Guy';font-size:18px;letter-spacing:.02em;color:#1a0b2e;
     background:linear-gradient(180deg,#8bff5a,#3bd46a);border:none;border-radius:14px;padding:12px 26px;
@@ -164,6 +166,7 @@
   <div id="lookhint">Drag to look around &nbsp;•&nbsp; WASD / arrows to swim</div>
 
   <button id="exitbtn">✕ Exit game</button>
+  <button id="mutebtn">🔊</button>
   <button id="playbtn"></button>
 
   <div id="screen"></div>
@@ -200,6 +203,7 @@ const buddypill=document.getElementById('buddypill');
 const compassEl=document.getElementById('compass');
 const needle=document.getElementById('needle');
 const exitbtn=document.getElementById('exitbtn');
+const mutebtn=document.getElementById('mutebtn');
 const playbtn=document.getElementById('playbtn');
 
 /* ---------- three basics ---------- */
@@ -221,16 +225,56 @@ function doFlash(){ flash.style.transition='none'; flash.style.opacity='.9'; req
 function say(t){ narrEl.innerHTML=t; narrEl.classList.add('on'); }
 function hush(){ narrEl.classList.remove('on'); }
 function objective(t){ objEl.innerHTML=t; }
-function showHUD(on){ hud.classList.toggle('on',!!on); exitbtn.style.display=on?'block':'none'; }
+function showHUD(on){ hud.classList.toggle('on',!!on); exitbtn.style.display=on?'block':'none'; mutebtn.style.display=on?'block':'none'; }
 function showButton(label,act){ playbtn.innerHTML=label; playbtn.dataset.act=act; playbtn.style.display='block'; }
 function hideButton(){ playbtn.style.display='none'; playbtn.dataset.act=''; }
 exitbtn.addEventListener('click',()=>{ hideButton(); ACT.restart(); });
 playbtn.addEventListener('click',()=>{ const a=playbtn.dataset.act; if(a&&ACT[a])ACT[a](); });
 
+/* ---------- procedural underwater audio (Web Audio, no external files) ---------- */
+let AC=null, noiseBuf=null, master=null, breathTimer=null, breathing=false, audioMuted=false;
+function audioInit(){ if(AC)return; try{
+  AC=new (window.AudioContext||window.webkitAudioContext)();
+  master=AC.createGain(); master.gain.value=audioMuted?0:0.5; master.connect(AC.destination);
+  const len=Math.floor(AC.sampleRate*2); noiseBuf=AC.createBuffer(1,len,AC.sampleRate);
+  const d=noiseBuf.getChannelData(0); for(let i=0;i<len;i++) d[i]=Math.random()*2-1;
+}catch(e){ AC=null; } }
+function audioResume(){ try{ if(AC&&AC.state==='suspended')AC.resume(); }catch(e){} }
+function nz(){ const s=AC.createBufferSource(); s.buffer=noiseBuf; s.loop=true; return s; }
+function sBreath(inhale){ if(!AC)return; const s=nz(), bp=AC.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=inhale?680:360; bp.Q.value=1.1;
+  const g=AC.createGain(), t=AC.currentTime, dur=inhale?.5:.75;
+  g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(inhale?.22:.28,t+(inhale?.14:.2)); g.gain.linearRampToValueAtTime(0,t+dur);
+  s.connect(bp); bp.connect(g); g.connect(master); s.start(t); s.stop(t+dur+.05); if(!inhale) sBubbles(); }
+function sBubbles(){ if(!AC||Math.random()<.35)return; const s=nz(), hp=AC.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=1800;
+  const g=AC.createGain(), t=AC.currentTime; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.07,t+.02); g.gain.exponentialRampToValueAtTime(.001,t+.28);
+  s.connect(hp); hp.connect(g); g.connect(master); s.start(t); s.stop(t+.32); }
+function sBump(){ if(!AC)return; const t=AC.currentTime;
+  const o=AC.createOscillator(); o.type='triangle'; o.frequency.setValueAtTime(95,t); o.frequency.exponentialRampToValueAtTime(42,t+.3);
+  const g=AC.createGain(); g.gain.setValueAtTime(.5,t); g.gain.exponentialRampToValueAtTime(.001,t+.35); o.connect(g); g.connect(master); o.start(t); o.stop(t+.4);
+  const s=nz(), lp=AC.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=500; const g2=AC.createGain(); g2.gain.setValueAtTime(.3,t); g2.gain.exponentialRampToValueAtTime(.001,t+.16); s.connect(lp); lp.connect(g2); g2.connect(master); s.start(t); s.stop(t+.2); }
+function sScream(){ if(!AC)return; const t=AC.currentTime;   // muffled panic through the regulator
+  const o=AC.createOscillator(); o.type='sawtooth'; o.frequency.setValueAtTime(300,t); o.frequency.linearRampToValueAtTime(500,t+.5); o.frequency.linearRampToValueAtTime(360,t+.95);
+  const lp=AC.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=760;
+  const tr=AC.createGain(); tr.gain.value=.6; const lfo=AC.createOscillator(); lfo.frequency.value=13; const lg=AC.createGain(); lg.gain.value=.5; lfo.connect(lg); lg.connect(tr.gain);
+  const g=AC.createGain(); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.3,t+.08); g.gain.linearRampToValueAtTime(0,t+.95);
+  o.connect(lp); lp.connect(tr); tr.connect(g); g.connect(master); o.start(t); lfo.start(t); o.stop(t+1); lfo.stop(t+1);
+  const s=nz(), bp=AC.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=500; bp.Q.value=.7; const gn=AC.createGain(); gn.gain.setValueAtTime(0,t); gn.gain.linearRampToValueAtTime(.12,t+.1); gn.gain.linearRampToValueAtTime(0,t+.9); s.connect(bp); bp.connect(gn); gn.connect(master); s.start(t); s.stop(t+1); }
+function startBreathing(getPanic){ if(!AC)return; breathing=true; let inhale=true; (function cyc(){ if(!breathing)return; sBreath(inhale); inhale=!inhale;
+  const panic=Math.max(0,Math.min(1,getPanic?getPanic():0)); const gap=inhale?(900-panic*380):(700-panic*300); breathTimer=setTimeout(cyc,Math.max(230,gap)); })(); }
+function stopBreathing(){ breathing=false; if(breathTimer)clearTimeout(breathTimer); breathTimer=null; }
+function setMuted(m){ audioMuted=m; if(master)master.gain.value=m?0:0.5; mutebtn.textContent=m?'🔇':'🔊'; }
+mutebtn.addEventListener('click',()=>setMuted(!audioMuted));
+
+/* frantic search — arms groping in the dark for the lost torch */
+function searchFlail(d,t){ if(!d.userData)return; const u=d.userData;
+  if(u.arm1)u.arm1.rotation.set(Math.PI/2, Math.sin(t*3)*1.1, .2+Math.sin(t*2.3)*.5);
+  if(u.arm2)u.arm2.rotation.set(Math.PI/2, -Math.sin(t*3.3)*1.1, -.2-Math.cos(t*2.1)*.5);
+  if(u.fin1)u.fin1.rotation.x=Math.sin(t*2)*.3; if(u.fin2)u.fin2.rotation.x=-Math.sin(t*2)*.3; }
+
 /* screen overlay builder */
 function screen(html){ scr.innerHTML='<div class="panel">'+html+'</div>'; scr.classList.add('on'); }
 function hideScreen(){ scr.classList.remove('on'); scr.innerHTML=''; }
-scr.addEventListener('click',e=>{ const b=e.target.closest('[data-act]'); if(b) ACT[b.dataset.act] && ACT[b.dataset.act](b); });
+scr.addEventListener('click',e=>{ audioInit(); audioResume(); const b=e.target.closest('[data-act]'); if(b) ACT[b.dataset.act] && ACT[b.dataset.act](b); });
 
 /* ---------- materials ---------- */
 const WOOD  = ()=> new THREE.MeshStandardMaterial({color:0x3b2a1b, roughness:.95});
@@ -501,7 +545,7 @@ function phaseSafe(){
   const me=makeDiver(0xffca3a); scene.add(me);
   const buddy=makeDiver(0x22c1ff); scene.add(buddy);
   let t=0; const flashes=[3,6,9]; let fi=0; let ended=false;
-  const lines=["You glide along the outside with your buddy, always in daylight.","A grouper drifts by. Click! A perfect photo, no danger.","Your guide points out a cannon crusted in coral. Gorgeous."];
+  const lines=["You glide along the outside with your buddy &ndash; a normal recreational dive.","A grouper drifts by. Click! A perfect photo, no overhead, no danger.","This same dive is just as good at night: you simply carry a torch."];
   say(lines[0]);
   phase.update=(dt)=>{ t+=dt; depthReadout(18); air=Math.max(120,200-t*2); updateAir();
     const ang=t*.4; const rad=26;
@@ -520,7 +564,7 @@ function safeEnd(){
       <div class="kicker">Safety stop complete &bull; all divers up</div>
       <h2 class="big">SUCCESS!</h2>
       <p class="sub">You successfully passed the dive. You stayed with your buddy, kept the wreck outside your reach, and surfaced with a camera full of memories and plenty of air.</p>
-      <div class="lesson">You <b>dived within your training</b>. Advanced Open Water is perfect for exploring a wreck from the <b>outside</b>. To go <i>inside</i> an overhead environment, you first earn the <b>Wreck Diver</b> speciality. That is what being qualified means.</div>
+      <div class="lesson">You <b>dived within your training</b>. Any certified diver can enjoy a wreck from the <b>outside</b> &ndash; by day or at night with a torch. The dark is not the danger. Going <i>inside</i> an overhead environment is, and that needs the <b>Wreck Diver</b> speciality. That is what being qualified means.</div>
       <button class="btn" data-act="pickWreck">See the trained way in ▶</button>
       <button class="btn ghost" data-act="restart">Play again</button>
     </div>
@@ -583,7 +627,7 @@ function isWall(r,c){ if(r<0||c<0||r>=MAZE.length||c>=MAZE[0].length)return true
 function phaseMaze(){
   setPhase({}); showHUD(true); pad.classList.add('on'); lookhint.classList.add('on'); lookEnabled=true;
   hasTorch=false; compassSpin=false; mazeDone=false; torchLight=null;
-  objective('Find a torch &mdash; you cannot see!'); torchState('lost in the silt'); buddyState('separated');
+  objective('Find your torch in the dark'); torchState('lost in the silt'); buddyState('separated');
   setTint(0);
   scene.fog=new THREE.FogExp2(0x050a12,0.05);
   scene.add(new THREE.AmbientLight(0x2a3a52,.4));
@@ -610,55 +654,62 @@ function phaseMaze(){
   torchPickup.position.set(torchCell.c*CELL+CELL/2, 0, torchCell.r*CELL+CELL/2); scene.add(torchPickup);
   // floating debris/silt inside
   const dust=particles(500,Math.max(w,d)/2,0x6b5533,.5,WALL_H/2); dust.position.set(w/2,0,d/2); scene.add(dust);
-  // headlamp (very weak until torch found)
-  torchLight=new THREE.SpotLight(0xffd9a0,0.0,55,.6,.5,1); camera.add(torchLight);
-  const tt=new THREE.Object3D(); tt.position.set(0,0,-10); camera.add(tt); torchLight.target=tt; scene.add(camera);
-  const faint=new THREE.PointLight(0x6f93b8,.95,22); camera.add(faint);
+  // THE DIVER — third person, so you actually SEE him. Carries a torch model
+  // (dark until he finds it) and is always lit by a soft follow light.
+  const diver=makeDiver(0xffca3a,{light:true}); scene.add(diver);
+  breakTorch(diver);                                   // his torch is lost — off
+  const follow=new THREE.PointLight(0xbcd6f0,1.2,28); scene.add(follow);
+  const rim   =new THREE.PointLight(0x4a6b8a,.55,20); scene.add(rim);
 
-  // place player
-  px=start.c*CELL+CELL/2; pz=start.r*CELL+CELL/2; camera.position.set(px,3,pz); look.yaw=Math.PI/2; look.pitch=0;
-  let t=0, torchGrabbedAt=-1, warned=false, collisions=0, exitHintAt=-1;
-  say("Blind. Panicking. Your primary torch slipped from your hand in the cloud. Find it &mdash; every breath is burning air.");
+  px=start.c*CELL+CELL/2; pz=start.r*CELL+CELL/2; look.yaw=Math.PI; look.pitch=0;
+  let t=0, heading=look.yaw, diverY=1.5, torchGrabbedAt=-1, warned=false, collisions=0, bumpCd=0, mazePanic=.4;
+  lookhint.textContent='WASD / arrows to swim  •  drag to look around';
+  camera.position.set(px, 7, pz+9);
+  say("You dropped your torch in the silt-out. Find it &ndash; and listen to your air burn with every panicked breath.");
+  startBreathing(()=>mazePanic);
 
-  phase.update=(dt)=>{ if(mazeDone)return; t+=dt;
-    // air drains fast; faster while moving/panicking
+  phase.update=(dt)=>{ if(mazeDone)return; t+=dt; bumpCd-=dt;
     const moving = keys.KeyW||keys.KeyS||keys.KeyA||keys.KeyD||keys.ArrowUp||keys.ArrowDown||keys.ArrowLeft||keys.ArrowRight||touch.up||touch.down||touch.left||touch.right;
-    air-=dt*(moving?5.5:3.2); if(air<=0){ air=0; updateAir(); mazeDone=true; say("Out of air."); setTimeout(()=>phaseLost('air'),900); return; }
+    air-=dt*(moving?5.5:3.2);
+    mazePanic=Math.min(1,(hasTorch?.3:.5)+(1-air/200)*.6);
+    if(air<=0){ air=0; updateAir(); mazeDone=true; sScream(); stopBreathing(); say("Out of air."); setTimeout(()=>phaseLost('air'),900); return; }
     updateAir();
-    // look
-    camera.rotation.order='YXZ'; camera.rotation.y=look.yaw; camera.rotation.x=look.pitch;
-    // move (forward relative to yaw, on XZ plane)
+    // move relative to the camera yaw
     let fwd=0,str=0;
     if(keys.KeyW||keys.ArrowUp||touch.up)fwd+=1; if(keys.KeyS||keys.ArrowDown||touch.down)fwd-=1;
     if(keys.KeyA||keys.ArrowLeft||touch.left)str-=1; if(keys.KeyD||keys.ArrowRight||touch.right)str+=1;
-    const spd=12*dt; const sinY=Math.sin(look.yaw), cosY=Math.cos(look.yaw);
-    // forward is -Z when yaw considered; derive dx,dz
-    let dx=(fwd*(-sinY)+str*(cosY))*spd;
-    let dz=(fwd*(-cosY)+str*(-sinY))*spd;
-    const nx=px+dx, nz=pz+dz; const rad=2.2;
-    let hit=false;
-    // simple grid collision: test the target cell corners
-    if(!blocked(nx,pz,rad)){ px=nx; } else { hit=true; }
-    if(!blocked(px,nz,rad)){ pz=nz; } else { hit=true; }
-    camera.position.set(px,3,pz);
-    // bob
-    camera.position.y=3+Math.sin(t*4)*.12;
+    const spd=11*dt, sinY=Math.sin(look.yaw), cosY=Math.cos(look.yaw);
+    let dx=(fwd*(-sinY)+str*(cosY))*spd, dz=(fwd*(-cosY)+str*(-sinY))*spd;
+    const rad=2.2; let hit=false;
+    if(!blocked(px+dx,pz,rad)){ px+=dx; } else hit=true;
+    if(!blocked(px,pz+dz,rad)){ pz+=dz; } else hit=true;
+    // the visible diver
+    if(moving && (dx||dz)) heading=Math.atan2(dx,dz);
+    diverY=1.5+Math.sin(t*3)*.12;
+    diver.position.set(px,diverY,pz); diver.rotation.y=heading;
+    if(moving) finKick(diver,t*2.2); else searchFlail(diver,t);   // idle = frantic groping for the torch
+    // chase camera (drag rotates look.yaw around him)
+    camera.position.set(px - Math.sin(look.yaw)*9, diverY+5.5, pz - Math.cos(look.yaw)*9);
+    camera.lookAt(px, diverY+1, pz);
+    follow.position.set(px - Math.sin(look.yaw)*3, diverY+5, pz - Math.cos(look.yaw)*3);
+    rim.position.set(px + Math.sin(look.yaw)*4, diverY+2, pz + Math.cos(look.yaw)*4);
+    // bumping into walls — you see it, hear it, and he flinches
+    if(hit && bumpCd<=0){ bumpCd=.5; sBump(); diver.rotation.z=(Math.random()-.5)*.7; if(mazePanic>.7 && Math.random()<.5) sScream();
+      if(hasTorch){ collisions++; if(collisions>=2){ mazeDone=true; breakTorch(diver); sScream(); stopBreathing(); dropTorchPrompt(); return; } } }
+    else diver.rotation.z*=.9;
     // torch pickup
     torchPickup.rotation.y+=dt*1.2; th.position.y=1.8+Math.sin(t*3)*.2;
-    if(!hasTorch){ const d=Math.hypot(px-torchPickup.position.x, pz-torchPickup.position.z);
-      if(d<4){ hasTorch=true; torchGrabbedAt=t; scene.remove(torchPickup); torchLight.intensity=2.6; faint.intensity=.2;
-        torchState('primary (found!)'); objective('Find the exit &mdash; check your compass'); compassEl.style.display='grid'; compassSpin=true;
-        say("You find the torch! But the wreck is a maze of iron. You look at your compass &mdash; the needle spins wildly. Magnetic metal everywhere. It is useless."); }
+    if(!hasTorch){ const dd=Math.hypot(px-torchPickup.position.x, pz-torchPickup.position.z);
+      if(dd<4){ hasTorch=true; torchGrabbedAt=t; scene.remove(torchPickup);
+        if(diver.userData.torch)diver.userData.torch.intensity=2.5; if(diver.userData.beam)diver.userData.beam.visible=true; if(diver.userData.lens)diver.userData.lens.material.color.setHex(0xfff2cf);
+        torchState('primary (found!)'); objective('Find the way out &ndash; the compass is useless'); compassEl.style.display='grid'; compassSpin=true;
+        say("He grabs the torch! But the compass needle just spins &ndash; steel all around. It cannot point the way out."); }
     }
-    // after torch, first real collision drops it
-    if(hasTorch && hit){ collisions++; if(collisions>=2 && !mazeDone){ mazeDone=true; dropTorchPrompt(); return; } }
-    if(hasTorch && !warned && t-torchGrabbedAt>2){ warned=true; say("Which way did you come in? Left? Right? Every corridor looks the same in the torch beam."); }
-    // compass spin
-    if(compassSpin){ needle.style.transform='rotate('+(t*720%360)+'deg)'; }
-    // dust drift
+    if(hasTorch && !warned && t-torchGrabbedAt>2){ warned=true; say("Which way was the exit? In the silt every iron corridor looks the same."); }
+    if(compassSpin) needle.style.transform='rotate('+(t*720%360)+'deg)';
     const pa=dust.geometry.attributes.position; for(let i=0;i<pa.count;i++){ pa.setX(i,pa.getX(i)+Math.sin(t+i)*dt*.2);} pa.needsUpdate=true;
   };
-  phase.cleanup=()=>{ pad.classList.remove('on'); lookhint.classList.remove('on'); lookEnabled=false; compassEl.style.display='none'; compassSpin=false; };
+  phase.cleanup=()=>{ pad.classList.remove('on'); lookhint.classList.remove('on'); lookEnabled=false; compassEl.style.display='none'; compassSpin=false; stopBreathing(); };
 }
 function blocked(wx,wz,rad){
   // check the cell of several sample points around the player radius
@@ -713,7 +764,8 @@ function phaseLost(reason){
   const lg=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-4,15,-2),new THREE.Vector3(4,16,-5),new THREE.Vector3(34,22,24)]);
   scene.add(new THREE.Line(lg,new THREE.LineBasicMaterial({color:0xffd23f})));
 
-  let t=0, broke=false, beat=-1;
+  let t=0, broke=false, beat=-1, lostPanic=.7;
+  startBreathing(()=>lostPanic);
   const beats=[
     [0.2,"In the silt cloud you lost each other &ndash; one drifts left, one right. No guideline to follow back."],
     [3.2,"One of you still has a torch, sweeping the dark for a way out of the wreck."],
@@ -737,21 +789,23 @@ function phaseLost(reason){
       buddy.rotation.set(0, .6+Math.sin(t*.5)*.5, 0);
       thrash(buddy,t*1.6);
     } else {
-      if(!broke){ broke=true; doFlash(); breakTorch(me); torchState('broken &ndash; no spare'); buddyState('lost'); objective('Air running low'); }
+      if(!broke){ broke=true; doFlash(); breakTorch(me); sBump(); sScream(); lostPanic=.98; torchState('broken &ndash; no spare'); buddyState('lost'); objective('Air running low'); }
       const p=t-6;
       me.position.set(-2+Math.sin(p*2)*.7, 2+Math.sin(p*1.5)*.5, 11);
       thrash(me,p*3);
       buddy.position.set(4+Math.sin(p*1.3)*.9, 1+Math.cos(p*1.7)*.5, 4);
       thrash(buddy,p*3.2);
       air=Math.max(3,48-p*7); updateAir();               // gas draining before your eyes
+      if(Math.random()<dt*0.5) sScream();                // muffled panic through the reg
     }
     // certified pair: calm hover, steady torches
     cd1.position.y=15+Math.sin(t*.8)*.35; cd2.position.y=16+Math.cos(t*.7)*.35;
     cd1.rotation.y=Math.PI+Math.sin(t*.3)*.2; cd2.rotation.y=Math.PI+Math.cos(t*.25)*.2;
     finKick(cd1,t*.6); finKick(cd2,t*.7);
 
-    if(t>15.5){ hush(); lostEnd(); }
+    if(t>15.5){ hush(); stopBreathing(); lostEnd(); }
   };
+  phase.cleanup=()=>stopBreathing();
 }
 function lostEnd(){
   objective('Dive failed');
@@ -780,32 +834,42 @@ function phaseCertified(){
   // divers deliberately SMALL so the wreck towers over them
   const me   =makeDiver(0x8bff5a,{light:true}); me.scale.setScalar(.55);   scene.add(me);
   const buddy=makeDiver(0x37e0c8,{light:true}); buddy.scale.setScalar(.55); scene.add(buddy);
-  // guideline reel: tie-off out in open water -> just outside -> hatch -> just inside
-  const tie  =ent.clone().add(new THREE.Vector3(16,2,18));
-  const outPt=ent.clone().add(new THREE.Vector3(0,0,5));
-  const inPt =ent.clone().add(new THREE.Vector3(0,0,-4.5));
-  scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([tie,outPt,ent,inPt]), new THREE.LineBasicMaterial({color:0xffd23f})));
-  // free-look orbit around the entrance
-  orbit.on=true; orbit.target.copy(ent).add(new THREE.Vector3(-1,2,1)); orbit.yaw=0.6; orbit.pitch=0.3; orbit.rad=46;
-  lookhint.textContent='Drag to look around  •  scroll to zoom'; lookhint.classList.add('on');
-  const path=(u)=> u<.4 ? tie.clone().lerp(outPt,u/.4)
-                 : u<.7 ? outPt.clone().lerp(ent,(u-.4)/.3)
-                 :        ent.clone().lerp(inPt,(u-.7)/.3);
-  const beats=[
-    [0.2,"The wreck towers over the divers. Drag to look around, scroll to zoom."],
-    [2.5,"They tie off a <b>guideline reel</b> in open water &ndash; a golden thread straight back out."],
-    [5.5,"Primary torch on, backup on the harness. They line up single file at the hatch."],
-    [8.5,"Slowly &ndash; no fin-down, no silt &ndash; they follow the line <b>into</b> the wreck."],
+  // guideline reel from open water to the hatch, then a full tour of the wreck
+  const tie=new THREE.Vector3(24,10,26);
+  const WP=[
+    tie,
+    new THREE.Vector3(10,7,16),                  // approach
+    new THREE.Vector3(15,5,8),                   // along the bow
+    new THREE.Vector3(0,6,9),                    // over the deck
+    new THREE.Vector3(-12,7,7),                  // stern castle
+    ent.clone().add(new THREE.Vector3(0,1,4)),   // line up at the hatch
+    ent.clone().add(new THREE.Vector3(0,0,-1)),  // into the hatch mouth
+    ent.clone().add(new THREE.Vector3(0,1,4)),   // ease back out on the line
+    new THREE.Vector3(8,8,16),                   // egress
+    tie,
   ];
-  let t=0, beat=-1, finished=false; const dur=10;
+  scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([tie,WP[1],ent.clone().add(new THREE.Vector3(0,1,4)),ent]), new THREE.LineBasicMaterial({color:0xffd23f})));
+  const path=(u)=>{ u=Math.max(0,Math.min(1,u)); const n=WP.length-1, f=u*n; let i=Math.floor(f); if(i>=n)i=n-1; return WP[i].clone().lerp(WP[i+1], f-i); };
+  // free-look orbit; the camera target gently follows the lead diver
+  orbit.on=true; orbit.target.copy(WP[1]); orbit.yaw=0.6; orbit.pitch=0.32; orbit.rad=52;
+  lookhint.textContent='Drag to look around  •  scroll to zoom'; lookhint.classList.add('on');
+  const beats=[
+    [0.2,"The wreck towers over the two divers. Drag to look around, scroll to zoom."],
+    [2.5,"They tie off a <b>guideline reel</b> in open water &ndash; a golden thread straight back out."],
+    [5.0,"Torches lit, they tour the hull &ndash; bow, deck, stern &ndash; slow and horizontal, no fin-down."],
+    [9.0,"At the hatch they go single file, following their own line <b>into</b> the wreck."],
+    [12.5,"They ease back out along the line into open water. Textbook &ndash; because they are trained."],
+  ];
+  let t=0, beat=-1, finished=false; const dur=16;
   say(beats[0][1]);
   phase.update=(dt)=>{ t+=dt; depthReadout(20); if(air>150){ air=Math.max(150,200-t*2); updateAir(); }
     if(beat+1<beats.length && t>=beats[beat+1][0]){ beat++; say(beats[beat][1]); }
-    const um=Math.min(1,t/dur), ub=Math.min(1,Math.max(0,t-1.8)/dur);
-    const pm=path(um); me.position.copy(pm); me.lookAt(path(Math.min(1,um+0.02))); finKick(me,t*1.4);
-    const pb=path(ub); buddy.position.copy(pb); buddy.lookAt(path(Math.min(1,ub+0.02))); finKick(buddy,t*1.5);
+    const um=Math.min(1,t/dur), ub=Math.min(1,Math.max(0,t-1.6)/dur);
+    const pm=path(um); me.position.copy(pm); me.lookAt(path(Math.min(1,um+0.015))); finKick(me,t*1.4);
+    const pb=path(ub); buddy.position.copy(pb); buddy.lookAt(path(Math.min(1,ub+0.015))); finKick(buddy,t*1.5);
+    orbit.target.lerp(pm.clone().add(new THREE.Vector3(0,1.5,0)), 0.04);   // follow the action
     riseBubbles(bub,dt); applyOrbit();
-    if(t>12 && !finished){ finished=true; showButton('They made it in safely &ndash; Finish ▶','finishCert'); }
+    if(t>dur+1 && !finished){ finished=true; showButton('Safe dive complete &ndash; Finish ▶','finishCert'); }
   };
   phase.cleanup=()=>{ orbit.on=false; lookhint.classList.remove('on'); hideButton(); };
 }
