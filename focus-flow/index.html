@@ -118,6 +118,7 @@
 
 <div id="warnBanner" class="banner warn">⏳ 1 minute left – start wrapping up. Take a breath and finish gently.</div>
 <div id="eyeBanner" class="banner water">👀 Eye rest – look far away (about 6 m / 20 ft) for 20 seconds, and blink a few times.</div>
+<div id="standBanner" class="banner rest">🧍 Stand up, stretch, and roll your shoulders for a moment. Your body needs it.</div>
 <div id="waterBanner" class="banner water">💧 Time for water. Take a sip and stretch your eyes.</div>
 <div id="restBanner" class="banner rest">🌙 You've done a long day. Wind down soon – rest is part of the work.</div>
 <div id="switchBanner" class="banner switch">🔄 Good block. Switch projects to stay fresh?</div>
@@ -153,6 +154,7 @@
   <div class="row" style="margin-top:8px;justify-content:center">
     <button onclick="drankWater()">💧 I drank water</button>
     <button id="eyeBtn" onclick="toggleEye()">👀 Eye-rest: On</button>
+    <button id="standBtn" onclick="toggleStand()">🧍 Stand: On</button>
   </div>
   <div class="row" style="margin-top:8px;justify-content:center">
     <span class="muted" style="font-size:13px">⏸️ Force a 2-min time-out after:</span>
@@ -206,6 +208,16 @@
   <div class="stat"><span>Suggested split now</span><b id="sSplitTxt">–</b></div>
   <div class="split" id="splitBar"></div>
   <div class="foot" id="splitWhy">Split keeps every project moving, leaning to the ones you've touched least.</div>
+</div>
+
+<div class="card">
+  <b>📈 Your progress</b>
+  <div class="stat"><span>Total focus time</span><b id="pTotal">0 h</b></div>
+  <div class="stat"><span>Focus blocks done</span><b id="pBlocks">0</b></div>
+  <div class="stat"><span>Small wins logged</span><b id="pWins">0</b></div>
+  <div class="stat"><span>Day streak</span><b id="pStreak">0 days</b></div>
+  <div class="bars" id="progBars" style="margin-top:10px"></div>
+  <div class="foot">It builds up day by day. Slow progress is still progress – keep going.</div>
 </div>
 
 <div class="card">
@@ -279,12 +291,23 @@ function load(){
     lastDrankTs:0,           // when water was actually drunk (logged by you)
     eyeRest:true,            // 20-20-20 eye-rest reminders on
     lastEyeTs:0,             // last eye-rest reminder time
+    stand:true,              // stand/stretch reminders on
+    lastStandTs:0,           // last stand reminder time
+    history:[],              // per-day summaries {day,min,blocks,wins}
     wins:[],                 // small wins today {t,ts,k}
     moods:[]                 // mood check-in history {e,ts,h,act,water}
   };
   if(!raw) return base;
   var s; try{s=JSON.parse(raw);}catch(e){return base;}
-  if(s.day!==todayKey()){ s.day=todayKey(); s.mins={}; s.blocks=0; s.lastProj=null; s.wins=[]; }
+  if(s.day!==todayKey()){
+    var tot=0; for(var mk in (s.mins||{})) tot+=s.mins[mk];
+    if(tot>0 || (s.blocks||0)>0 || (s.wins&&s.wins.length)){
+      if(!s.history) s.history=[];
+      s.history.push({day:s.day, min:tot, blocks:s.blocks||0, wins:(s.wins?s.wins.length:0)});
+      if(s.history.length>180) s.history=s.history.slice(-180);
+    }
+    s.day=todayKey(); s.mins={}; s.blocks=0; s.lastProj=null; s.wins=[];
+  }
   for(var k in base) if(!(k in s)) s[k]=base[k];
   if(!s.projects || !s.projects.length) s.projects=base.projects;
   if(!s.mins) s.mins={};
@@ -472,7 +495,7 @@ function blockDone(){
   if(restNow){ show('restBanner'); }
   else { suggestSwitch(); }
   addWin("You finished a focus block");
-  remain=S.block*60; paint(); paintStats();
+  remain=S.block*60; paint(); paintStats(); renderProgress();
 }
 // Real-world reset ideas – get away from the screen.
 var REST_IDEAS=[
@@ -834,7 +857,7 @@ function buildWinChips(){
 function addWin(text, key){
   if(!S.wins) S.wins=[];
   if(key){ for(var i=0;i<S.wins.length;i++) if(S.wins[i].k===key) return; }
-  S.wins.push({t:text, ts:Date.now(), k:key||null}); save(); renderWins();
+  S.wins.push({t:text, ts:Date.now(), k:key||null}); save(); renderWins(); renderProgress();
 }
 function renderWins(){
   var el=document.getElementById('winsList'); if(!el) return;
@@ -1008,6 +1031,57 @@ function checkEye(){
   }
 }
 setInterval(checkEye,20000);
+function toggleStand(){
+  S.stand=!S.stand; S.lastStandTs=Date.now(); save();
+  document.getElementById('standBtn').textContent='🧍 Stand: '+(S.stand?'On':'Off');
+  if(inNativeApp){ if(S.stand) nRepeat('stand',30,"🧍 Stand & stretch","Stand up and move for a moment."); else nCancel('stand'); }
+}
+// Every 30 min: stand up and stretch (for sitting too long).
+function checkStand(){
+  if(!S.stand) return;
+  if(!S.lastStandTs){ S.lastStandTs=Date.now(); save(); return; }
+  if(Date.now()-S.lastStandTs >= 30*60*1000){
+    S.lastStandTs=Date.now(); save();
+    show('standBanner'); notify("🧍 Stand & stretch","Stand up and move for a moment."); showTimed('standBanner',25000);
+  }
+}
+setInterval(checkStand,20000);
+
+// ---- progress over days ----
+function progressData(){
+  var days=(S.history||[]).slice();
+  var todayMin=0; for(var k in S.mins) todayMin+=S.mins[k];
+  days.push({day:todayKey(), min:todayMin, blocks:S.blocks||0, wins:(S.wins?S.wins.length:0)});
+  return days;
+}
+function dayStreak(days){
+  var active={}; days.forEach(function(e){ if((e.min||0)>0||(e.blocks||0)>0||(e.wins||0)>0) active[e.day]=true; });
+  var streak=0, d=new Date();
+  while(true){
+    var key=d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();
+    if(active[key]){ streak++; d.setDate(d.getDate()-1); } else break;
+  }
+  return streak;
+}
+function renderProgress(){
+  var el=document.getElementById('progBars'); if(!el) return;
+  var all=progressData();
+  var totMin=0,totBlocks=0,totWins=0;
+  all.forEach(function(e){ totMin+=e.min||0; totBlocks+=e.blocks||0; totWins+=e.wins||0; });
+  document.getElementById('pTotal').textContent=(Math.round(totMin/60*10)/10)+" h";
+  document.getElementById('pBlocks').textContent=totBlocks;
+  document.getElementById('pWins').textContent=totWins;
+  var st=dayStreak(all);
+  document.getElementById('pStreak').textContent=st+" day"+(st===1?'':'s');
+  var days=all.slice(-14), max=1;
+  days.forEach(function(e){ if((e.min||0)>max) max=e.min; });
+  el.innerHTML=days.map(function(e){
+    var p=e.day.split('-'), lbl=p[2]+'/'+p[1];
+    var pct=Math.round((e.min||0)/max*100);
+    return '<div class="bar"><span class="h">'+lbl+'</span><span class="t"><span class="f" style="width:'+pct+'%"></span></span>'+
+      '<span class="muted" style="width:40px;text-align:right">'+(e.min||0)+'m</span></div>';
+  }).join('');
+}
 function runBreathe(round,total){
   if(bStop) return;
   var circle=document.getElementById('bcircle'), cue=document.getElementById('bcue'),
@@ -1072,7 +1146,10 @@ document.getElementById('onlineLimit').value=S.onlineLimit;
 if(!S.lastWaterTs){ S.lastWaterTs=Date.now(); save(); }
 if(!S.contStart){ S.contStart=Date.now(); save(); }
 if(!S.lastEyeTs){ S.lastEyeTs=Date.now(); save(); }
+if(!S.lastStandTs){ S.lastStandTs=Date.now(); save(); }
 document.getElementById('eyeBtn').textContent='👀 Eye-rest: '+(S.eyeRest?'On':'Off');
+document.getElementById('standBtn').textContent='🧍 Stand: '+(S.stand?'On':'Off');
+renderProgress();
 remain=S.block*60;
 adaptBlock();
 paint(); paintStats();
