@@ -252,6 +252,7 @@ function load(){
     lastWaterTs:0,           // timestamp of last water reminder
     onlineLimit:60,          // continuous minutes online before a forced time-out
     contStart:0,             // timestamp continuous online session began
+    timer:null,              // running block {proj,endAt,block} – survives refresh
     moods:[]                 // mood check-in history {e,ts,h}
   };
   if(!raw) return base;
@@ -276,10 +277,25 @@ function notify(title,body){
   beep();
 }
 function enableAlerts(){
-  if(!window.Notification){ document.getElementById('alertBtn').textContent='Alerts not supported'; return; }
-  Notification.requestPermission().then(function(p){
-    document.getElementById('alertBtn').textContent=(p==='granted')?'🔔 Alerts on':'🔔 Enable phone alerts';
-  }).catch(function(){});
+  var b=document.getElementById('alertBtn');
+  if(!('Notification' in window)){ b.textContent='🔕 Not supported here'; return; }
+  if(Notification.permission==='denied'){
+    b.textContent='🔕 Blocked – allow in settings';
+    document.getElementById('phase').textContent="Alerts are blocked. Turn them on: browser menu → Site settings → Notifications → Allow.";
+    return;
+  }
+  try{
+    Notification.requestPermission().then(function(p){
+      if(p==='granted'){ b.textContent='🔔 Alerts on'; try{ new Notification('Focus & Flow',{body:"Alerts are on. I'll nudge you for breaks and water."}); }catch(e){} }
+      else if(p==='denied'){ b.textContent='🔕 Blocked – allow in settings'; }
+      else { b.textContent='🔔 Enable phone alerts'; }
+    }).catch(function(){ b.textContent='🔕 Not available'; });
+  }catch(e){ b.textContent='🔕 Not available'; }
+}
+function refreshAlertBtn(){
+  var b=document.getElementById('alertBtn'); if(!b || !('Notification' in window)) return;
+  if(Notification.permission==='granted') b.textContent='🔔 Alerts on';
+  else if(Notification.permission==='denied') b.textContent='🔕 Blocked – allow in settings';
 }
 
 // ---- projects (add / rename / delete) ----
@@ -359,6 +375,7 @@ function startStop(){
   if(afterCurfew()){ showCurfew(); return; }
   running=true; elapsedThisBlock=0; warned=false; hide('warnBanner');
   endAt=Date.now()+remain*1000;
+  S.timer={proj:proj, endAt:endAt, block:S.block}; save(); // survive a refresh
   document.getElementById('startBtn').textContent="Pause";
   document.getElementById('phase').textContent="Focusing on "+projName(proj)+"…";
   tickH=setInterval(tick,250); tick();
@@ -383,7 +400,7 @@ function tick(){
 }
 function blockDone(){
   clearInterval(tickH); running=false; hide('warnBanner');
-  S.blocks++; save();
+  S.blocks++; S.timer=null; save();
   document.getElementById('startBtn').textContent="Start";
   var restNow=shouldRest();
   notify(restNow?"Time to rest":"Break time", restNow
@@ -409,9 +426,23 @@ var REST_IDEAS=[
 ];
 function restIdea(){ return REST_IDEAS[(S.blocks+ (S.moods?S.moods.length:0)) % REST_IDEAS.length]; }
 function stopBlock(){
-  clearInterval(tickH); running=false;
+  clearInterval(tickH); running=false; S.timer=null; save();
   document.getElementById('startBtn').textContent="Start";
   document.getElementById('phase').textContent="Paused. Press Start to continue.";
+}
+// Resume a running block after a page refresh, so refreshing never loses the timer.
+function resumeTimer(){
+  if(!S.timer || !S.timer.endAt) return;
+  var left=Math.round((S.timer.endAt-Date.now())/1000);
+  if(left<=0){ S.timer=null; save(); return; }
+  proj=S.timer.proj; S.block=S.timer.block||S.block;
+  document.getElementById('blockLen').value=S.block;
+  renderProjects();
+  remain=left; endAt=S.timer.endAt; running=true; warned=(left<=60);
+  elapsedThisBlock=S.block*60-remain; // don't re-credit minutes that already passed
+  document.getElementById('startBtn').textContent="Pause";
+  document.getElementById('phase').textContent="Focusing on "+projName(proj)+"… (resumed)";
+  tickH=setInterval(tick,250); tick();
 }
 function markTired(){
   if(running){
@@ -863,6 +894,8 @@ if(!S.contStart){ S.contStart=Date.now(); save(); }
 remain=S.block*60;
 adaptBlock();
 paint(); paintStats();
+refreshAlertBtn();
+resumeTimer();
 
 // ---- installable app (PWA) with auto cache-clear + self-update ----
 if('serviceWorker' in navigator){
