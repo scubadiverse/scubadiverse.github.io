@@ -183,6 +183,12 @@
     <span class="muted" id="winsCount" style="font-size:12px"></span></div>
   <div class="foot" style="text-align:left;margin:4px 0 6px">Little things count. Tap what you've done:</div>
   <div class="moods" id="winChips"></div>
+  <div class="row" style="margin-top:10px">
+    <input type="text" id="winCustom" placeholder="Something else you did…"
+      style="flex:1;min-width:140px;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px"
+      onkeydown="if(event.key==='Enter')addCustomWin()">
+    <button onclick="addCustomWin()">＋ Add</button>
+  </div>
   <div id="winsList" style="font-size:13px;margin-top:12px"></div>
 </div>
 
@@ -847,18 +853,26 @@ function buildWinChips(){
   WINS_QUICK.forEach(function(w){
     var b=document.createElement('button'); b.className='mood pill'+(winDoneToday(w[1])?' sel':'');
     b.textContent=w[0]+' '+w[1].replace('You ','');
-    b.onclick=function(){ addWin(w[1]); b.classList.add('sel'); };
+    b.onclick=function(){
+      if(winDoneToday(w[1])) removeWin(w[1]); else addWin(w[1]);
+      b.classList.toggle('sel', winDoneToday(w[1]));
+    };
     el.appendChild(b);
   });
-  var c=document.createElement('button'); c.className='mood pill';
-  c.textContent='＋ Something else';
-  c.onclick=function(){ var t=prompt("What small good thing did you do?"); if(t&&t.trim()) addWin(t.trim()); };
-  el.appendChild(c);
+}
+function addCustomWin(){
+  var inp=document.getElementById('winCustom'); var t=(inp.value||'').trim();
+  if(!t) return; addWin(t); inp.value='';
 }
 function addWin(text, key){
   if(!S.wins) S.wins=[];
   if(key){ for(var i=0;i<S.wins.length;i++) if(S.wins[i].k===key) return; }
   S.wins.push({t:text, ts:Date.now(), k:key||null}); save(); renderWins(); renderProgress();
+}
+function removeWin(text){
+  if(!S.wins) return;
+  for(var i=S.wins.length-1;i>=0;i--){ if(S.wins[i].t===text){ S.wins.splice(i,1); break; } }
+  save(); renderWins(); renderProgress();
 }
 function renderWins(){
   var el=document.getElementById('winsList'); if(!el) return;
