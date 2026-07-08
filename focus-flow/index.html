@@ -663,9 +663,12 @@ setInterval(checkOnline,20000); // check online time every 20s
 
 // If you leave for 5+ minutes, that counts as a break – restart the online clock.
 document.addEventListener('visibilitychange',function(){
-  if(document.hidden){ S._hiddenAt=Date.now(); }
+  if(document.hidden){ S._hiddenAt=Date.now(); stopSound(); }
   else if(S._hiddenAt && Date.now()-S._hiddenAt>=5*60*1000){ S.contStart=Date.now(); save(); }
 });
+// Extra safety: always stop any sound when the app is backgrounded or closed.
+window.addEventListener('pagehide', function(){ stopSound(); });
+window.addEventListener('blur', function(){ if(document.hidden) stopSound(); });
 function shouldRest(){
   var totalMin=0; S.projects.forEach(function(p){ totalMin+=projMins(p.id); });
   var h=new Date().getHours();
