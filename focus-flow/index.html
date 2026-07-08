@@ -114,9 +114,10 @@
 <body>
 
 <h1>Focus &amp; Flow</h1>
-<p class="sub">Your day, paced. Seeded from your real work rhythm – learns as you go.</p>
+<p class="sub">Your focus, breaks and calm – paced to how you actually work. Learns as you go.</p>
 
 <div id="warnBanner" class="banner warn">⏳ 1 minute left – start wrapping up. Take a breath and finish gently.</div>
+<div id="eyeBanner" class="banner water">👀 Eye rest – look far away (about 6 m / 20 ft) for 20 seconds, and blink a few times.</div>
 <div id="waterBanner" class="banner water">💧 Time for water. Take a sip and stretch your eyes.</div>
 <div id="restBanner" class="banner rest">🌙 You've done a long day. Wind down soon – rest is part of the work.</div>
 <div id="switchBanner" class="banner switch">🔄 Good block. Switch projects to stay fresh?</div>
@@ -136,7 +137,7 @@
     <button id="tiredBtn" onclick="markTired()">😮‍💨 Getting tired</button>
   </div>
   <div class="row" style="margin-top:10px">
-    <button class="grow" style="background:#3a1f2a;color:#ffc2d1;border-color:#6a3348" onclick="startBreathe()">🫁 Panic? Breathe now</button>
+    <button class="grow" style="background:#3a1f2a;color:#ffc2d1;border-color:#6a3348" onclick="overwhelmed()">🆘 I'm overwhelmed</button>
     <button id="alertBtn" onclick="enableAlerts()">🔔 Enable phone alerts</button>
   </div>
   <div class="row" style="margin-top:12px;justify-content:center">
@@ -151,6 +152,7 @@
   </div>
   <div class="row" style="margin-top:8px;justify-content:center">
     <button onclick="drankWater()">💧 I drank water</button>
+    <button id="eyeBtn" onclick="toggleEye()">👀 Eye-rest: On</button>
   </div>
   <div class="row" style="margin-top:8px;justify-content:center">
     <span class="muted" style="font-size:13px">⏸️ Force a 2-min time-out after:</span>
@@ -209,15 +211,16 @@
 <div class="card">
   <b>Your learned rhythm</b>
   <div class="stat"><span>Your average tired-point</span><b id="sTired">learning…</b></div>
-  <div class="stat"><span>Strongest hours (from real work)</span><b id="sPeak">evenings</b></div>
+  <div class="stat"><span>Strongest hours (from your sessions)</span><b id="sPeak">learning…</b></div>
   <div class="bars" id="bars"></div>
-  <div class="foot">Seeded from your DiveScanner commit times, then refined by your own sessions.</div>
+  <div class="foot">Learns your strongest hours from your own focus sessions.</div>
 </div>
 
 <div class="overlay" id="breathe">
   <div class="otxt" id="bcue">Let's slow it down together</div>
   <div class="bcircle" id="bcircle">Breathe</div>
   <div class="ohint" id="bround">Follow the circle. In as it grows, out as it shrinks.</div>
+  <div class="ohint" id="breatheReframe" style="color:var(--good);font-weight:600"></div>
   <div class="row" style="justify-content:center;gap:10px">
     <button id="sndRain" onclick="playSound('rain')">🌧️ Rain</button>
     <button id="sndDry" onclick="playSound('dryer')">💨 Hairdryer</button>
@@ -247,7 +250,7 @@
   <button class="primary" onclick="hide('curfew')">Okay, I'll rest 💙</button>
 </div>
 
-<p class="foot"><span id="diag"></span><br>Runs fully on your device. Nothing leaves this page. Not medical advice –
+<p class="foot">Runs fully on your device. Nothing leaves this page. Not medical advice –
 if hard feelings are frequent or heavy, talking to someone you trust helps.</p>
 
 <script>
@@ -255,17 +258,14 @@ if hard feelings are frequent or heavy, talking to someone you trust helps.</p>
 // ---- storage ----
 var KEY="focusflow.v1";
 function todayKey(){var d=new Date();return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();}
-var seed={
-  // Seeded from real DiveScanner commit hours (peaks 18:00 & 22:00, evening-heavy).
-  hourWeights:{8:6,10:3,12:3,13:4,14:3,16:4,18:11,19:4,20:4,21:7,22:13},
-  peakHours:[18,22]
-};
+// The app learns each person's own rhythm from their sessions – no preset seed.
+var seed={ hourWeights:{}, peakHours:[] };
 var S=load();
 function load(){
   var raw=null; try{raw=localStorage.getItem(KEY);}catch(e){}
   var base={
     day:todayKey(),
-    projects:[{id:'dive',name:'DiveScanner.net'},{id:'video',name:'AI Videos'}],
+    projects:[{id:'p1',name:'Project 1'},{id:'p2',name:'Project 2'}],
     mins:{}, blocks:0,
     tiredPoints:[],          // minutes-into-block when user tapped tired
     hourMins:{},             // learned: focused minutes per hour-of-day
@@ -277,6 +277,8 @@ function load(){
     timer:null,              // running block {proj,endAt,block} – survives refresh
     guard:false,             // whole-screen break lock enabled (native app)
     lastDrankTs:0,           // when water was actually drunk (logged by you)
+    eyeRest:true,            // 20-20-20 eye-rest reminders on
+    lastEyeTs:0,             // last eye-rest reminder time
     wins:[],                 // small wins today {t,ts,k}
     moods:[]                 // mood check-in history {e,ts,h,act,water}
   };
@@ -981,6 +983,31 @@ function soundBtns(active){
 // ---- breathing (box breathing: in 4, hold 4, out 4, hold 4) ----
 var bTimers=[], bStop=false;
 function startBreathe(){ show('breathe'); bStop=false; addWin("You took time to breathe"); runBreathe(0,4); }
+function overwhelmed(){
+  addWin("You asked for help when overwhelmed");
+  startBreathe();
+  try{ playSound('rain'); }catch(e){}
+  var n=S.wins?S.wins.length:0;
+  var msg="You're overwhelmed, and that's okay – it will pass. Breathe with the circle. "+
+    "Results come slower than the effort you put in – you are further along than it feels right now.";
+  if(n) msg+=" You've already done "+n+" small thing"+(n>1?"s":"")+" today. 🌟";
+  var rf=document.getElementById('breatheReframe'); if(rf) rf.innerHTML=msg;
+}
+function toggleEye(){
+  S.eyeRest=!S.eyeRest; S.lastEyeTs=Date.now(); save();
+  document.getElementById('eyeBtn').textContent='👀 Eye-rest: '+(S.eyeRest?'On':'Off');
+  if(inNativeApp){ if(S.eyeRest) nRepeat('eye',20,"👀 Eye rest","Look ~6 m away for 20 seconds and blink."); else nCancel('eye'); }
+}
+// 20-20-20: every 20 min, look ~6 m away for 20 s.
+function checkEye(){
+  if(!S.eyeRest) return;
+  if(!S.lastEyeTs){ S.lastEyeTs=Date.now(); save(); return; }
+  if(Date.now()-S.lastEyeTs >= 20*60*1000){
+    S.lastEyeTs=Date.now(); save();
+    show('eyeBanner'); notify("👀 Eye rest","Look ~6 m away for 20 seconds and blink."); showTimed('eyeBanner',25000);
+  }
+}
+setInterval(checkEye,20000);
 function runBreathe(round,total){
   if(bStop) return;
   var circle=document.getElementById('bcircle'), cue=document.getElementById('bcue'),
@@ -1004,6 +1031,7 @@ function runBreathe(round,total){
   })();
 }
 function stopBreathe(){ bStop=true; bTimers.forEach(clearTimeout); bTimers=[]; stopSound();
+  var rf=document.getElementById('breatheReframe'); if(rf) rf.innerHTML='';
   document.getElementById('bcircle').classList.remove('grow'); hide('breathe'); }
 
 // ---- grounding 5-4-3-2-1 ----
@@ -1043,12 +1071,13 @@ document.getElementById('waterEvery').value=S.waterEvery;
 document.getElementById('onlineLimit').value=S.onlineLimit;
 if(!S.lastWaterTs){ S.lastWaterTs=Date.now(); save(); }
 if(!S.contStart){ S.contStart=Date.now(); save(); }
+if(!S.lastEyeTs){ S.lastEyeTs=Date.now(); save(); }
+document.getElementById('eyeBtn').textContent='👀 Eye-rest: '+(S.eyeRest?'On':'Off');
 remain=S.block*60;
 adaptBlock();
 paint(); paintStats();
 refreshAlertBtn();
 resumeTimer();
-try{ document.getElementById('diag').textContent='build v13 · app mode: '+(inNativeApp?'ON ✓ (native alerts + screen lock available)':'OFF (running in browser / old app – no native features)'); }catch(e){}
 // whole-screen lock is a native-app feature – show and restore its state
 if(inNativeApp){
   document.getElementById('guardRow').style.display='flex';
