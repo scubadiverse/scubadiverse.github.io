@@ -205,7 +205,7 @@ function setTint(v){ tint.style.opacity=v; }
 function doFlash(){ flash.style.transition='none'; flash.style.opacity='.9'; requestAnimationFrame(()=>{ flash.style.transition='opacity .6s'; flash.style.opacity='0'; }); }
 function say(t){ narrEl.innerHTML=t; narrEl.classList.add('on'); }
 function hush(){ narrEl.classList.remove('on'); }
-function objective(t){ objEl.textContent=t; }
+function objective(t){ objEl.innerHTML=t; }
 function showHUD(on){ hud.classList.toggle('on',!!on); }
 
 /* screen overlay builder */
@@ -282,7 +282,7 @@ function particles(n,spread,color,size,yBase){
 function makeDiver(suit,opts){
   opts=opts||{}; const g=new THREE.Group();
   const skin=new THREE.MeshStandardMaterial({color:suit,roughness:.6});
-  const body=new THREE.Mesh(new THREE.CapsuleGeometry?new THREE.CapsuleGeometry(1,2.2,4,8):new THREE.CylinderGeometry(1,1,3.4,10), skin); g.add(body);
+  const body=new THREE.Mesh(THREE.CapsuleGeometry?new THREE.CapsuleGeometry(1,2.2,4,8):new THREE.CylinderGeometry(1,1,3.4,10), skin); g.add(body);
   const head=new THREE.Mesh(new THREE.SphereGeometry(.85,14,14), skin); head.position.y=2.2; g.add(head);
   const mask=new THREE.Mesh(new THREE.SphereGeometry(.55,12,12), new THREE.MeshStandardMaterial({color:0x0b1a2a,metalness:.3,roughness:.2}));
   mask.scale.set(1,.7,.6); mask.position.set(0,2.3,.6); g.add(mask);
@@ -359,22 +359,19 @@ function phaseTitle(){
   screen(`
     <div class="kicker">An Educational Escape-Room Dive</div>
     <h1 class="title">The Sunken<br>Pirate Wreck</h1>
-    <p class="sub">A gorgeous 300-year-old galleon rests on the seabed. Two divers stand at two entry points. Only one is trained to go <i>inside</i>. Which door do you take?</p>
+    <p class="sub">A 300-year-old galleon rests on the seabed. Two divers wait at two entry points. Choose your diver and dive.</p>
     <div class="cards">
-      <div class="card-btn bad" data-act="pickAOW">
+      <div class="card-btn" data-act="pickAOW">
         <div class="ico">🤿</div>
-        <h3>Entry 1 &ndash; Advanced Open Water</h3>
-        <p>You have great buoyancy and 40 logged dives &mdash; but <b>no Wreck Diver speciality</b>. No reel, no penetration training, one torch.</p>
-        <span class="tag warn">Not trained to enter the wreck</span>
+        <h3>Diver A</h3>
+        <p>Certification: <b>Advanced Open Water</b>.<br>Kit: mask, fins, BCD, single torch.</p>
       </div>
-      <div class="card-btn good" data-act="pickWreck">
+      <div class="card-btn" data-act="pickWreck">
         <div class="ico">🪝</div>
-        <h3>Entry 2 &ndash; Wreck Diver Certified</h3>
-        <p>Trained in overhead environments: <b>guideline reel, primary + backup torch</b>, lost-line &amp; lost-buddy drills, gas planning.</p>
-        <span class="tag safe">Trained &amp; equipped to penetrate</span>
+        <h3>Diver B</h3>
+        <p>Certification: <b>Advanced Open Water + Wreck Diver</b>.<br>Kit: mask, fins, BCD, guideline reel, primary torch, backup torch.</p>
       </div>
     </div>
-    <div class="lesson">This little game is really about one big idea: <b>be qualified for what you do.</b> The right training turns a deadly place into a beautiful one.</div>
   `);
 }
 const ACT={};
@@ -412,21 +409,19 @@ function phaseDescend(){
 function showChoice(){
   objective('Make your call');
   screen(`
-    <div class="kicker">The wreck yawns open&hellip;</div>
-    <h2 class="big" style="color:#fff">Inside or around?</h2>
-    <p class="sub">There is a dark doorway into the hull. Your training says one thing. Your curiosity says another.</p>
+    <div class="kicker">A dark doorway opens in the hull&hellip;</div>
+    <h2 class="big" style="color:#fff">What now?</h2>
+    <p class="sub">Gold glints somewhere inside. Your buddy and the guide are beside you in open water.</p>
     <div class="cards">
-      <div class="card-btn good" data-act="swimAround">
+      <div class="card-btn" data-act="swimAround">
         <div class="ico">🐠📸</div>
-        <h3>Swim around it</h3>
-        <p>Stay in the light with your buddy and the guide. Photograph the outside. Dive within your training.</p>
-        <span class="tag safe">Correct for Advanced Open Water</span>
+        <h3>Swim around the outside</h3>
+        <p>Stay in open water and photograph the wreck from outside.</p>
       </div>
-      <div class="card-btn bad" data-act="enterWreck">
+      <div class="card-btn" data-act="enterWreck">
         <div class="ico">🚪🕳️</div>
-        <h3>Go inside the wreck</h3>
-        <p>Slip through the doorway to reach the gold. It looks easy from here&hellip;</p>
-        <span class="tag warn">Overhead environment &ndash; no training</span>
+        <h3>Enter the wreck</h3>
+        <p>Swim in through the doorway toward the gold.</p>
       </div>
     </div>
   `);
@@ -530,8 +525,8 @@ function phaseMaze(){
   hasTorch=false; compassSpin=false; mazeDone=false; torchLight=null;
   objective('Find a torch &mdash; you cannot see!'); torchState('lost in the silt'); buddyState('separated');
   setTint(0);
-  scene.fog=new THREE.FogExp2(0x050a12,0.06);
-  scene.add(new THREE.AmbientLight(0x223045,.28));
+  scene.fog=new THREE.FogExp2(0x050a12,0.05);
+  scene.add(new THREE.AmbientLight(0x2a3a52,.4));
   // build maze geometry
   const wallMat=new THREE.MeshStandardMaterial({color:0x241a12,roughness:1});
   const beamMat=new THREE.MeshStandardMaterial({color:0x0f0a06,roughness:1});
@@ -558,7 +553,7 @@ function phaseMaze(){
   // headlamp (very weak until torch found)
   torchLight=new THREE.SpotLight(0xffd9a0,0.0,55,.6,.5,1); camera.add(torchLight);
   const tt=new THREE.Object3D(); tt.position.set(0,0,-10); camera.add(tt); torchLight.target=tt; scene.add(camera);
-  const faint=new THREE.PointLight(0x4a6b8a,.5,14); camera.add(faint);
+  const faint=new THREE.PointLight(0x6f93b8,.95,22); camera.add(faint);
 
   // place player
   px=start.c*CELL+CELL/2; pz=start.r*CELL+CELL/2; camera.position.set(px,3,pz); look.yaw=Math.PI/2; look.pitch=0;
