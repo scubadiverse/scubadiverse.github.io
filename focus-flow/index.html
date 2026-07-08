@@ -281,11 +281,30 @@ function notify(title,body){
   }catch(e){}
   beep();
 }
+// Native background alarms (fire even when the app is fully closed).
+function nSchedule(id,delaySec,title,body){
+  if(inNativeApp && window.AndroidBridge.scheduleAlert){ try{ window.AndroidBridge.scheduleAlert(id,delaySec,title,body); }catch(e){} }
+}
+function nRepeat(id,min,title,body){
+  if(inNativeApp && window.AndroidBridge.scheduleRepeat){ try{ window.AndroidBridge.scheduleRepeat(id,min,title,body); }catch(e){} }
+}
+function nCancel(id){
+  if(inNativeApp && window.AndroidBridge.cancelAlert){ try{ window.AndroidBridge.cancelAlert(id); }catch(e){} }
+}
+function scheduleBlockAlarms(){
+  nCancel('warn'); nCancel('end');
+  if(remain>60) nSchedule('warn', remain-60, "1 minute left", "Start wrapping up – breathe and finish gently.");
+  if(remain>0) nSchedule('end', remain, "Break time", "Your focus block is done. Take a break.");
+}
 function enableAlerts(){
   var b=document.getElementById('alertBtn');
   if(inNativeApp){
-    try{ window.AndroidBridge.requestNotif(); window.AndroidBridge.notify('Focus & Flow',"Alerts are on. I'll nudge you for breaks and water."); b.textContent='🔔 Alerts on'; }
-    catch(e){ b.textContent='🔕 Not available'; }
+    try{
+      window.AndroidBridge.requestNotif();
+      window.AndroidBridge.notify('Focus & Flow',"Alerts are on. I'll nudge you for breaks and water.");
+      nRepeat('water', S.waterEvery, "💧 Water break", "Take a sip and rest your eyes.");
+      b.textContent='🔔 Alerts on';
+    }catch(e){ b.textContent='🔕 Not available'; }
     return;
   }
   if(!('Notification' in window)){ b.textContent='🔕 Not supported here'; return; }
@@ -388,6 +407,7 @@ function startStop(){
   running=true; elapsedThisBlock=0; warned=false; hide('warnBanner');
   endAt=Date.now()+remain*1000;
   S.timer={proj:proj, endAt:endAt, block:S.block}; save(); // survive a refresh
+  scheduleBlockAlarms(); // fire break alerts even if the app is closed
   document.getElementById('startBtn').textContent="Pause";
   document.getElementById('phase').textContent="Focusing on "+projName(proj)+"…";
   tickH=setInterval(tick,250); tick();
@@ -413,6 +433,7 @@ function tick(){
 function blockDone(){
   clearInterval(tickH); running=false; hide('warnBanner');
   S.blocks++; S.timer=null; save();
+  nCancel('warn'); nCancel('end');
   document.getElementById('startBtn').textContent="Start";
   var restNow=shouldRest();
   notify(restNow?"Time to rest":"Break time", restNow
@@ -439,6 +460,7 @@ var REST_IDEAS=[
 function restIdea(){ return REST_IDEAS[(S.blocks+ (S.moods?S.moods.length:0)) % REST_IDEAS.length]; }
 function stopBlock(){
   clearInterval(tickH); running=false; S.timer=null; save();
+  nCancel('warn'); nCancel('end');
   document.getElementById('startBtn').textContent="Start";
   document.getElementById('phase').textContent="Paused. Press Start to continue.";
 }
@@ -454,6 +476,7 @@ function resumeTimer(){
   elapsedThisBlock=S.block*60-remain; // don't re-credit minutes that already passed
   document.getElementById('startBtn').textContent="Pause";
   document.getElementById('phase').textContent="Focusing on "+projName(proj)+"… (resumed)";
+  scheduleBlockAlarms();
   tickH=setInterval(tick,250); tick();
 }
 function markTired(){
@@ -486,6 +509,7 @@ function setWater(){
   var v=parseInt(document.getElementById('waterEvery').value,10)||45;
   v=Math.max(15,Math.min(180,v)); S.waterEvery=v; document.getElementById('waterEvery').value=v;
   S.lastWaterTs=Date.now(); // restart the countdown from now
+  if(inNativeApp) nRepeat('water', v, "💧 Water break", "Take a sip and rest your eyes.");
   save();
 }
 // Real clock timer: reminds every S.waterEvery minutes whenever the app is open,

@@ -2,9 +2,12 @@ package net.scubadiverse.focusflow
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -20,7 +23,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var web: WebView
     private val channelId = "focusflow"
-    private var notifId = 1
+    private var notifId = 100
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,6 +57,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun alarmPending(id: String, title: String, body: String): PendingIntent {
+        val i = Intent(this, AlarmReceiver::class.java).apply {
+            action = "net.scubadiverse.focusflow.ALARM.$id"
+            putExtra("title", title)
+            putExtra("body", body)
+            putExtra("nid", id.hashCode())
+        }
+        var flags = PendingIntent.FLAG_UPDATE_CURRENT
+        if (Build.VERSION.SDK_INT >= 23) flags = flags or PendingIntent.FLAG_IMMUTABLE
+        return PendingIntent.getBroadcast(this, id.hashCode(), i, flags)
+    }
+
     inner class Bridge {
         @JavascriptInterface
         fun notify(title: String, body: String) {
@@ -73,6 +88,29 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun requestNotif() {
             runOnUiThread { askNotifPermission() }
+        }
+
+        // Schedule a one-shot reminder that fires even if the app is closed.
+        @JavascriptInterface
+        fun scheduleAlert(id: String, delaySec: Double, title: String, body: String) {
+            val am = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            val at = System.currentTimeMillis() + (delaySec * 1000).toLong()
+            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, alarmPending(id, title, body))
+        }
+
+        // Schedule a repeating reminder (e.g. water) even when closed.
+        @JavascriptInterface
+        fun scheduleRepeat(id: String, intervalMin: Double, title: String, body: String) {
+            val am = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            val interval = (intervalMin * 60000).toLong()
+            am.setInexactRepeating(AlarmManager.RTC_WAKEUP,
+                System.currentTimeMillis() + interval, interval, alarmPending(id, title, body))
+        }
+
+        @JavascriptInterface
+        fun cancelAlert(id: String) {
+            val am = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            am.cancel(alarmPending(id, "", ""))
         }
     }
 
