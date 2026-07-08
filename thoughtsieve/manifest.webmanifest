@@ -1,0 +1,15 @@
+{
+  "name": "Thoughtsieve – CBT thought reframing",
+  "short_name": "Thoughtsieve",
+  "description": "Catch a negative thought, spot the thinking trap, challenge it, and turn it into a kinder, more balanced one. Based on CBT. Everything stays on your device.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#0f1720",
+  "theme_color": "#0f1720",
+  "icons": [
+    { "src": "../focus-flow/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "../focus-flow/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "../focus-flow/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
