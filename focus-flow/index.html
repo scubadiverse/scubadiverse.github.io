@@ -174,6 +174,14 @@
   </div>
 </div>
 
+<div class="card">
+  <div class="row"><b class="grow">🌟 Small wins today</b>
+    <span class="muted" id="winsCount" style="font-size:12px"></span></div>
+  <div class="foot" style="text-align:left;margin:4px 0 6px">Little things count. Tap what you've done:</div>
+  <div class="moods" id="winChips"></div>
+  <div id="winsList" style="font-size:13px;margin-top:12px"></div>
+</div>
+
 <div class="card" id="moodCard">
   <b>Take a breath – how do I feel?</b>
   <div class="foot" style="text-align:left;margin:4px 0 0">Tap what's true right now. No judgement – naming it helps.</div>
@@ -269,11 +277,12 @@ function load(){
     timer:null,              // running block {proj,endAt,block} – survives refresh
     guard:false,             // whole-screen break lock enabled (native app)
     lastDrankTs:0,           // when water was actually drunk (logged by you)
+    wins:[],                 // small wins today {t,ts,k}
     moods:[]                 // mood check-in history {e,ts,h,act,water}
   };
   if(!raw) return base;
   var s; try{s=JSON.parse(raw);}catch(e){return base;}
-  if(s.day!==todayKey()){ s.day=todayKey(); s.mins={}; s.blocks=0; s.lastProj=null; }
+  if(s.day!==todayKey()){ s.day=todayKey(); s.mins={}; s.blocks=0; s.lastProj=null; s.wins=[]; }
   for(var k in base) if(!(k in s)) s[k]=base[k];
   if(!s.projects || !s.projects.length) s.projects=base.projects;
   if(!s.mins) s.mins={};
@@ -460,6 +469,7 @@ function blockDone(){
     : "Block done! 💪 Break idea: "+restIdea();
   if(restNow){ show('restBanner'); }
   else { suggestSwitch(); }
+  addWin("You finished a focus block");
   remain=S.block*60; paint(); paintStats();
 }
 // Real-world reset ideas – get away from the screen.
@@ -796,7 +806,45 @@ function drankWater(){
   S.lastDrankTs=Date.now(); S.lastWaterTs=Date.now(); save();
   hide('waterBanner');
   document.getElementById('phase').textContent="Water logged 💧 well done.";
-  renderMoodLog();
+  addWin("You drank water"); renderMoodLog();
+}
+
+// ---- small wins (positive reinforcement) ----
+var WINS_QUICK=[
+  ["😊","You smiled"],["🚶","You moved your body"],["🥗","You ate something good"],
+  ["☎️","You reached out to someone"],["🌤️","You stepped outside"],["😌","You let yourself rest"],
+  ["💪","You kept going when it was hard"],["🧹","You did one small task"],
+  ["🙏","You were kind to yourself"]
+];
+function buildWinChips(){
+  var el=document.getElementById('winChips'); if(!el) return; el.innerHTML="";
+  WINS_QUICK.forEach(function(w){
+    var b=document.createElement('button'); b.className='mood pill';
+    b.textContent=w[0]+' '+w[1].replace('You ','');
+    b.onclick=function(){ addWin(w[1]); };
+    el.appendChild(b);
+  });
+  var c=document.createElement('button'); c.className='mood pill';
+  c.textContent='＋ Something else';
+  c.onclick=function(){ var t=prompt("What small good thing did you do?"); if(t&&t.trim()) addWin(t.trim()); };
+  el.appendChild(c);
+}
+function addWin(text, key){
+  if(!S.wins) S.wins=[];
+  if(key){ for(var i=0;i<S.wins.length;i++) if(S.wins[i].k===key) return; }
+  S.wins.push({t:text, ts:Date.now(), k:key||null}); save(); renderWins();
+}
+function renderWins(){
+  var el=document.getElementById('winsList'); if(!el) return;
+  var n=S.wins?S.wins.length:0;
+  var cEl=document.getElementById('winsCount');
+  if(cEl) cEl.textContent = n ? (n+' small win'+(n>1?'s':'')+' today – that all counts 🎉') : '';
+  if(!n){ el.innerHTML='Every tiny thing counts. Tap one below the moment you do it.'; return; }
+  el.innerHTML=S.wins.slice().reverse().map(function(w){
+    var d=new Date(w.ts), t=two(d.getHours())+':'+two(d.getMinutes());
+    return '<div style="padding:5px 0;border-bottom:1px dashed var(--line);color:var(--ink)">✅ '+esc(w.t)+
+      ' <span class="muted" style="font-size:12px">'+t+'</span></div>';
+  }).join('');
 }
 function renderMoodLog(){
   var el=document.getElementById('moodLog'); if(!el) return;
@@ -832,7 +880,7 @@ function pickMood(k,btn){
   var waterRecent = !!(S.lastDrankTs && (now-S.lastDrankTs) < 90*60*1000);
   S.moods.push({e:k, ts:now, h:new Date().getHours(),
     act:(proj?projName(proj):'not working'), water:waterRecent}); save();
-  renderMoodLog();
+  addWin("You checked in with how you feel"); renderMoodLog();
   var m=MOODS[k];
   var acts="";
   if(m.tools.indexOf('b')>=0) acts+='<button class="primary" onclick="startBreathe()">Breathe with me</button>';
@@ -932,7 +980,7 @@ function soundBtns(active){
 
 // ---- breathing (box breathing: in 4, hold 4, out 4, hold 4) ----
 var bTimers=[], bStop=false;
-function startBreathe(){ show('breathe'); bStop=false; runBreathe(0,4); }
+function startBreathe(){ show('breathe'); bStop=false; addWin("You took time to breathe"); runBreathe(0,4); }
 function runBreathe(round,total){
   if(bStop) return;
   var circle=document.getElementById('bcircle'), cue=document.getElementById('bcue'),
@@ -984,6 +1032,9 @@ function showCurfew(){ show('curfew'); }
 
 // ---- init ----
 buildMoods();
+buildWinChips();
+addWin("You opened the app","open");
+renderWins();
 renderMoodLog();
 renderProjects();
 if(afterCurfew()) showCurfew();
