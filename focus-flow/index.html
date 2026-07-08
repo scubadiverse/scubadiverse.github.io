@@ -228,7 +228,7 @@
   <button class="primary" onclick="hide('curfew')">Okay, I'll rest 💙</button>
 </div>
 
-<p class="foot">Runs fully on your device. Nothing leaves this page. Not medical advice –
+<p class="foot"><span id="diag"></span><br>Runs fully on your device. Nothing leaves this page. Not medical advice –
 if hard feelings are frequent or heavy, talking to someone you trust helps.</p>
 
 <script>
@@ -958,6 +958,7 @@ adaptBlock();
 paint(); paintStats();
 refreshAlertBtn();
 resumeTimer();
+try{ document.getElementById('diag').textContent='build v13 · app mode: '+(inNativeApp?'ON ✓ (native alerts + screen lock available)':'OFF (running in browser / old app – no native features)'); }catch(e){}
 // whole-screen lock is a native-app feature – show and restore its state
 if(inNativeApp){
   document.getElementById('guardRow').style.display='flex';
