@@ -430,8 +430,12 @@ var PALETTE=['#2ecc71','#3aa0ff','#79838f','#ff5c5c','#a06bff','#1abc9c','#ffcf3
 var SPLIT_PALETTE=['#2ea6ff','#ff7a59','#3ddc97','#c792ff','#ffcf5c','#ff6b9d','#5ad1e6'];
 function splitColor(id){ for(var i=0;i<S.projects.length;i++) if(S.projects[i].id===id) return SPLIT_PALETTE[i%SPLIT_PALETTE.length]; return '#888'; }
 function projColor(id){
-  for(var i=0;i<S.projects.length;i++) if(S.projects[i].id===id) return PALETTE[i%PALETTE.length];
+  for(var i=0;i<S.projects.length;i++) if(S.projects[i].id===id) return S.projects[i].color || PALETTE[i%PALETTE.length];
   return '#888';
+}
+function setProjColor(id,c){
+  for(var i=0;i<S.projects.length;i++) if(S.projects[i].id===id) S.projects[i].color=c;
+  save(); renderProjects(); paintStats(); renderProgress(); renderProjEdit();
 }
 function newId(){ var n=0; for(var i=0;i<S.projects.length;i++){ var m=/^p(\d+)$/.exec(S.projects[i].id); if(m) n=Math.max(n,+m[1]); } return 'p'+(n+1); }
 function renderProjects(){
@@ -459,14 +463,23 @@ function toggleEditProj(){
 function renderProjEdit(){
   var el=document.getElementById('projEdit'); el.innerHTML="";
   S.projects.forEach(function(p){
-    var row=document.createElement('div'); row.className='qrow';
+    var wrap=document.createElement('div'); wrap.style.cssText='padding:8px 0;border-bottom:1px dashed var(--line)';
+    var row=document.createElement('div'); row.className='qrow'; row.style.borderBottom='0'; row.style.padding='0';
     row.innerHTML='<input type="text" value="'+esc(p.name)+'" style="flex:1;min-width:120px;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px" '+
       'onchange="renameProject(\''+p.id+'\',this.value)">'+
       '<input type="number" min="0" max="720" value="'+(p.target||0)+'" title="daily target minutes" '+
       'style="width:70px;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px" '+
       'onchange="setProjTarget(\''+p.id+'\',this.value)"><span class="muted" style="font-size:12px">min/day</span>'+
       '<button class="pill" onclick="deleteProject(\''+p.id+'\')">🗑</button>';
-    el.appendChild(row);
+    wrap.appendChild(row);
+    var sw=document.createElement('div'); sw.style.cssText='display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:8px';
+    sw.innerHTML='<span class="muted" style="font-size:12px">Colour:</span>'+PALETTE.map(function(c){
+      var cur=(projColor(p.id).toLowerCase()===c.toLowerCase());
+      return '<button onclick="setProjColor(\''+p.id+'\',\''+c+'\')" aria-label="colour" '+
+        'style="width:24px;height:24px;border-radius:50%;cursor:pointer;background:'+c+';border:'+(cur?'3px solid var(--ink)':'1px solid rgba(128,128,128,.4)')+'"></button>';
+    }).join('');
+    wrap.appendChild(sw);
+    el.appendChild(wrap);
   });
   if(S.projects.length>=7){
     var note=document.createElement('div'); note.className='foot'; note.style.textAlign='left';
