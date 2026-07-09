@@ -230,13 +230,9 @@
   <div class="stat"><span>Focus blocks done</span><b id="pBlocks">0</b></div>
   <div class="stat"><span>Small wins logged</span><b id="pWins">0</b></div>
   <div class="stat"><span>Day streak</span><b id="pStreak">0 days</b></div>
-  <div class="foot" style="text-align:left;margin:14px 0 4px">◐ How your time splits across projects</div>
+  <div class="foot" style="text-align:left;margin:14px 0 4px">⏱ Hours already spent on each project</div>
   <div class="split" id="doneSplitBar"></div>
   <div id="doneSplitTxt" style="font-size:13px;margin-top:6px"></div>
-  <div class="foot" style="text-align:left;margin:16px 0 6px">▮ Hours spent on each project</div>
-  <div id="projBreak"></div>
-  <div class="foot" style="text-align:left;margin:16px 0 6px">◔ Progress toward each goal today</div>
-  <div id="projProgress"></div>
   <div class="foot" style="text-align:left;margin:16px 0 2px">📈 Focus trend – last 14 days</div>
   <div id="prodLine"></div>
   <div id="prodProjection" class="foot" style="text-align:left;margin-top:4px"></div>
@@ -430,6 +426,9 @@ function refreshAlertBtn(){
 
 // ---- projects (add / rename / delete) ----
 var PALETTE=['#2ea6ff','#ff7a59','#3ddc97','#c792ff','#ffcf5c','#ff6b9d','#5ad1e6','#f0a35e'];
+// distinct colour families per chart so the three bars are easy to tell apart
+var CHART_HOURS=['#ff9f43','#ff6b6b','#ffd166','#ff8fab','#f0932b','#eb4d4b','#f6b93b'];
+var CHART_PROG =['#3ddc97','#5ad1e6','#8a6dff','#00b894','#0abde3','#a29bfe','#55efc4'];
 function projColor(id){
   for(var i=0;i<S.projects.length;i++) if(S.projects[i].id===id) return PALETTE[i%PALETTE.length];
   return '#888';
@@ -777,15 +776,15 @@ function renderSplitHours(){
     S.projects.forEach(function(p){ var h=(sh[p.id]||0)*t/60; hoursBy[p.id]=h; total+=h; });
   }
   // the stacked bar, sized by hours
-  bar.innerHTML = total>0 ? S.projects.map(function(p){
+  bar.innerHTML = total>0 ? S.projects.map(function(p,i){
     var pct=Math.round(hoursBy[p.id]/total*100);
-    return '<div class="s" style="width:'+pct+'%;background:'+projColor(p.id)+'"></div>';
+    return '<div class="s" style="width:'+pct+'%;background:'+CHART_HOURS[i%CHART_HOURS.length]+'"></div>';
   }).join('') : '';
   // labels
-  var rows=S.projects.map(function(p){
+  var rows=S.projects.map(function(p,i){
     var h=Math.round(hoursBy[p.id]*10)/10, extra='';
     if(hasTargets && p.target>0){ var left=Math.max(0,p.target-projMins(p.id)); extra=left>0?(' ('+left+' min left)'):' ✓'; }
-    return '<span style="color:'+projColor(p.id)+'">■</span> '+esc(p.name)+' — <b>'+h+'h</b>'+extra;
+    return '<span style="color:'+CHART_HOURS[i%CHART_HOURS.length]+'">■</span> '+esc(p.name)+' — <b>'+h+'h</b>'+extra;
   });
   el.innerHTML=(hasTargets?'🎯 Your goals today:<br>':'⏱️ Suggested for you (estimated):<br>')+rows.join('<br>');
 }
@@ -1237,13 +1236,13 @@ function renderDoneSplit(){
   if(!bar||!txt) return;
   var tot=projTotals(), sum=0; S.projects.forEach(function(p){ sum+=tot[p.id]||0; });
   if(sum<=0){ bar.innerHTML=''; txt.innerHTML='<span class="muted">No time logged yet.</span>'; return; }
-  bar.innerHTML=S.projects.map(function(p){
+  bar.innerHTML=S.projects.map(function(p,i){
     var pct=Math.round((tot[p.id]||0)/sum*100);
-    return '<div class="s" style="width:'+pct+'%;background:'+projColor(p.id)+'"></div>';
+    return '<div class="s" style="width:'+pct+'%;background:'+CHART_PROG[i%CHART_PROG.length]+'"></div>';
   }).join('');
-  txt.innerHTML=S.projects.map(function(p){
+  txt.innerHTML=S.projects.map(function(p,i){
     var pct=Math.round((tot[p.id]||0)/sum*100), h=Math.round((tot[p.id]||0)/60*10)/10;
-    return '<span style="color:'+projColor(p.id)+'">■</span> '+esc(p.name)+' <b>'+pct+'%</b> ('+h+'h)';
+    return '<span style="color:'+CHART_PROG[i%CHART_PROG.length]+'">■</span> '+esc(p.name)+' — <b>'+h+'h</b> ('+pct+'%)';
   }).join('<br>');
 }
 function renderProjProgress(){
