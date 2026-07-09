@@ -132,6 +132,7 @@
   <div id="flash"></div>
   <div id="surface"></div>
   <div id="chapter"></div>
+  <div id="diversign"></div>
 
   <div id="hud">
     <div id="objective">Discover Scuba</div>
@@ -264,38 +265,44 @@ function fishSchool(n,center,radius,color){
 // k is the kick phase (-1..1) so the legs & fins scissor when swimming.
 function diverTexture(sc,k,a){
   k=k||0; a=a||0;
-  const cv=document.createElement('canvas'); cv.width=360; cv.height=200; const x=cv.getContext('2d');
-  const suit=sc.suit, vest=sc.vest, fin=sc.fin, glove=sc.glove, skin='#e8b58a', tank='#c2c8ce';
+  const cv=document.createElement('canvas'); cv.width=360; cv.height=220; const x=cv.getContext('2d');
+  const suit=sc.suit, vest=sc.vest, fin=sc.fin, glove=sc.glove, skin='#f0c095', tank='#c2c8ce';
   x.lineJoin='round'; x.lineCap='round';
-  // legs (wetsuit) — scissor with the kick
-  x.strokeStyle=suit; x.lineWidth=26;
-  x.beginPath(); x.moveTo(196,98); x.lineTo(96,92-k*12); x.stroke();
-  x.beginPath(); x.moveTo(196,110); x.lineTo(98,112+k*12); x.stroke();
-  // fins (back-left) — follow the legs
+  // chunky legs (wetsuit) — scissor with the kick
+  x.strokeStyle=suit; x.lineWidth=34;
+  x.beginPath(); x.moveTo(196,102); x.lineTo(104,94-k*14); x.stroke();
+  x.beginPath(); x.moveTo(196,118); x.lineTo(106,124+k*14); x.stroke();
+  // big rounded fins (back-left) — follow the legs
   x.fillStyle=fin;
-  x.beginPath(); x.moveTo(96,84-k*12); x.quadraticCurveTo(30,54-k*18,14,72-k*18); x.quadraticCurveTo(34,92-k*18,92,100-k*12); x.closePath(); x.fill();
-  x.beginPath(); x.moveTo(96,104+k*12); x.quadraticCurveTo(28,104+k*18,16,126+k*18); x.quadraticCurveTo(40,120+k*18,98,116+k*12); x.closePath(); x.fill();
-  // tank on the back
-  x.save(); x.translate(150,58); x.rotate(-.12);
-  x.fillStyle=tank; x.beginPath(); x.roundRect?x.roundRect(-6,-16,86,30,12):x.rect(-6,-16,86,30); x.fill();
-  x.fillStyle='#8b929a'; x.fillRect(70,-8,10,14); x.restore();
-  // torso (wetsuit) + BCD vest
-  x.fillStyle=suit; x.beginPath(); x.ellipse(200,98,70,36,0,0,7); x.fill();
-  x.fillStyle=vest; x.beginPath(); x.ellipse(206,94,50,27,0,0,7); x.fill();
-  x.fillStyle=fin; x.fillRect(196,70,10,50); // vest stripe
-  // arm + glove — paddles up/down with a (the wrong way to swim)
-  const hx=292+a*6, hy=126-a*34;
-  x.strokeStyle=suit; x.lineWidth=17;
-  x.beginPath(); x.moveTo(232,102); x.quadraticCurveTo(266,110+a*10,hx,hy); x.stroke();
-  x.fillStyle=glove; x.beginPath(); x.arc(hx+4,hy+2,11,0,7); x.fill();
-  // head: hood, face, mask, snorkel, regulator
-  x.fillStyle='#241820'; x.beginPath(); x.arc(272,86,30,0,7); x.fill();
-  x.fillStyle=skin; x.beginPath(); x.arc(282,92,21,0,7); x.fill();
-  x.fillStyle='#0c1c2c'; x.beginPath(); x.ellipse(290,86,15,11,0,0,7); x.fill();
-  x.fillStyle='#9bd6f0'; x.beginPath(); x.ellipse(293,85,9,6,0,0,7); x.fill();
-  x.strokeStyle=fin; x.lineWidth=7; x.beginPath(); x.moveTo(252,66); x.quadraticCurveTo(242,84,250,104); x.stroke(); // snorkel
-  x.fillStyle='#1a1a1e'; x.beginPath(); x.arc(288,106,7,0,7); x.fill(); // regulator
-  x.strokeStyle='#1a1a1e'; x.lineWidth=4; x.beginPath(); x.moveTo(283,108); x.quadraticCurveTo(250,120,212,104); x.stroke(); // hose
+  x.save();x.translate(96,90-k*14);x.beginPath();x.ellipse(0,0,26,20,-.2,0,7);x.fill();x.restore();
+  x.save();x.translate(98,128+k*14);x.beginPath();x.ellipse(0,0,26,20,.2,0,7);x.fill();x.restore();
+  // yellow tank on the back
+  x.save(); x.translate(150,56); x.rotate(-.12);
+  x.fillStyle=tank; x.beginPath(); x.roundRect?x.roundRect(-6,-16,80,34,14):x.rect(-6,-16,80,34); x.fill();
+  x.fillStyle=fin;  x.beginPath(); x.roundRect?x.roundRect(-6,-16,80,34,14):x.rect(-6,-16,80,34); x.fill();
+  x.fillStyle='#8b929a'; x.fillRect(64,-8,10,14); x.restore();
+  // chubby rounded torso (wetsuit) + BCD vest
+  x.fillStyle=suit; x.beginPath(); x.ellipse(202,104,74,48,0,0,7); x.fill();
+  x.fillStyle=vest; x.beginPath(); x.roundRect?x.roundRect(168,82,74,48,22):x.rect(168,82,74,48); x.fill();
+  x.fillStyle=fin; x.fillRect(198,84,10,44); // vest zip
+  x.fillStyle='#111'; x.beginPath(); x.roundRect?x.roundRect(170,132,70,14,6):x.rect(170,132,70,14); x.fill(); // weight belt
+  // chunky arm + big round MITT hand — paddles up/down with a (the wrong way to swim)
+  const hx=300+a*8, hy=136-a*40;
+  x.strokeStyle=suit; x.lineWidth=24;
+  x.beginPath(); x.moveTo(238,108); x.quadraticCurveTo(272,116+a*12,hx,hy); x.stroke();
+  x.fillStyle=glove; x.beginPath(); x.arc(hx+6,hy+2,17,0,7); x.fill();
+  // big round head: hood, face
+  x.fillStyle='#241820'; x.beginPath(); x.arc(276,86,40,0,7); x.fill();
+  x.fillStyle=skin; x.beginPath(); x.arc(288,92,29,0,7); x.fill();
+  // big mask + eye
+  x.fillStyle='#15181c'; x.beginPath(); x.ellipse(296,86,22,16,0,0,7); x.fill();
+  x.fillStyle='#9bd6f0'; x.beginPath(); x.ellipse(298,85,15,11,0,0,7); x.fill();
+  x.fillStyle='#0c1c2c'; x.beginPath(); x.arc(300,86,6,0,7); x.fill();
+  x.fillStyle='rgba(255,255,255,.6)'; x.beginPath(); x.ellipse(294,82,4,3,0,0,7); x.fill();
+  // orange regulator in the mouth + hose
+  x.fillStyle=fin; x.beginPath(); x.arc(294,112,9,0,7); x.fill();
+  x.strokeStyle=fin; x.lineWidth=6; x.beginPath(); x.moveTo(289,114); x.quadraticCurveTo(250,128,214,112); x.stroke();
+  x.fillStyle='#2a2a2a'; x.beginPath(); x.arc(294,112,3.5,0,7); x.fill();
   const tex=new THREE.CanvasTexture(cv); tex.minFilter=THREE.LinearFilter; return tex;
 }
 const DIVER_PLAYER={suit:'#232a33',vest:'#ffcf3f',fin:'#ffcf3f',glove:'#ffcf3f'};   // black + yellow
@@ -304,7 +311,7 @@ function makeDiverSprite(scheme,size){ const s=size||3;
   const texN=diverTexture(scheme,0,0), texA=diverTexture(scheme,1,0), texB=diverTexture(scheme,-1,0),
         texArmU=diverTexture(scheme,0,1), texArmD=diverTexture(scheme,0,-1);
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:texN,transparent:true,depthWrite:false}));
-  sp.scale.set(s*1.6,s*0.9,1); sp.userData={isDiverSprite:true,texN,texA,texB,texArmU,texArmD}; return sp; }
+  sp.scale.set(s*1.47,s*0.9,1); sp.userData={isDiverSprite:true,texN,texA,texB,texArmU,texArmD}; return sp; }
 // A red STOP sign that floats above the diver when he swims with his arms.
 function makeStopSign(){
   const cv=document.createElement('canvas'); cv.width=512; cv.height=300; const x=cv.getContext('2d');
@@ -318,29 +325,60 @@ function makeStopSign(){
   const tex=new THREE.CanvasTexture(cv); tex.minFilter=THREE.LinearFilter;
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false})); sp.scale.set(6,3.5,1); return sp;
 }
-// A standing cartoon diver (front view) for the beach / chest-deep chapters.
-function standingDiverTexture(sc){
-  const cv=document.createElement('canvas'); cv.width=220; cv.height=360; const x=cv.getContext('2d');
-  const suit=sc.suit,vest=sc.vest,fin=sc.fin,glove=sc.glove,skin='#e8b58a',tank='#c2c8ce';
+// A standing cartoon diver (front view) in the chunky toy-figurine / Lego style:
+// big round head, stubby chubby body, clearly visible round mitt HANDS, big fins.
+// `hands` optionally overrides the hand emoji/pose per side ({l:'👌',r:''}) for signals.
+function standingDiverTexture(sc,hands){
+  const cv=document.createElement('canvas'); cv.width=260; cv.height=400; const x=cv.getContext('2d'); const cx=130;
+  const suit=sc.suit,vest=sc.vest,fin=sc.fin,glove=sc.glove,skin='#f0c095',tank='#c2c8ce';
   x.lineJoin='round'; x.lineCap='round';
-  x.fillStyle=fin; x.beginPath(); x.ellipse(82,338,36,17,0,0,7); x.fill(); x.beginPath(); x.ellipse(138,338,36,17,0,0,7); x.fill(); // fins
-  x.strokeStyle=suit; x.lineWidth=32; x.beginPath(); x.moveTo(92,222); x.lineTo(84,320); x.stroke(); x.beginPath(); x.moveTo(128,222); x.lineTo(138,320); x.stroke(); // legs
-  x.fillStyle=tank; x.beginPath(); x.roundRect?x.roundRect(96,72,28,92,10):x.rect(96,72,28,92); x.fill(); // tank
-  x.fillStyle=suit; x.beginPath(); x.ellipse(110,158,56,70,0,0,7); x.fill(); // torso
-  x.fillStyle=vest; x.beginPath(); x.ellipse(110,158,42,55,0,0,7); x.fill(); x.fillStyle=fin; x.fillRect(104,108,12,104); // vest
-  x.strokeStyle=suit; x.lineWidth=21; x.beginPath(); x.moveTo(64,126); x.lineTo(46,220); x.stroke(); x.beginPath(); x.moveTo(156,126); x.lineTo(174,220); x.stroke(); // arms
-  x.fillStyle=glove; x.beginPath(); x.arc(45,224,12,0,7); x.fill(); x.beginPath(); x.arc(175,224,12,0,7); x.fill();
-  x.fillStyle='#241820'; x.beginPath(); x.arc(110,70,42,0,7); x.fill(); // hood
-  x.fillStyle=skin; x.beginPath(); x.arc(110,78,29,0,7); x.fill(); // face
-  x.fillStyle='#0c1c2c'; x.beginPath(); x.ellipse(110,72,27,16,0,0,7); x.fill(); // mask frame
-  x.fillStyle='#9bd6f0'; x.beginPath(); x.ellipse(102,72,8,6,0,0,7); x.fill(); x.beginPath(); x.ellipse(120,72,8,6,0,0,7); x.fill(); // lenses
-  x.fillStyle='#1a1a1e'; x.beginPath(); x.arc(110,98,10,0,7); x.fill(); // regulator in
-  x.strokeStyle='#1a1a1e'; x.lineWidth=5; x.beginPath(); x.moveTo(117,98); x.quadraticCurveTo(150,110,150,150); x.stroke(); // hose
+  const RR=(a,b,c,d,r)=>{ if(x.roundRect){x.beginPath();x.roundRect(a,b,c,d,r);x.fill();} else x.fillRect(a,b,c,d); };
+  // ---- big yellow fins on the feet ----
+  x.fillStyle=fin;
+  x.save();x.translate(104,372);x.rotate(-.12);x.beginPath();x.ellipse(0,0,26,26,0,0,7);x.fill();
+    x.beginPath();x.ellipse(0,14,20,16,0,0,7);x.fill();x.restore();
+  x.save();x.translate(156,372);x.rotate(.12);x.beginPath();x.ellipse(0,0,26,26,0,0,7);x.fill();
+    x.beginPath();x.ellipse(0,14,20,16,0,0,7);x.fill();x.restore();
+  // ---- stubby legs ----
+  x.strokeStyle=suit; x.lineWidth=34;
+  x.beginPath();x.moveTo(112,286);x.lineTo(106,352);x.stroke();
+  x.beginPath();x.moveTo(148,286);x.lineTo(154,352);x.stroke();
+  // ---- yellow tank peeking behind a shoulder ----
+  x.fillStyle=tank; RR(cx+30,110,30,86,14);
+  x.fillStyle=fin;  RR(cx+30,110,30,86,14); x.globalAlpha=1;
+  x.fillStyle='#8b929a'; x.fillRect(cx+40,104,12,12);
+  // ---- chubby rounded torso (wetsuit) ----
+  x.fillStyle=suit; x.beginPath(); x.ellipse(cx,206,62,74,0,0,7); x.fill();
+  // ---- BCD vest over the chest ----
+  x.fillStyle=vest; RR(cx-42,150,84,86,26);
+  x.fillStyle=fin;  x.fillRect(cx-5,150,10,86);            // vest zip
+  x.fillStyle='#111'; RR(cx-52,238,104,18,8);              // weight belt
+  x.fillStyle=vest; x.beginPath();x.arc(cx-30,196,9,0,7);x.fill(); x.beginPath();x.arc(cx+30,196,9,0,7);x.fill(); // pockets
+  // ---- chunky arms with big round MITT hands ----
+  x.strokeStyle=suit; x.lineWidth=26;
+  x.beginPath(); x.moveTo(cx-46,168); x.quadraticCurveTo(cx-74,214,cx-70,256); x.stroke();
+  x.beginPath(); x.moveTo(cx+46,168); x.quadraticCurveTo(cx+74,214,cx+70,256); x.stroke();
+  // round hands (glove colour). Show a hand-sign emoji big if provided.
+  const drawHand=(px,py,emo)=>{ x.fillStyle=glove; x.beginPath(); x.arc(px,py,20,0,7); x.fill();
+    if(emo){ x.font='30px "Noto Color Emoji",Arial'; x.textAlign='center'; x.textBaseline='middle'; x.fillText(emo,px,py+1); } };
+  drawHand(cx-70,262, hands&&hands.l); drawHand(cx+70,262, hands&&hands.r);
+  // ---- big round head + hood ----
+  x.fillStyle='#241820'; x.beginPath(); x.arc(cx,86,58,0,7); x.fill();      // neoprene hood
+  x.fillStyle=skin;      x.beginPath(); x.arc(cx,94,44,0,7); x.fill();      // face
+  // ---- big diving mask (two round eyes through a wide visor) ----
+  x.fillStyle='#15181c'; RR(cx-42,66,84,42,20);                            // mask frame
+  x.fillStyle='#9bd6f0'; RR(cx-36,70,72,32,16);                            // lens glass
+  x.fillStyle='#0c1c2c'; x.beginPath();x.arc(cx-17,86,9,0,7);x.fill(); x.beginPath();x.arc(cx+17,86,9,0,7);x.fill(); // eyes
+  x.fillStyle='rgba(255,255,255,.6)'; x.beginPath();x.ellipse(cx-20,82,4,3,0,0,7);x.fill(); x.beginPath();x.ellipse(cx+14,82,4,3,0,0,7);x.fill();
+  // ---- orange regulator in the mouth + hose ----
+  x.fillStyle=fin; x.beginPath();x.arc(cx,120,11,0,7);x.fill();
+  x.strokeStyle=fin; x.lineWidth=8; x.beginPath();x.moveTo(cx+9,122);x.quadraticCurveTo(cx+48,150,cx+30,196);x.stroke();
+  x.fillStyle='#2a2a2a'; x.beginPath();x.arc(cx,120,4,0,7);x.fill();       // reg centre
   const tex=new THREE.CanvasTexture(cv); tex.minFilter=THREE.LinearFilter; return tex;
 }
 function makeStandingDiver(scheme,size){ const s=size||7;
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:standingDiverTexture(scheme),transparent:true,depthWrite:false}));
-  sp.scale.set(s*0.62,s,1); return sp; }
+  sp.scale.set(s*0.65,s,1); sp.userData={scheme}; return sp; }
 function showChapterTitle(k,t){ chapterEl.innerHTML='<div class="k">'+k+'</div><div class="t">'+t+'</div>'; chapterEl.classList.add('on'); setTimeout(()=>chapterEl.classList.remove('on'),3200); }
 function setSurface(frac){ surfaceEl.style.height=(frac*100)+'%'; }
 function particles(n,spread,color,size,y){
