@@ -230,6 +230,46 @@ function fishSchool(n,center,radius,color){
   }
   g.position.copy(center); g.userData.list=list; return g;
 }
+// Hand-drawn CARTOON scuba diver (side view, facing right), like the fish art.
+function diverTexture(sc){
+  const cv=document.createElement('canvas'); cv.width=360; cv.height=200; const x=cv.getContext('2d');
+  const suit=sc.suit, vest=sc.vest, fin=sc.fin, glove=sc.glove, skin='#e8b58a', tank='#c2c8ce';
+  x.lineJoin='round'; x.lineCap='round';
+  // fins (back-left)
+  x.fillStyle=fin;
+  x.beginPath(); x.moveTo(96,84); x.quadraticCurveTo(30,54,14,72); x.quadraticCurveTo(34,92,92,100); x.closePath(); x.fill();
+  x.beginPath(); x.moveTo(96,104); x.quadraticCurveTo(28,104,16,126); x.quadraticCurveTo(40,120,98,116); x.closePath(); x.fill();
+  // legs (wetsuit)
+  x.strokeStyle=suit; x.lineWidth=26;
+  x.beginPath(); x.moveTo(196,98); x.lineTo(96,92); x.stroke();
+  x.beginPath(); x.moveTo(196,110); x.lineTo(98,112); x.stroke();
+  // tank on the back
+  x.save(); x.translate(150,58); x.rotate(-.12);
+  x.fillStyle=tank; x.beginPath(); x.roundRect?x.roundRect(-6,-16,86,30,12):x.rect(-6,-16,86,30); x.fill();
+  x.fillStyle='#8b929a'; x.fillRect(70,-8,10,14); x.restore();
+  // torso (wetsuit) + BCD vest
+  x.fillStyle=suit; x.beginPath(); x.ellipse(200,98,70,36,0,0,7); x.fill();
+  x.fillStyle=vest; x.beginPath(); x.ellipse(206,94,50,27,0,0,7); x.fill();
+  x.fillStyle=fin; x.fillRect(196,70,10,50); // vest stripe
+  // arms forward + glove
+  x.strokeStyle=suit; x.lineWidth=17;
+  x.beginPath(); x.moveTo(232,102); x.lineTo(292,126); x.stroke();
+  x.fillStyle=glove; x.beginPath(); x.arc(296,128,11,0,7); x.fill();
+  // head: hood, face, mask, snorkel, regulator
+  x.fillStyle='#241820'; x.beginPath(); x.arc(272,86,30,0,7); x.fill();
+  x.fillStyle=skin; x.beginPath(); x.arc(282,92,21,0,7); x.fill();
+  x.fillStyle='#0c1c2c'; x.beginPath(); x.ellipse(290,86,15,11,0,0,7); x.fill();
+  x.fillStyle='#9bd6f0'; x.beginPath(); x.ellipse(293,85,9,6,0,0,7); x.fill();
+  x.strokeStyle=fin; x.lineWidth=7; x.beginPath(); x.moveTo(252,66); x.quadraticCurveTo(242,84,250,104); x.stroke(); // snorkel
+  x.fillStyle='#1a1a1e'; x.beginPath(); x.arc(288,106,7,0,7); x.fill(); // regulator
+  x.strokeStyle='#1a1a1e'; x.lineWidth=4; x.beginPath(); x.moveTo(283,108); x.quadraticCurveTo(250,120,212,104); x.stroke(); // hose
+  const tex=new THREE.CanvasTexture(cv); tex.minFilter=THREE.LinearFilter; return tex;
+}
+const DIVER_PLAYER={suit:'#232a33',vest:'#ffcf3f',fin:'#ffcf3f',glove:'#ffcf3f'};   // black + yellow
+const DIVER_INSTR ={suit:'#5a2636',vest:'#1fa8d6',fin:'#ff9f2e',glove:'#ff9f2e'};   // maroon + blue + orange
+function makeDiverSprite(scheme,size){ const s=size||3;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:diverTexture(scheme),transparent:true,depthWrite:false}));
+  sp.scale.set(s*1.6,s*0.9,1); sp.userData.isDiverSprite=true; return sp; }
 function particles(n,spread,color,size,y){
   const geo=new THREE.BufferGeometry(),pos=new Float32Array(n*3);
   for(let i=0;i<n;i++){ pos[i*3]=R(-spread,spread); pos[i*3+1]=(y||0)+R(-spread,spread); pos[i*3+2]=R(-spread,spread);}
@@ -260,7 +300,7 @@ function buildWorld(){
   const sign=makeSignSprite("Don't touch us! We are not pets. Protect the marine life."); sign.position.set(0,2.6,0); signFish.add(sign);
   signFish.visible=false; scene.add(signFish);
   // instructor, in front of you the whole time, facing you (head toward camera)
-  instructor=makeDiver(0x1f8ecb); instructor.position.set(2.4,-.6,-7.6); instructor.rotation.set(0,-0.6,0); scene.add(instructor); // horizontal, angled toward you
+  instructor=makeDiverSprite(DIVER_INSTR,2.8); instructor.position.set(2.6,-.5,-7.6); scene.add(instructor); // cartoon instructor
   // rising bubbles from your own reg
   bubbleP=particles(120,4,0xbfefff,.16,0); bubbleP.position.set(-.3,-1,-1.2); scene.add(bubbleP); bubbleP.visible=false;
   // first-person props attached to the camera
@@ -489,7 +529,7 @@ async function enterWater(){ V.underwater=true; V.reef=true; setMask(true); V.bu
 /* THE DIVE — you steer the diver (3rd/1st person, WASD/arrows), skills happen live */
 function interactiveDive(){
   showSignal(null); startBreathing(); V.bubbles=false;
-  const diver=makeDiver(0xffcf3f); scene.add(diver);
+  const diver=makeDiverSprite(DIVER_PLAYER,3.4); scene.add(diver);
   V.pd={x:0,y:-.3,z:8}; V.hd=Math.PI; V.diver=diver; V.camMode='behind'; V.swimActive=true; V.moving=false; V.diveActive=true;
   setMask(false); showMeter(breathM,false); showMeter(earM,true); showMeter(trimM,false); meter(earM,0);
   $('earM').style.bottom='132px';
