@@ -9,11 +9,19 @@ android {
         applicationId "net.scubadiverse.focusflow"
         minSdk 26
         targetSdk 34
-        versionCode 8
-        versionName "1.7"
+        versionCode 9
+        versionName "1.8"
     }
     signingConfigs {
         debug {
+            storeFile file("focusflow.keystore")
+            storePassword "focusflow"
+            keyAlias "focusflow"
+            keyPassword "focusflow"
+        }
+        // Upload key for Google Play. Google Play App Signing re-signs with the
+        // distribution key it holds, so this keystore is only the upload key.
+        release {
             storeFile file("focusflow.keystore")
             storePassword "focusflow"
             keyAlias "focusflow"
@@ -26,7 +34,7 @@ android {
         }
         release {
             minifyEnabled false
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
         }
     }
     compileOptions {

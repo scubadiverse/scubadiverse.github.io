@@ -30,9 +30,13 @@ jobs:
         with:
           gradle-version: '8.7'
 
-      - name: Build debug APK
+      - name: Build debug APK (for sideloading / testing on your phone)
         working-directory: focus-flow-android
         run: gradle assembleDebug --no-daemon --stacktrace
+
+      - name: Build release AAB (for Google Play upload)
+        working-directory: focus-flow-android
+        run: gradle bundleRelease --no-daemon --stacktrace
 
       - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
@@ -40,10 +44,21 @@ jobs:
           name: focus-flow-apk
           path: focus-flow-android/app/build/outputs/apk/debug/app-debug.apk
 
-      - name: Publish APK to a Release
+      - name: Upload Play AAB as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: focus-flow-play-aab
+          path: focus-flow-android/app/build/outputs/bundle/release/app-release.aab
+
+      - name: Publish APK + Play AAB to a Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: android-latest
           name: "Focus & Flow – Android (latest)"
-          body: "Latest Focus & Flow Android app. Download app-debug.apk on your phone and open it to install (allow install from unknown sources)."
-          files: focus-flow-android/app/build/outputs/apk/debug/app-debug.apk
+          body: |
+            Latest Focus & Flow Android app.
+            • app-debug.apk – download on your phone and open it to install (allow install from unknown sources).
+            • app-release.aab – the file you upload to the Google Play Console.
+          files: |
+            focus-flow-android/app/build/outputs/apk/debug/app-debug.apk
+            focus-flow-android/app/build/outputs/bundle/release/app-release.aab
