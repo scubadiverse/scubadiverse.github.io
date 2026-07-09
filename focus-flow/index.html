@@ -233,10 +233,9 @@
   <div class="foot" style="text-align:left;margin:14px 0 4px">⏱ Hours already spent on each project</div>
   <div class="split" id="doneSplitBar"></div>
   <div id="doneSplitTxt" style="font-size:13px;margin-top:6px"></div>
-  <div class="foot" style="text-align:left;margin:16px 0 2px">📈 Focus trend – last 14 days</div>
-  <div id="prodLine"></div>
-  <div id="prodProjection" class="foot" style="text-align:left;margin-top:4px"></div>
-  <div class="foot" style="text-align:left;margin:16px 0 6px">〰 Daily time per project</div>
+  <div class="foot" style="text-align:left;margin:16px 0 2px">⚡ Your pace</div>
+  <div id="prodProjection" class="foot" style="text-align:left;margin-top:0"></div>
+  <div class="foot" style="text-align:left;margin:16px 0 6px">〰 Daily hours per project – last 14 days</div>
   <div id="projLines"></div>
   <div class="foot" style="margin-top:10px">It builds up day by day. Slow progress is still progress – keep going.</div>
 </div>
@@ -427,6 +426,9 @@ function refreshAlertBtn(){
 // ---- projects (add / rename / delete) ----
 // One distinct colour per project (green, blue, graphite, red, violet, turquoise, yellow)
 var PALETTE=['#2ecc71','#3aa0ff','#79838f','#ff5c5c','#a06bff','#1abc9c','#ffcf3f'];
+// The % "Suggested split" pill keeps its ORIGINAL colours (only the hours pill uses the new palette)
+var SPLIT_PALETTE=['#2ea6ff','#ff7a59','#3ddc97','#c792ff','#ffcf5c','#ff6b9d','#5ad1e6'];
+function splitColor(id){ for(var i=0;i<S.projects.length;i++) if(S.projects[i].id===id) return SPLIT_PALETTE[i%SPLIT_PALETTE.length]; return '#888'; }
 function projColor(id){
   for(var i=0;i<S.projects.length;i++) if(S.projects[i].id===id) return PALETTE[i%PALETTE.length];
   return '#888';
@@ -815,7 +817,7 @@ function paintStats(){
   S.projects.forEach(function(p){
     var pct=Math.round((sh[p.id]||0)*100);
     var seg=document.createElement('div'); seg.className='s';
-    seg.style.cssText='height:100%;width:'+pct+'%;background:'+projColor(p.id);
+    seg.style.cssText='height:100%;width:'+pct+'%;background:'+splitColor(p.id);
     bar.appendChild(seg);
     txt.push(p.name.split(' ')[0]+' '+pct+'%');
   });
@@ -1276,17 +1278,27 @@ function projDays(){
 function renderProjLines(){
   var el=document.getElementById('projLines'); if(!el) return;
   if(!S.projects.length){ el.innerHTML=''; return; }
-  var arr=projDays(), n=arr.length, W=300,H=80,pad=8, max=1;
+  var arr=projDays(), n=arr.length, W=300,H=96, padL=30, padR=8, padT=8, padB=18, max=1;
   arr.forEach(function(m){ S.projects.forEach(function(p){ if((m[p.id]||0)>max) max=m[p.id]; }); });
+  var plotW=W-padL-padR, plotH=H-padT-padB;
+  var maxH=Math.round(max/60*10)/10, midH=Math.round(max/2/60*10)/10;
   var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;display:block">';
+  // y-axis (hours) + gridlines
+  [[maxH,padT],[midH,padT+plotH/2],[0,padT+plotH]].forEach(function(g){
+    svg+='<line x1="'+padL+'" y1="'+g[1].toFixed(1)+'" x2="'+(W-padR)+'" y2="'+g[1].toFixed(1)+'" stroke="#2a3a4a" stroke-width="0.7"/>';
+    svg+='<text x="'+(padL-4)+'" y="'+(g[1]+3).toFixed(1)+'" fill="#93a6b8" font-size="8" text-anchor="end">'+g[0]+'h</text>';
+  });
   S.projects.forEach(function(p){
     var pts=arr.map(function(m,i){
-      var x=pad+(n<=1?(W-2*pad)/2:(i/(n-1))*(W-2*pad));
-      var y=H-pad-((m[p.id]||0)/max)*(H-2*pad);
+      var x=padL+(n<=1?plotW/2:(i/(n-1))*plotW);
+      var y=padT+plotH-((m[p.id]||0)/max)*plotH;
       return x.toFixed(1)+' '+y.toFixed(1);
     });
     svg+='<path d="M'+pts.join(' L ')+'" fill="none" stroke="'+projColor(p.id)+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="0.92"/>';
   });
+  // x-axis labels
+  svg+='<text x="'+padL+'" y="'+(H-4)+'" fill="#93a6b8" font-size="8">14 days ago</text>';
+  svg+='<text x="'+(W-padR)+'" y="'+(H-4)+'" fill="#93a6b8" font-size="8" text-anchor="end">today</text>';
   svg+='</svg>';
   var leg=S.projects.map(function(p){
     return '<span style="display:inline-flex;align-items:center;gap:4px;margin:2px 10px 0 0;font-size:12px">'+
