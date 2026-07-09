@@ -55,6 +55,10 @@
   #signal.on{display:block}
   #signal .ic{font-size:52px;filter:drop-shadow(0 4px 8px rgba(0,0,0,.5))}
   #signal .cap{font-weight:900;font-size:13px;background:rgba(4,20,30,.7);border-radius:20px;padding:4px 12px;display:inline-block;margin-top:2px}
+  #diversign{position:absolute;left:50%;top:42%;transform:translateX(-50%);display:none;z-index:7;text-align:center;pointer-events:none}
+  #diversign.on{display:block}
+  #diversign .ic{font-size:74px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.55))}
+  #diversign .cap{font-weight:900;font-size:14px;color:#04202e;background:#ffd23c;border-radius:20px;padding:5px 16px;display:inline-block;margin-top:2px;box-shadow:0 3px 0 #a8701c}
 
   /* narration + actions */
   /* floating red warning above the diver */
@@ -379,6 +383,12 @@ function standingDiverTexture(sc,hands){
 function makeStandingDiver(scheme,size){ const s=size||7;
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:standingDiverTexture(scheme),transparent:true,depthWrite:false}));
   sp.scale.set(s*0.65,s,1); sp.userData={scheme}; return sp; }
+// make the standing toy diver hold up a hand-sign emoji (rebuilds his texture)
+function setDiverHand(sprite,emoji){ if(!sprite)return; const sc=sprite.userData.scheme;
+  const t=standingDiverTexture(sc, emoji?{r:emoji}:null); sprite.material.map=t; sprite.material.map.needsUpdate=true; sprite.material.needsUpdate=true; }
+// big on-screen readout of the sign the DIVER is making
+function diverSign(ic,cap){ const el=$('diversign'); if(!ic){ el.classList.remove('on'); return; }
+  el.innerHTML='<div class="ic">'+ic+'</div><div class="cap">'+cap+'</div>'; el.classList.add('on'); }
 function showChapterTitle(k,t){ chapterEl.innerHTML='<div class="k">'+k+'</div><div class="t">'+t+'</div>'; chapterEl.classList.add('on'); setTimeout(()=>chapterEl.classList.remove('on'),3200); }
 function setSurface(frac){ surfaceEl.style.height=(frac*100)+'%'; }
 function particles(n,spread,color,size,y){
@@ -674,7 +684,126 @@ function chapter1(){
   showChapterTitle('Chapter One','In the water');
   showSignal('👌','OK?');
   say("You're in the water up to your chest &ndash; mask on, fins on, regulator in. Your instructor is right beside you. Take a few easy breaths, then we go under.");
-  setControls([ mkbtn('Put your face in &amp; go under ▶','good',()=>{ hush(); showSignal(null); $('help').classList.remove('on'); clearChapterActors(); goUnderwater(); }) ]);
+  setControls([ mkbtn('Learn the hand signals ▶','good',()=>{ hush(); showSignal(null); chapter2(); }) ]);
+}
+
+/* CHAPTER TWO — hand signals: instructor shows, you copy */
+const SIGN_STEPS=[
+  {emo:'👌', name:'OK', teach:"The most important signal. Thumb and finger make a circle. It means <b>“I’m OK”</b> and also asks <b>“are you OK?”</b>"},
+  {emo:'✋', name:'Something is wrong', teach:"A flat hand rocking side to side, then <b>point at the problem</b> (here, your mask). It means <b>“something’s not right”</b>."},
+  {emo:'👍', name:'Go up', teach:"Thumb <b>up</b> means <b>“let’s go up”</b> – it is NOT the OK sign."},
+  {emo:'👎', name:'Go down', teach:"Thumb <b>down</b> means <b>“let’s go down”</b>."}
+];
+function chapter2(){
+  V.underwater=false; setMask(false); clearActions(); showSignal(null); hideBubble(); diverSign(null);
+  camera.position.set(0,.35,0); camera.rotation.set(0,0,0);
+  if(!beachDiver){ beachDiver=makeStandingDiver(DIVER_PLAYER,7.5); beachDiver.position.set(-.9,-.4,-6); scene.add(beachDiver); }
+  if(!beachInstr){ beachInstr=makeStandingDiver(DIVER_INSTR,7); beachInstr.position.set(2.3,-.4,-6.4); scene.add(beachInstr); }
+  setSurface(.46);
+  showChapterTitle('Chapter Two','Hand signals');
+  $('help').innerHTML='<b>Hand signals</b><br>Keep your hand clear and easy to see.<br>Watch the instructor, then copy the signal.';
+  $('help').classList.add('on');
+  (async function(){
+    say("Underwater you can’t talk, so divers use their hands. Watch your instructor, then signal the same thing back.");
+    await wait(2000);
+    for(const s of SIGN_STEPS){
+      setDiverHand(beachDiver,null); diverSign(null);
+      showSignal(s.emo,'Instructor: '+s.name);
+      say(s.teach);
+      await button('🙋 Signal '+s.emo+' back','good');
+      setDiverHand(beachDiver,s.emo); diverSign(s.emo,'You: '+s.name); sChime(true);
+      flashBubble('👍 Clear and steady – well done.');
+      await wait(2000);
+    }
+    setDiverHand(beachDiver,null); diverSign(null); showSignal(null);
+    say("Great – you can copy every signal. Next, the instructor asks and you answer on your own.");
+    setControls([ mkbtn('Take the signals quiz ▶','good',()=>{ hush(); chapter3(); }) ]);
+  })();
+}
+
+/* CHAPTER THREE — signals quiz: read the instruction, pick the right sign */
+const SIGN_INFO={ ok:{emo:'👌',name:'OK'}, problem:{emo:'✋',name:'Something is wrong'},
+  ears:{emo:'👂',name:'Ear problem'}, up:{emo:'👍',name:'Go up'}, down:{emo:'👎',name:'Go down'} };
+const QUIZ=[
+  {q:'Show the sign that you are <b>OK</b>.', a:'ok'},
+  {q:'Show the sign that you <b>have a problem</b>.', a:'problem'},
+  {q:'Show the sign that you have a <b>problem with your ears</b>.', a:'ears'},
+  {q:'Show the sign that you want to <b>go up</b>.', a:'up'},
+  {q:'Show the sign that you want to <b>go down</b>.', a:'down'}
+];
+function chapter3(){
+  clearActions(); showSignal(null); hideBubble(); diverSign(null);
+  if(!beachDiver){ beachDiver=makeStandingDiver(DIVER_PLAYER,7.5); beachDiver.position.set(-.9,-.4,-6); scene.add(beachDiver); }
+  if(!beachInstr){ beachInstr=makeStandingDiver(DIVER_INSTR,7); beachInstr.position.set(2.3,-.4,-6.4); scene.add(beachInstr); }
+  setSurface(.46);
+  showChapterTitle('Chapter Three','Signals quiz');
+  $('help').innerHTML='<b>Signals quiz</b><br>Read the instruction, then choose the correct hand sign from the buttons below.';
+  $('help').classList.add('on');
+  const OPTS=Object.keys(SIGN_INFO).map(k=>({label:SIGN_INFO[k].emo,key:k}));
+  (async function(){
+    say("Now it’s your turn. Read each instruction and choose the right sign below.");
+    await wait(1600);
+    for(let i=0;i<QUIZ.length;i++){
+      const item=QUIZ[i]; setDiverHand(beachDiver,null); diverSign(null);
+      say('<b>'+(i+1)+'/'+QUIZ.length+'.</b> '+item.q);
+      let ok=false;
+      while(!ok){
+        const k=await choose(OPTS);
+        if(k===item.a){ ok=true; setDiverHand(beachDiver,SIGN_INFO[k].emo); diverSign(SIGN_INFO[k].emo,'You: '+SIGN_INFO[k].name); sChime(true); flashBubble('👍 Correct!'); await wait(1700); }
+        else { warnMsg('That’s the “'+SIGN_INFO[k].name+'” sign – try again.'); }
+      }
+    }
+    setDiverHand(beachDiver,null); diverSign(null);
+    say("Perfect signalling! You can ask and answer underwater now.");
+    setControls([ mkbtn('Next: how much air? ▶','good',()=>{ hush(); chapter4(); }) ]);
+  })();
+}
+
+/* CHAPTER FOUR — air signals: "how much air?" and showing the amount in bar */
+const AIR_STEPS=[
+  {emo:'☝️', name:'one finger', bar:10},
+  {emo:'✌️', name:'two fingers', bar:20},
+  {emo:'🤟', name:'three fingers', bar:40},
+  {emo:'✊', name:'a fist', bar:50},
+  {emo:'🙌', name:'two hands (a T)', bar:100}
+];
+function chapter4(){
+  clearActions(); showSignal(null); hideBubble(); diverSign(null);
+  if(!beachDiver){ beachDiver=makeStandingDiver(DIVER_PLAYER,7.5); beachDiver.position.set(-.9,-.4,-6); scene.add(beachDiver); }
+  if(!beachInstr){ beachInstr=makeStandingDiver(DIVER_INSTR,7); beachInstr.position.set(2.3,-.4,-6.4); scene.add(beachInstr); }
+  setSurface(.46);
+  showChapterTitle('Chapter Four','How much air?');
+  $('help').innerHTML='<b>Air signals</b><br>☝️ 1 finger = 10 bar &bull; ✌️ 2 = 20 &bull; 🤟 3 = 40<br>✊ fist = 50 &bull; 🙌 two hands (a T) = 100';
+  $('help').classList.add('on');
+  const OPTS=AIR_STEPS.map(s=>({label:s.emo+' '+s.bar,key:String(s.bar)}));
+  (async function(){
+    // 1) the "how much air?" question sign
+    showSignal('✌️🖐️','Instructor: How much air?');
+    say("Your instructor taps two fingers on an open palm. That asks <b>“how much air do you have?”</b> You answer in bar.");
+    await button('🙋 I understand the question','good');
+    // 2) teach the amounts
+    showSignal(null);
+    say("Here is how to show the amount:<br>☝️ 1 finger = <b>10 bar</b> &bull; ✌️ 2 fingers = <b>20</b> &bull; 🤟 3 fingers = <b>40</b> &bull; ✊ a fist = <b>50</b> &bull; 🙌 two hands as a T = <b>100</b>.");
+    await button('Got it – quiz me ▶','good');
+    // 3) quiz: instructor asks, you signal the amount
+    $('help').innerHTML='<b>Show the amount</b><br>☝️10 &bull; ✌️20 &bull; 🤟40 &bull; ✊50 &bull; 🙌100<br>Choose the matching button below.';
+    const ask=[50,100,20,10,40];
+    for(let i=0;i<ask.length;i++){
+      const bar=ask[i], step=AIR_STEPS.find(s=>s.bar===bar);
+      setDiverHand(beachDiver,null); diverSign(null);
+      showSignal('✌️🖐️','Instructor: How much air?');
+      say('<b>'+(i+1)+'/'+ask.length+'.</b> You have <b>'+bar+' bar</b> left. Signal it.');
+      let ok=false;
+      while(!ok){
+        const k=await choose(OPTS);
+        if(k===String(bar)){ ok=true; setDiverHand(beachDiver,step.emo); diverSign(step.emo,'You: '+bar+' bar'); sChime(true); flashBubble('👍 '+bar+' bar – correct!'); await wait(1700); }
+        else { const g=AIR_STEPS.find(s=>String(s.bar)===k); warnMsg('That’s '+(g?g.bar:'?')+' bar – try again.'); }
+      }
+    }
+    setDiverHand(beachDiver,null); diverSign(null); showSignal(null);
+    say("Excellent – you can ask for and show your air. Time to put your face in and explore the reef.");
+    setControls([ mkbtn('Put your face in &amp; go under ▶','good',()=>{ hush(); showSignal(null); $('help').classList.remove('on'); clearChapterActors(); goUnderwater(); }) ]);
+  })();
 }
 function goUnderwater(){ showHUD(true); clearActions(); enterWater().then(()=>{ showChapterTitle('The Dive','Explore the reef'); interactiveDive(); }); }
 
