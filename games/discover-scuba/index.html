@@ -231,18 +231,20 @@ function fishSchool(n,center,radius,color){
   g.position.copy(center); g.userData.list=list; return g;
 }
 // Hand-drawn CARTOON scuba diver (side view, facing right), like the fish art.
-function diverTexture(sc){
+// k is the kick phase (-1..1) so the legs & fins scissor when swimming.
+function diverTexture(sc,k){
+  k=k||0;
   const cv=document.createElement('canvas'); cv.width=360; cv.height=200; const x=cv.getContext('2d');
   const suit=sc.suit, vest=sc.vest, fin=sc.fin, glove=sc.glove, skin='#e8b58a', tank='#c2c8ce';
   x.lineJoin='round'; x.lineCap='round';
-  // fins (back-left)
-  x.fillStyle=fin;
-  x.beginPath(); x.moveTo(96,84); x.quadraticCurveTo(30,54,14,72); x.quadraticCurveTo(34,92,92,100); x.closePath(); x.fill();
-  x.beginPath(); x.moveTo(96,104); x.quadraticCurveTo(28,104,16,126); x.quadraticCurveTo(40,120,98,116); x.closePath(); x.fill();
-  // legs (wetsuit)
+  // legs (wetsuit) — scissor with the kick
   x.strokeStyle=suit; x.lineWidth=26;
-  x.beginPath(); x.moveTo(196,98); x.lineTo(96,92); x.stroke();
-  x.beginPath(); x.moveTo(196,110); x.lineTo(98,112); x.stroke();
+  x.beginPath(); x.moveTo(196,98); x.lineTo(96,92-k*12); x.stroke();
+  x.beginPath(); x.moveTo(196,110); x.lineTo(98,112+k*12); x.stroke();
+  // fins (back-left) — follow the legs
+  x.fillStyle=fin;
+  x.beginPath(); x.moveTo(96,84-k*12); x.quadraticCurveTo(30,54-k*18,14,72-k*18); x.quadraticCurveTo(34,92-k*18,92,100-k*12); x.closePath(); x.fill();
+  x.beginPath(); x.moveTo(96,104+k*12); x.quadraticCurveTo(28,104+k*18,16,126+k*18); x.quadraticCurveTo(40,120+k*18,98,116+k*12); x.closePath(); x.fill();
   // tank on the back
   x.save(); x.translate(150,58); x.rotate(-.12);
   x.fillStyle=tank; x.beginPath(); x.roundRect?x.roundRect(-6,-16,86,30,12):x.rect(-6,-16,86,30); x.fill();
@@ -268,8 +270,9 @@ function diverTexture(sc){
 const DIVER_PLAYER={suit:'#232a33',vest:'#ffcf3f',fin:'#ffcf3f',glove:'#ffcf3f'};   // black + yellow
 const DIVER_INSTR ={suit:'#5a2636',vest:'#1fa8d6',fin:'#ff9f2e',glove:'#ff9f2e'};   // maroon + blue + orange
 function makeDiverSprite(scheme,size){ const s=size||3;
-  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:diverTexture(scheme),transparent:true,depthWrite:false}));
-  sp.scale.set(s*1.6,s*0.9,1); sp.userData.isDiverSprite=true; return sp; }
+  const texN=diverTexture(scheme,0), texA=diverTexture(scheme,1), texB=diverTexture(scheme,-1);
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:texN,transparent:true,depthWrite:false}));
+  sp.scale.set(s*1.6,s*0.9,1); sp.userData={isDiverSprite:true,texN,texA,texB}; return sp; }
 function particles(n,spread,color,size,y){
   const geo=new THREE.BufferGeometry(),pos=new Float32Array(n*3);
   for(let i=0;i<n;i++){ pos[i*3]=R(-spread,spread); pos[i*3+1]=(y||0)+R(-spread,spread); pos[i*3+2]=R(-spread,spread);}
@@ -470,9 +473,10 @@ function animate(){ requestAnimationFrame(animate); const dt=Math.min(clock.getD
     const spd=(IN.fast?7:3)*dt; if(V.moving){ p.x+=fx*spd; p.z+=fz*spd; }
     if(IN.up)p.y+=2.2*dt; if(IN.down)p.y-=2.2*dt; p.y=Math.max(-2.6,Math.min(2.2,p.y));
     p.x=Math.max(-34,Math.min(34,p.x)); p.z=Math.max(-46,Math.min(34,p.z));
-    d.position.set(p.x, p.y+Math.sin(t*1.5)*.05, p.z); d.rotation.set(0,V.hd,0);
-    const u=d.userData, k=Math.sin(t*7)*(V.moving?.6:.12);
-    if(u.finL)u.finL.rotation.x=k; if(u.finR)u.finR.rotation.x=-k;
+    d.position.set(p.x, p.y+Math.sin(t*1.5)*.05, p.z);
+    // cartoon leg-kick: swap between the two scissor frames while swimming
+    const u=d.userData;
+    if(u.texN){ d.material.map = V.moving ? (Math.floor(t*7)%2 ? u.texA : u.texB) : u.texN; d.material.needsUpdate=true; }
     // real-time coaching
     if(IN.fast && warnCd<=0){ warnCd=3.5; warnMsg('You are swimming too fast &ndash; using too much air and tiring out. Slow down and enjoy the dive.'); }
     if(V.moving && warnCd<=0){ for(const c of schoolCenters){ if(Math.hypot(p.x-c.x,p.z-c.z) < (c.r||5)+3){ warnCd=4.5;
@@ -539,7 +543,7 @@ function interactiveDive(){
   say("You're diving! Steer with the <b>arrow keys</b> or WASD. Kick with your legs, keep breathing through your mouth, and watch for the reminders to equalise or clear your mask.");
   let ear=0, water=0, air=200, earTimer=9, waterTimer=14, remind=12, done=false, fp=false;
   // movement (also works on touch); keyboard handles the rest
-  const swim =mkhold('🦵 Swim','good',()=>{IN.fwd=1;},()=>{IN.fwd=0;});
+  const swim =mkhold('🦵 Kick &ndash; legs','good',()=>{IN.fwd=1;},()=>{IN.fwd=0;});
   const left =mkhold('◀ Turn','',()=>{IN.left=1;},()=>{IN.left=0;});
   const right=mkhold('Turn ▶','',()=>{IN.right=1;},()=>{IN.right=0;});
   const view =mkbtn('👁 First-person','',()=>{});
