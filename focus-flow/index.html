@@ -113,6 +113,10 @@
 </head>
 <body>
 
+<button id="sosBtn" onclick="openEmergency()" aria-label="Emergency"
+  style="position:fixed;z-index:60;top:calc(10px + env(safe-area-inset-top));right:12px;
+  background:#7a1f2a;color:#ffd7de;border:1px solid #a83348;border-radius:999px;padding:8px 14px;font-weight:700">🆘 SOS</button>
+
 <h1>Focus &amp; Flow</h1>
 <p class="sub">Your focus, breaks and calm – paced to how you actually work. Learns as you go.</p>
 
@@ -260,6 +264,23 @@
   <div id="toClock" style="font-size:76px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--accent)">2:00</div>
   <div class="ohint" style="font-size:16px;max-width:20em">You've been at the screen a long time. Stand up, look away from the screen,
     stretch and breathe. The app is paused until the timer ends – rest is not optional right now. 💙</div>
+  <button onclick="openEmergency()" style="background:#7a1f2a;color:#ffd7de;border-color:#a83348">🆘 Emergency</button>
+</div>
+
+<div class="overlay" id="emergency">
+  <div class="otxt">🆘 Emergency</div>
+  <div id="emergList" style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:20em"></div>
+  <div class="ohint">If you or someone is in danger, call your local emergency number now.</div>
+  <div class="row" style="justify-content:center;gap:8px;width:100%;max-width:22em">
+    <input type="text" id="ecName" placeholder="Name" style="flex:1;min-width:80px;background:#1e2c3a;color:#eaf2f8;border:1px solid #2a3a4a;border-radius:8px;padding:10px">
+    <input type="tel" id="ecNum" placeholder="Number" style="flex:1;min-width:80px;background:#1e2c3a;color:#eaf2f8;border:1px solid #2a3a4a;border-radius:8px;padding:10px">
+    <button onclick="addEmergencyContact()">Add</button>
+  </div>
+  <div class="row" style="justify-content:center;gap:8px">
+    <span class="ohint">Official emergency number:</span>
+    <input type="tel" id="ecOfficial" style="width:80px;background:#1e2c3a;color:#eaf2f8;border:1px solid #2a3a4a;border-radius:8px;padding:8px" onchange="setOfficial(this.value)">
+  </div>
+  <button onclick="hide('emergency')">Close</button>
 </div>
 
 <div class="overlay" id="curfew">
@@ -303,6 +324,7 @@ function load(){
     lastEyeTs:0,             // last eye-rest reminder time
     stand:true,              // stand/stretch reminders on
     lastStandTs:0,           // last stand reminder time
+    emergency:{official:'112', contacts:[]}, // always-available emergency numbers
     history:[],              // per-day summaries {day,min,blocks,wins}
     wins:[],                 // small wins today {t,ts,k}
     moods:[]                 // mood check-in history {e,ts,h,act,water}
@@ -323,6 +345,7 @@ function load(){
   s.projects.forEach(function(p){ if(typeof p.target!=='number') p.target=0; });
   if(!s.mins) s.mins={};
   if(!s.targetNotified) s.targetNotified={};
+  if(!s.emergency) s.emergency={official:'112', contacts:[]};
   return s;
 }
 function projName(id){ for(var i=0;i<S.projects.length;i++) if(S.projects[i].id===id) return S.projects[i].name; return id; }
@@ -1198,6 +1221,43 @@ function groundNext(){
   else { hide('ground'); }
 }
 
+// ---- emergency (always available) ----
+function callNumber(num){
+  var n=(num||'').replace(/\s/g,''); if(!n) return;
+  if(inNativeApp && window.AndroidBridge.dial){ try{ window.AndroidBridge.dial(n); return; }catch(e){} }
+  window.location.href='tel:'+n;
+}
+function openEmergency(){
+  var e=S.emergency||{official:'112',contacts:[]};
+  document.getElementById('ecOfficial').value=e.official||'112';
+  var el=document.getElementById('emergList'); el.innerHTML="";
+  var off=document.createElement('button'); off.className='primary';
+  off.style.cssText='background:#c62f42;color:#fff;border:0;padding:14px;font-size:16px';
+  off.textContent='📞 Call '+(e.official||'112')+' (emergency)';
+  off.onclick=function(){ callNumber(e.official||'112'); };
+  el.appendChild(off);
+  (e.contacts||[]).forEach(function(c,idx){
+    var row=document.createElement('div'); row.style.cssText='display:flex;gap:8px';
+    var b=document.createElement('button'); b.style.cssText='flex:1;padding:12px';
+    b.textContent='📞 '+c.name+' ('+c.number+')';
+    b.onclick=function(){ callNumber(c.number); };
+    var del=document.createElement('button'); del.textContent='🗑'; del.onclick=function(){ removeEmergencyContact(idx); };
+    row.appendChild(b); row.appendChild(del); el.appendChild(row);
+  });
+  show('emergency');
+}
+function addEmergencyContact(){
+  var n=document.getElementById('ecName').value.trim(), num=document.getElementById('ecNum').value.trim();
+  if(!n||!num) return;
+  if(!S.emergency) S.emergency={official:'112',contacts:[]};
+  S.emergency.contacts.push({name:n, number:num}); save();
+  document.getElementById('ecName').value=''; document.getElementById('ecNum').value='';
+  openEmergency();
+}
+function removeEmergencyContact(i){ S.emergency.contacts.splice(i,1); save(); openEmergency(); }
+function setOfficial(v){ v=(v||'').trim()||'112'; S.emergency.official=v; save();
+  if(inNativeApp && window.AndroidBridge.setEmergency){ try{ window.AndroidBridge.setEmergency(v); }catch(e){} } }
+
 // ---- 23:00 wind-down lock (within this app) ----
 function afterCurfew(){ var h=new Date().getHours(); return h>=23 || h<6; }
 function showCurfew(){ show('curfew'); }
@@ -1303,6 +1363,7 @@ resumeTimer();
 initFirebase();
 // whole-screen lock is a native-app feature – show and restore its state
 if(inNativeApp){
+  try{ if(window.AndroidBridge.setEmergency) window.AndroidBridge.setEmergency((S.emergency&&S.emergency.official)||'112'); }catch(e){}
   document.getElementById('guardRow').style.display='flex';
   var gb=document.getElementById('guardBtn');
   if(S.guard && window.AndroidBridge.hasOverlay && window.AndroidBridge.hasOverlay()){

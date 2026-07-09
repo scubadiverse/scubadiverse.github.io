@@ -11,6 +11,7 @@ import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.graphics.Color
 import android.graphics.PixelFormat
+import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -20,6 +21,7 @@ import android.provider.Settings
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
+import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.core.app.NotificationCompat
@@ -129,6 +131,22 @@ class ScreenGuardService : Service() {
                 FrameLayout.LayoutParams.MATCH_PARENT
             ).apply { gravity = Gravity.CENTER }
         )
+        val emg = Button(this)
+        emg.text = "\uD83C\uDD98 Emergency call"
+        emg.setOnClickListener {
+            val num = getSharedPreferences("focusflow", Context.MODE_PRIVATE).getString("official", "112") ?: "112"
+            try {
+                val i = Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + num))
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(i)
+            } catch (e: Exception) {}
+        }
+        val elp = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT
+        )
+        elp.gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+        elp.bottomMargin = 140
+        root.addView(emg, elp)
         try {
             wm?.addView(root, lp)
         } catch (e: Exception) {

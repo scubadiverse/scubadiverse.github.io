@@ -14,7 +14,9 @@ import android.provider.Settings
 import android.os.Build
 import android.os.Bundle
 import android.webkit.JavascriptInterface
+import android.webkit.WebResourceRequest
 import android.webkit.WebView
+import android.webkit.WebResourceRequest
 import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -33,7 +35,20 @@ class MainActivity : AppCompatActivity() {
         createChannel()
         askNotifPermission()
         web = WebView(this)
-        web.webViewClient = WebViewClient()
+        web.webViewClient = object : WebViewClient() {
+            override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+                val url = request.url.toString()
+                if (url.startsWith("tel:")) {
+                    try { startActivity(Intent(Intent.ACTION_DIAL, request.url)) } catch (e: Exception) {}
+                    return true
+                }
+                if (url.startsWith("mailto:")) {
+                    try { startActivity(Intent(Intent.ACTION_SENDTO, request.url)) } catch (e: Exception) {}
+                    return true
+                }
+                return false
+            }
+        }
         web.settings.javaScriptEnabled = true
         web.settings.domStorageEnabled = true
         web.settings.mediaPlaybackRequiresUserGesture = false
@@ -90,6 +105,18 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun requestNotif() {
             runOnUiThread { askNotifPermission() }
+        }
+
+        @JavascriptInterface
+        fun dial(number: String) {
+            runOnUiThread {
+                try { startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + number))) } catch (e: Exception) {}
+            }
+        }
+
+        @JavascriptInterface
+        fun setEmergency(number: String) {
+            getSharedPreferences("focusflow", Context.MODE_PRIVATE).edit().putString("official", number).apply()
         }
 
         // Schedule a one-shot reminder that fires even if the app is closed.
