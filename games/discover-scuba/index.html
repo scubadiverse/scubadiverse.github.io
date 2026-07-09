@@ -59,6 +59,12 @@
     font-size:18px;font-weight:800;line-height:1.35;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9);z-index:6;opacity:0;transition:opacity .4s;
     background:rgba(4,20,30,.78);border:1px solid rgba(159,233,255,.35);border-radius:14px;padding:10px 16px}
   #narr.on{opacity:1}
+  /* bottom-left instructions */
+  #help{position:absolute;left:14px;bottom:14px;max-width:264px;display:none;z-index:6;pointer-events:none;
+    background:rgba(4,20,30,.74);border:1px solid rgba(159,233,255,.32);border-radius:12px;padding:9px 12px;
+    font-size:12px;font-weight:700;line-height:1.55;color:#dff3ff}
+  #help.on{display:block}
+  #help b{color:#9fe9ff;font-family:'Luckiest Guy';letter-spacing:.02em}
   #actions{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);display:flex;gap:12px;flex-wrap:wrap;justify-content:center;z-index:7;width:min(860px,94%)}
   .abtn{pointer-events:auto;cursor:pointer;font-family:'Nunito';font-weight:900;font-size:15px;color:#04202e;
     background:linear-gradient(180deg,#8fe9ff,#1fb6d6);border:none;border-radius:14px;padding:13px 20px;
@@ -114,6 +120,7 @@
 
   <div id="signal"><div class="ic">👌</div><div class="cap">OK?</div></div>
   <div id="warn"></div>
+  <div id="help"></div>
   <div id="narr"></div>
   <div id="actions"></div>
 
@@ -153,7 +160,7 @@ const R=(a,b)=>a+Math.random()*(b-a);
 const V={ underwater:false, maskOn:false, bubbles:false, water:0, signal:null, holdYou:false, reef:false, regOut:false, kick:0, look:0 };
 /* real-time swim controls */
 const IN={fwd:0,left:0,right:0,up:0,down:0,fast:0};
-let warnCd=0, schoolCenters=[], diveTick=null, armWiggle=0;
+let warnCd=0, schoolCenters=[], diveTick=null, armWiggle=0, signHideT=0;
 addEventListener('keydown',e=>{ const k=e.code; if(k==='KeyW'||k==='ArrowUp')IN.fwd=1; else if(k==='KeyA'||k==='ArrowLeft')IN.left=1; else if(k==='KeyD'||k==='ArrowRight')IN.right=1; else if(k==='KeyQ'||k==='PageUp')IN.up=1; else if(k==='KeyE'||k==='KeyZ'||k==='PageDown')IN.down=1; else if(k==='ShiftLeft'||k==='ShiftRight')IN.fast=1; else return; e.preventDefault(); });
 addEventListener('keyup',e=>{ const k=e.code; if(k==='KeyW'||k==='ArrowUp')IN.fwd=0; else if(k==='KeyA'||k==='ArrowLeft')IN.left=0; else if(k==='KeyD'||k==='ArrowRight')IN.right=0; else if(k==='KeyQ'||k==='PageUp')IN.up=0; else if(k==='KeyE'||k==='KeyZ'||k==='PageDown')IN.down=0; else if(k==='ShiftLeft'||k==='ShiftRight')IN.fast=0; });
 
@@ -206,25 +213,19 @@ function makeDiver(accent){
   g.userData={rig,finL,finR,legL,legR};
   return g;
 }
-// A recognizable fish drawn as a side-on silhouette sprite (real fish shape).
-function fishTexture(color){
-  if(typeof color==='number') color='#'+color.toString(16).padStart(6,'0');
-  const cv=document.createElement('canvas'); cv.width=140; cv.height=80; const x=cv.getContext('2d');
-  x.fillStyle=color;
-  x.beginPath(); x.ellipse(80,40,42,23,0,0,Math.PI*2); x.fill();                 // body
-  x.beginPath(); x.moveTo(42,40); x.lineTo(8,16); x.lineTo(8,64); x.closePath(); x.fill(); // tail
-  x.beginPath(); x.moveTo(74,18); x.lineTo(96,4); x.lineTo(104,20); x.closePath(); x.fill(); // dorsal
-  x.beginPath(); x.moveTo(74,60); x.lineTo(90,72); x.lineTo(98,58); x.closePath(); x.fill(); // anal fin
-  x.fillStyle='rgba(255,255,255,.35)'; x.beginPath(); x.ellipse(88,50,24,8,0,0,Math.PI*2); x.fill(); // belly
-  x.fillStyle='#fff'; x.beginPath(); x.arc(106,32,7,0,7); x.fill();
-  x.fillStyle='#111'; x.beginPath(); x.arc(108,32,3.5,0,7); x.fill();
-  const tex=new THREE.CanvasTexture(cv); tex.minFilter=THREE.LinearFilter; return tex;
+// Emoji sprite (turtle-snap style): draw the emoji to a canvas and billboard it.
+function makeEmojiSprite(emoji,size){
+  const cv=document.createElement('canvas'); cv.width=128; cv.height=128; const x=cv.getContext('2d');
+  x.font='100px "Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji","EmojiOne Color",sans-serif';
+  x.textAlign='center'; x.textBaseline='middle'; x.fillText(emoji,64,72);
+  const tex=new THREE.CanvasTexture(cv); tex.minFilter=THREE.LinearFilter;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false})); sp.scale.set(size,size,1); return sp;
 }
-const FISHCOL=['#ffcf3f','#ff7a45','#5ad0ff','#ff6ec7','#8bff9d','#c58bff','#ff5470'];
-function makeFishSprite(color,size){ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:fishTexture(color),transparent:true,depthWrite:false})); sp.scale.set(size*1.75,size,1); sp.userData.base=size*1.75; return sp; }
+const FISHEMO=['🐠','🐟','🐡','🐠','🐟'];
+function makeFishSprite(_c,size){ return makeEmojiSprite(FISHEMO[Math.floor(Math.random()*FISHEMO.length)], size*2.0); }
 function fishSchool(n,center,radius,color){
   const g=new THREE.Group(),list=[];
-  for(let i=0;i<n;i++){ const f=makeFishSprite(color||FISHCOL[i%FISHCOL.length],R(.9,1.5)); g.add(f);
+  for(let i=0;i<n;i++){ const f=makeFishSprite(color,R(.9,1.5)); g.add(f);
     list.push({m:f,a:R(0,6.28),sp:R(.2,.5),rad:radius*R(.5,1.1),yo:R(-radius/2,radius/2),ph:R(0,6.28)});
   }
   g.position.copy(center); g.userData.list=list; return g;
@@ -244,21 +245,20 @@ function buildWorld(){
   floor.rotation.x=-Math.PI/2; floor.position.y=-4; scene.add(floor);
   // reef (shown in trim stage)
   fishG=new THREE.Group(); scene.add(fishG);
-  const cols=[0xff6ec7,0xffa53f,0x7b5bff,0x2ec7ff,0x5aff9d];
-  for(let i=0;i<26;i++){ const c=cols[i%cols.length];
-    const cor=new THREE.Mesh(new THREE.ConeGeometry(R(.4,1.1),R(1,3),6),new THREE.MeshStandardMaterial({color:c,roughness:.6,emissive:new THREE.Color(c).multiplyScalar(.1)}));
-    cor.position.set(R(-30,30),-3.6+R(0,1.2),R(-40,-8)); cor.rotation.set(R(-.3,.3),0,R(-.3,.3)); fishG.add(cor);
-  }
+  // coral & seabed life as emoji (turtle-snap style) — soft, real shapes, no triangles
+  const REEFEMO=['🪸','🪸','🪸','🐚','🪨','🌿','🪸','🐙'];
+  for(let i=0;i<30;i++){ const e=REEFEMO[i%REEFEMO.length]; const s=makeEmojiSprite(e,R(1.6,3.0));
+    s.position.set(R(-32,32), -3.1+R(0,.5), R(-42,-6)); fishG.add(s); }
   const schools=[[8,0,-16,5,0xffd23f],[-10,1,-20,6,0x4fd0ff],[0,2,-27,6,0xff6ec7],[16,-1,-24,5,0x8bff9d],[-18,.5,-31,6,0xffa53f]];
   schoolCenters=[];
-  for(const s of schools){ fishG.add(fishSchool(7,new THREE.Vector3(s[0],s[1],s[2]),s[3],s[4])); schoolCenters.push({x:s[0],z:s[2]}); }
+  for(const s of schools){ fishG.add(fishSchool(7,new THREE.Vector3(s[0],s[1],s[2]),s[3],s[4])); schoolCenters.push({x:s[0],z:s[2],r:s[3]}); }
   const turtle=makeTurtle(); turtle.position.set(6,1,-14); fishG.add(turtle);
   fishG.visible=false;
-  // the fish that turns and holds up a "protect the marine life" sign
+  // the fish that holds up a "protect the marine life" sign (emoji fish + billboard sign)
   signFish=new THREE.Group();
-  const sf=makeTurtle(); sf.scale.set(.8,.8,.8); signFish.add(sf);
-  const sign=makeSign("Don't touch us - we are not home pets. Protect the marine life."); sign.position.set(0,2.1,0); signFish.add(sign);
-  signFish.position.set(2.4,.6,-7.5); signFish.rotation.y=Math.PI; signFish.visible=false; scene.add(signFish);
+  const sf=makeEmojiSprite('🐟',3.2); signFish.add(sf);
+  const sign=makeSignSprite("Don't touch us! We are not pets. Protect the marine life."); sign.position.set(0,2.6,0); signFish.add(sign);
+  signFish.visible=false; scene.add(signFish);
   // instructor, in front of you the whole time, facing you (head toward camera)
   instructor=makeDiver(0x1f8ecb); instructor.position.set(2.4,-.6,-7.6); instructor.rotation.set(0,-0.6,0); scene.add(instructor); // horizontal, angled toward you
   // rising bubbles from your own reg
@@ -359,6 +359,16 @@ function makeSign(text){
   const board=new THREE.Mesh(new THREE.PlaneGeometry(2.2,1.1),new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide})); g.add(board);
   return g;
 }
+// A billboard sign (always faces camera) held on a little pole.
+function makeSignSprite(text){
+  const cv=document.createElement('canvas'); cv.width=512; cv.height=320; const x=cv.getContext('2d');
+  x.fillStyle='#7a5222'; x.fillRect(238,210,36,100);                      // pole
+  x.fillStyle='#f0dcac'; x.fillRect(24,24,464,190); x.strokeStyle='#7a5222'; x.lineWidth=14; x.strokeRect(24,24,464,190);
+  x.fillStyle='#5a3410'; x.textAlign='center'; x.textBaseline='middle'; x.font='bold 36px Nunito, Arial, sans-serif';
+  const words=text.split(' '); let line='',y=78; for(const w of words){ if((line+w).length>18){ x.fillText(line,256,y); y+=46; line=''; } line+=w+' '; } x.fillText(line.trim(),256,y);
+  const tex=new THREE.CanvasTexture(cv); tex.minFilter=THREE.LinearFilter;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false})); sp.scale.set(4.4,2.75,1); return sp;
+}
 
 /* ---------- audio (procedural, guarded) ---------- */
 let AC=null,noiseBuf=null,master=null,breathTimer=null,breathing=false,muted=false;
@@ -398,10 +408,10 @@ function animate(){ requestAnimationFrame(animate); const dt=Math.min(clock.getD
   // bubbles from your reg
   if(bubbleP){ bubbleP.visible=V.bubbles; if(V.bubbles){ const pa=bubbleP.geometry.attributes.position; for(let i=0;i<pa.count;i++){ let y=pa.getY(i)+dt*3; if(y>8)y=-2; pa.setY(i,y);} pa.needsUpdate=true; } }
   // reef in trim stage
-  if(fishG){ fishG.visible=V.reef; if(V.reef){ fishG.children.forEach(c=>{ if(c.userData.list) c.userData.list.forEach(f=>{ f.a+=dt*f.sp; f.m.position.set(Math.cos(f.a)*f.rad,f.yo+Math.sin(t*.8+f.ph)*.6,Math.sin(f.a)*f.rad); const bb=f.m.userData.base; f.m.scale.x=(Math.sin(f.a)>0?-bb:bb); }); }); } }
+  if(fishG){ fishG.visible=V.reef; if(V.reef){ fishG.children.forEach(c=>{ if(c.userData.list) c.userData.list.forEach(f=>{ f.a+=dt*f.sp; f.m.position.set(Math.cos(f.a)*f.rad,f.yo+Math.sin(t*.8+f.ph)*.6,Math.sin(f.a)*f.rad); }); }); } }
   // the sign fish turns to face the diver when chased
-  if(signFish&&signFish.visible){ const tgtY = V.chaseTurn ? Math.atan2(camera.position.x-signFish.position.x, camera.position.z-signFish.position.z) : Math.PI;
-    signFish.rotation.y += (tgtY-signFish.rotation.y)*0.08; signFish.position.y=.6+Math.sin(t*1.5)*.15; }
+  if(signFish&&signFish.visible){ signFish.children[0].position.y=Math.sin(t*2.4)*.14;
+    if(signHideT>0){ signHideT-=dt; if(signHideT<=0) signFish.visible=false; } }
   // props follow subtle motion
   if(propMask&&propMask.visible) propMask.position.y=-.1+Math.sin(t*2)*.02;
   if(propReg&&propReg.visible) propReg.rotation.z=Math.sin(t*2)*.05;
@@ -425,7 +435,9 @@ function animate(){ requestAnimationFrame(animate); const dt=Math.min(clock.getD
     if(u.finL)u.finL.rotation.x=k; if(u.finR)u.finR.rotation.x=-k;
     // real-time coaching
     if(IN.fast && warnCd<=0){ warnCd=3.5; warnMsg('You are swimming too fast &ndash; using too much air and tiring out. Slow down and enjoy the dive.'); }
-    if(V.moving && warnCd<=0){ for(const c of schoolCenters){ if(Math.hypot(p.x-c.x,p.z-c.z)<4.5){ warnCd=4; warnMsg("Don't chase or touch the fish &ndash; we are not home pets. Protect the marine life."); break; } } }
+    if(V.moving && warnCd<=0){ for(const c of schoolCenters){ if(Math.hypot(p.x-c.x,p.z-c.z) < (c.r||5)+3){ warnCd=4.5;
+      warnMsg("Don't chase or touch the fish &ndash; protect the marine life.");
+      signFish.position.set(p.x+fx*4, p.y+.6, p.z+fz*4); signFish.visible=true; signHideT=4.5; break; } } }
     // camera for the selected perspective
     let cx,cy,cz, lx=p.x,ly=p.y,lz=p.z;
     switch(V.camMode){
@@ -480,7 +492,10 @@ function interactiveDive(){
   const diver=makeDiver(0xffcf3f); scene.add(diver);
   V.pd={x:0,y:-.3,z:8}; V.hd=Math.PI; V.diver=diver; V.camMode='behind'; V.swimActive=true; V.moving=false; V.diveActive=true;
   setMask(false); showMeter(breathM,false); showMeter(earM,true); showMeter(trimM,false); meter(earM,0);
-  objective('Dive &ndash; WASD/arrows to swim &bull; Q/E up-down');
+  $('earM').style.bottom='132px';
+  $('help').innerHTML='<b>How to dive</b><br>⬆ ⬇ ⬅ ➡ / WASD &ndash; swim &amp; turn<br>Q / E &ndash; go up / down<br>🦵 Legs only &ndash; keep your hands still<br>🤏 Equalise &bull; 😮&zwj;💨 clear your mask when reminded<br>👁 switch view &bull; 🏁 finish the dive';
+  $('help').classList.add('on');
+  objective('Dive &ndash; use the arrow keys / WASD');
   say("You're diving! Steer with the <b>arrow keys</b> or WASD. Kick with your legs, keep breathing through your mouth, and watch for the reminders to equalise or clear your mask.");
   let ear=0, water=0, air=200, earTimer=9, waterTimer=14, remind=12, done=false, fp=false;
   // movement (also works on touch); keyboard handles the rest
@@ -492,7 +507,7 @@ function interactiveDive(){
   const eq   =mkbtn('🤏 Equalise','',()=>{ if(ear>.12){ ear=0; meter(earM,0); earTimer=R(9,14); sChime(true); say('Ears equalised &ndash; nice, do it early and often.'); } });
   const clr  =mkbtn('😮‍💨 Clear mask','',()=>{ if(water>.1){ water=0; setWater(0); waterTimer=R(12,18); sChime(true); say('Mask cleared &ndash; you exhaled and pushed the water out.'); } });
   const arms =mkbtn('🖐 Use arms','warn',()=>{ armWiggle=.8; if(warnCd<=0){ warnCd=3; warnMsg('Legs only! Keep your hands together or alongside your body &ndash; do not swim with your arms.'); } });
-  const fin  =mkbtn('🏁 Finish dive','good',()=>{ done=true; diveTick=null; V.diveActive=false; V.swimActive=false; IN.fwd=IN.left=IN.right=IN.up=IN.down=0; scene.remove(diver); V.diver=null; setWater(0); showMeter(earM,false); diveSuccess(); });
+  const fin  =mkbtn('🏁 Finish dive','good',()=>{ done=true; diveTick=null; V.diveActive=false; V.swimActive=false; IN.fwd=IN.left=IN.right=IN.up=IN.down=0; scene.remove(diver); V.diver=null; setWater(0); showMeter(earM,false); $('help').classList.remove('on'); $('earM').style.bottom=''; signFish.visible=false; diveSuccess(); });
   setControls([swim,left,right,view,eq,clr,arms,fin]);
   diveTick=(dt)=>{ if(done)return;
     air-=dt*(V.moving?1.0:.55); airReadout(Math.max(0,air));
