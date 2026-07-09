@@ -218,7 +218,9 @@
   <div class="stat"><span>Blocks done</span><b id="sBlocks">0</b></div>
   <div class="stat"><span>Suggested split now</span><b id="sSplitTxt">–</b></div>
   <div class="split" id="splitBar"></div>
-  <div id="splitHours" style="font-size:13px;margin-top:8px"></div>
+  <div class="foot" style="text-align:left;margin:10px 0 2px">Same split, in hours:</div>
+  <div class="split" id="splitBarHours"></div>
+  <div id="splitHours" style="font-size:13px;margin-top:6px"></div>
   <div class="foot" id="splitWhy">Split keeps every project moving, leaning to the ones you've touched least.</div>
 </div>
 
@@ -228,7 +230,10 @@
   <div class="stat"><span>Focus blocks done</span><b id="pBlocks">0</b></div>
   <div class="stat"><span>Small wins logged</span><b id="pWins">0</b></div>
   <div class="stat"><span>Day streak</span><b id="pStreak">0 days</b></div>
-  <div class="foot" style="text-align:left;margin:12px 0 6px">Progress today (% of each goal)</div>
+  <div class="foot" style="text-align:left;margin:12px 0 4px">Share of your time per project</div>
+  <div class="split" id="doneSplitBar"></div>
+  <div id="doneSplitTxt" style="font-size:13px;margin-top:6px"></div>
+  <div class="foot" style="text-align:left;margin:14px 0 6px">Progress today (% of each goal)</div>
   <div id="projProgress"></div>
   <div class="foot" style="text-align:left;margin:14px 0 2px">Focus trend – last 14 days</div>
   <div id="prodLine"></div>
@@ -760,28 +765,29 @@ function estDailyMinutes(){
 // Suggested time per project, shown in HOURS (two ways):
 // - if you set targets, it uses those; - if not, it estimates and splits for you.
 function renderSplitHours(){
-  var el=document.getElementById('splitHours'); if(!el) return;
-  if(!S.projects.length){ el.innerHTML=''; return; }
+  var el=document.getElementById('splitHours'), bar=document.getElementById('splitBarHours');
+  if(!el||!bar) return;
+  if(!S.projects.length){ el.innerHTML=''; bar.innerHTML=''; return; }
   var hasTargets=S.projects.some(function(p){ return p.target>0; });
-  var rows;
+  var hoursBy={}, total=0;
   if(hasTargets){
-    rows=S.projects.map(function(p){
-      if(p.target>0){
-        var done=projMins(p.id), left=Math.max(0,p.target-done), th=(Math.round(p.target/60*10)/10);
-        return esc(p.name)+' — <b>'+th+'h</b> '+(left>0?('('+left+' min left)'):'✓ done');
-      }
-      return esc(p.name)+' — <span class="muted">no target</span>';
-    });
-    el.innerHTML='🎯 Your goals today:<br>'+rows.join('<br>');
+    S.projects.forEach(function(p){ var h=(p.target||0)/60; hoursBy[p.id]=h; total+=h; });
   } else {
-    var total=estDailyMinutes(), sh=splitShares();
-    rows=S.projects.map(function(p){
-      var h=Math.round((sh[p.id]||0)*total/60*10)/10;
-      return esc(p.name)+' — <b>≈ '+h+'h</b>';
-    });
-    el.innerHTML='⏱️ Suggested for you today (we worked it out):<br>'+rows.join('<br>')+
-      '<div class="foot" style="text-align:left;margin-top:4px">Tip: set a target per project (Edit) to steer this yourself.</div>';
+    var t=estDailyMinutes(), sh=splitShares();
+    S.projects.forEach(function(p){ var h=(sh[p.id]||0)*t/60; hoursBy[p.id]=h; total+=h; });
   }
+  // the stacked bar, sized by hours
+  bar.innerHTML = total>0 ? S.projects.map(function(p){
+    var pct=Math.round(hoursBy[p.id]/total*100);
+    return '<div class="s" style="width:'+pct+'%;background:'+projColor(p.id)+'"></div>';
+  }).join('') : '';
+  // labels
+  var rows=S.projects.map(function(p){
+    var h=Math.round(hoursBy[p.id]*10)/10, extra='';
+    if(hasTargets && p.target>0){ var left=Math.max(0,p.target-projMins(p.id)); extra=left>0?(' ('+left+' min left)'):' ✓'; }
+    return '<span style="color:'+projColor(p.id)+'">■</span> '+esc(p.name)+' — <b>'+h+'h</b>'+extra;
+  });
+  el.innerHTML=(hasTargets?'🎯 Your goals today:<br>':'⏱️ Suggested for you (estimated):<br>')+rows.join('<br>');
 }
 
 // ---- suggested split (N projects: lean to the least-worked) ----
@@ -1218,11 +1224,27 @@ function renderProgress(){
   document.getElementById('pWins').textContent=totWins;
   var st=dayStreak(all);
   document.getElementById('pStreak').textContent=st+" day"+(st===1?'':'s');
+  renderDoneSplit();
   renderProjProgress();
   renderProdLine(all);
   renderProjection(all);
   renderProjBreak();
   renderProjLines();
+}
+// Stacked pill: each project's share of total time done (like the suggested split).
+function renderDoneSplit(){
+  var bar=document.getElementById('doneSplitBar'), txt=document.getElementById('doneSplitTxt');
+  if(!bar||!txt) return;
+  var tot=projTotals(), sum=0; S.projects.forEach(function(p){ sum+=tot[p.id]||0; });
+  if(sum<=0){ bar.innerHTML=''; txt.innerHTML='<span class="muted">No time logged yet.</span>'; return; }
+  bar.innerHTML=S.projects.map(function(p){
+    var pct=Math.round((tot[p.id]||0)/sum*100);
+    return '<div class="s" style="width:'+pct+'%;background:'+projColor(p.id)+'"></div>';
+  }).join('');
+  txt.innerHTML=S.projects.map(function(p){
+    var pct=Math.round((tot[p.id]||0)/sum*100);
+    return '<span style="color:'+projColor(p.id)+'">■</span> '+esc(p.name)+' '+pct+'%';
+  }).join(' &nbsp; ');
 }
 function renderProjProgress(){
   var el=document.getElementById('projProgress'); if(!el) return;
