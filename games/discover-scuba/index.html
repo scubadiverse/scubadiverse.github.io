@@ -185,7 +185,7 @@ addEventListener('keydown',e=>{ const k=e.code; if(k==='KeyW'||k==='ArrowUp')IN.
 addEventListener('keyup',e=>{ const k=e.code; if(k==='KeyW'||k==='ArrowUp')IN.fwd=0; else if(k==='KeyA'||k==='ArrowLeft')IN.left=0; else if(k==='KeyD'||k==='ArrowRight')IN.right=0; else if(k==='KeyQ'||k==='PageUp')IN.up=0; else if(k==='KeyE'||k==='KeyZ'||k==='PageDown')IN.down=0; else if(k==='ShiftLeft'||k==='ShiftRight')IN.fast=0; });
 
 /* ---------- world ---------- */
-let instructor=null, fishG=null, propMask=null, propReg=null, propHand=null, bubbleP=null, signFish=null, fpArms=null, stopSign=null;
+let instructor=null, fishG=null, propMask=null, propReg=null, propHand=null, bubbleP=null, signFish=null, fpArms=null, stopSign=null, turtleActor=null;
 
 // A recognizable human scuba diver in horizontal trim (head +Z, fins -Z):
 // wetsuit body, head with two-lens mask + regulator, tank, arms reaching
@@ -354,6 +354,11 @@ function buildWorld(){
   const fGloves=new THREE.Mesh(new THREE.SphereGeometry(.11,12,10),fgloveMat); fGloves.scale.set(1.7,.8,1); fGloves.position.set(0,-.46,-1.6); fpArms.add(fGloves);
   camera.add(fpArms); fpArms.visible=false;
   stopSign=makeStopSign(); stopSign.visible=false; scene.add(stopSign);
+  // a turtle that swims up and, if you reach for it, turns with a sign
+  turtleActor=new THREE.Group();
+  const tE=makeEmojiSprite('🐢',3.4); turtleActor.add(tE);
+  const tSign=makeSignSprite("Don't touch marine life. Protect us."); tSign.position.set(0,1.9,0); tSign.visible=false; turtleActor.add(tSign);
+  turtleActor.userData={emoji:tE,sign:tSign}; turtleActor.visible=false; scene.add(turtleActor);
   scene.add(camera);
   camera.position.set(0,0,0);
 }
@@ -501,7 +506,7 @@ function animate(){ requestAnimationFrame(animate); const dt=Math.min(clock.getD
   // STOP sign floats above the diver while he swims with his arms
   if(stopSign){ if(V.armsMoving){ stopSign.visible=true; stopHideT=1.2; }
     else if(stopSign.visible){ stopHideT-=dt; if(stopHideT<=0) stopSign.visible=false; }
-    if(stopSign.visible && V.diver){ stopSign.position.set(V.pd.x, V.pd.y+3.7, V.pd.z); } }
+    if(stopSign.visible && V.diver){ stopSign.position.set(V.pd.x, V.pd.y+2.3, V.pd.z); } }
   // props follow subtle motion
   if(propMask&&propMask.visible) propMask.position.y=-.1+Math.sin(t*2)*.02;
   if(propReg&&propReg.visible) propReg.rotation.z=Math.sin(t*2)*.05;
@@ -525,6 +530,7 @@ function animate(){ requestAnimationFrame(animate); const dt=Math.min(clock.getD
     const u=d.userData;
     if(u.texN){ let m=u.texN;
       if(V.armsMoving) m = Math.floor(t*8)%2 ? u.texArmU : u.texArmD;
+      else if(V.reaching) m = u.texArmU;   // reaching out toward the turtle
       else if(V.moving) m = Math.floor(t*7)%2 ? u.texA : u.texB;
       d.material.map=m; d.material.needsUpdate=true; }
     // real-time coaching
@@ -604,22 +610,29 @@ function interactiveDive(){
   (async function events(){
     await wait(3500);
     while(!done){
-      const kind=['swim','equalise','flood','swim'][Math.floor(Math.random()*4)];
+      const kind=['swim','turtle','equalise','flood','turtle'][Math.floor(Math.random()*5)];
       if(kind==='swim'){
         const c=await bubbleChoice('How do you swim?', [{label:'🦵 Legs',key:'legs',cls:'good'},{label:'🖐 Arms',key:'arms',cls:'warn'}]);
         if(done)break;
-        if(c==='arms'){ V.armsMoving=true; await wait(2600); V.armsMoving=false; flashBubble('👍 Legs only from now on.'); }
-        else flashBubble('👍 Legs only &ndash; calm and steady.');
+        if(c==='arms'){ V.armsMoving=true; await wait(2600); V.armsMoving=false; flashBubble('👍 Now try your legs instead.'); }
+        else { IN.fwd=1; V.moving=true; flashBubble('👍 Legs only &ndash; kick and glide forward!'); await wait(3200); IN.fwd=0; }
+      } else if(kind==='turtle'){
+        const fx=Math.sin(V.hd),fz=Math.cos(V.hd), ta=turtleActor;
+        ta.userData.sign.visible=false; ta.userData.emoji.scale.x=Math.abs(ta.userData.emoji.scale.x);
+        ta.position.set(V.pd.x+fx*5.5, V.pd.y+.5, V.pd.z+fz*5.5); ta.visible=true;
+        const c=await bubbleChoice('A turtle swims right up to you!', [{label:'🤚 Reach out and touch it',key:'touch',cls:'warn'},{label:'👀 Keep still and watch it',key:'watch',cls:'good'}]);
+        if(done){ ta.visible=false; break; }
+        if(c==='touch'){ V.reaching=true; await wait(900); ta.userData.emoji.scale.x*=-1; ta.userData.sign.visible=true; sChime(false); await wait(4200); V.reaching=false; }
+        else { flashBubble('👍 You let it come to you &ndash; respectful diving.'); await wait(1600); }
+        ta.visible=false; ta.userData.sign.visible=false;
       } else if(kind==='equalise'){
         showSignal('👂','Ears'); const c=await bubbleChoice('Your ears feel the pressure.', [{label:'🤏 Pinch nose &amp; blow',key:'ok',cls:'good'}]); if(done)break;
         showSignal(null); sChime(true); flashBubble('👍 Ears equalised &ndash; do it early and often.');
       } else {
-        setMask(true); let w=0; const id=setInterval(()=>{ w+=.06; setWater(Math.min(1,w)); },40); await wait(760); clearInterval(id); setWater(1);
-        const c=await bubbleChoice('Your mask is flooded! What do you do?', [{label:'🆘 Signal for help',key:'help'},{label:'😮&zwj;💨 Clear it',key:'clear',cls:'good'}]); if(done)break;
-        if(c==='help'){ showSignal('🆘','Help'); await wait(1300); showSignal(null); }
-        await bubbleChoice('Fingers on the TOP of your mask, look up, and BLOW through your nose.', [{label:'😤 Blow through your nose',key:'blow',cls:'good'}]); if(done)break;
+        setMask(true); let w=0; const id=setInterval(()=>{ w+=.06; setWater(Math.min(1,w)); },40); await wait(700); clearInterval(id); setWater(1);
+        await bubbleChoice('A little water got in your mask. Put your fingers on the TOP, look up, and blow through your nose to clear it.', [{label:'😤 Blow through your nose',key:'blow',cls:'good'}]); if(done)break;
         await new Promise(r=>{ let w2=1; const id2=setInterval(()=>{ w2-=.08; setWater(Math.max(0,w2)); if(w2<=0){clearInterval(id2);r();} },35); });
-        sChime(true); flashBubble('👍 Mask cleared &ndash; well done.'); if(!fp)setMask(false);
+        sChime(true); flashBubble('👍 Mask cleared &ndash; nice and calm.'); if(!fp)setMask(false);
       }
       await wait(R(5000,8000));
     }
