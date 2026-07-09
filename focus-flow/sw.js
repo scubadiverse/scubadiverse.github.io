@@ -1,7 +1,7 @@
 // Focus & Flow – service worker.
 // Network-first for the page so you always get the newest version when online,
 // cache as offline fallback. Bump CACHE to force old caches out.
-var CACHE = "focusflow-v40";
+var CACHE = "focusflow-v41";
 var ASSETS = [
   "./",
   "./index.html",
