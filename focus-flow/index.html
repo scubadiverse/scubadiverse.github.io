@@ -113,9 +113,10 @@
 </head>
 <body>
 
-<button id="sosBtn" onclick="openEmergency()" aria-label="Emergency"
-  style="position:fixed;z-index:60;top:calc(10px + env(safe-area-inset-top));right:12px;
-  background:#7a1f2a;color:#ffd7de;border:1px solid #a83348;border-radius:999px;padding:8px 14px;font-weight:700">🆘 SOS</button>
+<button id="sosBtn" onclick="openEmergency()" aria-label="Emergency contacts" title="Emergency contacts"
+  style="position:fixed;z-index:60;bottom:calc(16px + env(safe-area-inset-bottom));right:16px;
+  width:46px;height:46px;border-radius:50%;background:#2ea6ff;color:#fff;border:0;font-size:20px;
+  line-height:46px;box-shadow:0 3px 12px rgba(0,0,0,.35);opacity:.9">📞</button>
 
 <h1>Focus &amp; Flow</h1>
 <p class="sub">Your focus, breaks and calm – paced to how you actually work. Learns as you go.</p>
@@ -264,11 +265,11 @@
   <div id="toClock" style="font-size:76px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--accent)">2:00</div>
   <div class="ohint" style="font-size:16px;max-width:20em">You've been at the screen a long time. Stand up, look away from the screen,
     stretch and breathe. The app is paused until the timer ends – rest is not optional right now. 💙</div>
-  <button onclick="openEmergency()" style="background:#7a1f2a;color:#ffd7de;border-color:#a83348">🆘 Emergency</button>
+  <button onclick="openEmergency()">📞 Emergency contacts</button>
 </div>
 
 <div class="overlay" id="emergency">
-  <div class="otxt">🆘 Emergency</div>
+  <div class="otxt">📞 Emergency contacts</div>
   <div id="emergList" style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:20em"></div>
   <div class="ohint">If you or someone is in danger, call your local emergency number now.</div>
   <div class="row" style="justify-content:center;gap:8px;width:100%;max-width:22em">
@@ -1232,8 +1233,8 @@ function openEmergency(){
   document.getElementById('ecOfficial').value=e.official||'112';
   var el=document.getElementById('emergList'); el.innerHTML="";
   var off=document.createElement('button'); off.className='primary';
-  off.style.cssText='background:#c62f42;color:#fff;border:0;padding:14px;font-size:16px';
-  off.textContent='📞 Call '+(e.official||'112')+' (emergency)';
+  off.style.cssText='background:#1f9d57;color:#fff;border:0;padding:14px;font-size:16px';
+  off.textContent='📞 Call '+(e.official||'112')+' (official emergency)';
   off.onclick=function(){ callNumber(e.official||'112'); };
   el.appendChild(off);
   (e.contacts||[]).forEach(function(c,idx){
