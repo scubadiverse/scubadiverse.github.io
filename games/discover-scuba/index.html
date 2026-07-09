@@ -21,11 +21,11 @@
     box-shadow:inset 0 0 150px 55px rgba(3,16,24,.62), inset 0 0 46px 10px rgba(3,16,24,.42)}
   /* water rising inside the mask (mask-clearing skill) */
   #water{position:absolute;left:0;right:0;bottom:0;height:0;pointer-events:none;z-index:3;
-    background:linear-gradient(rgba(150,220,240,.30),rgba(90,175,210,.5));border-top:2px solid rgba(210,240,255,.5)}
+    background:linear-gradient(rgba(30,80,120,.34),rgba(10,42,72,.62));border-top:2px solid rgba(150,205,235,.5)}
   #flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:4}
   /* water surface (chest-deep chapters) */
   #surface{position:absolute;left:0;right:0;bottom:0;height:0;pointer-events:none;z-index:2;
-    background:linear-gradient(rgba(90,190,220,.42),rgba(40,120,160,.6));border-top:3px solid rgba(210,245,255,.55)}
+    background:linear-gradient(rgba(12,52,84,.55),rgba(5,26,46,.85));border-top:3px solid rgba(150,205,235,.55)}
   /* big chapter title */
   #chapter{position:absolute;left:0;right:0;top:20%;text-align:center;z-index:9;pointer-events:none;opacity:0;transition:opacity .6s}
   #chapter.on{opacity:1}
@@ -51,13 +51,13 @@
   #trimM{bottom:156px} #trimM .bar>i{background:linear-gradient(90deg,#3bd46a,#c7ff3b)}
 
   /* instructor signal bubble */
-  #signal{position:absolute;left:50%;top:64px;transform:translateX(-50%);display:none;z-index:6;text-align:center}
+  #signal{position:absolute;left:50%;top:88px;transform:translateX(-50%);display:none;z-index:6;text-align:center}
   #signal.on{display:block}
-  #signal .ic{font-size:52px;filter:drop-shadow(0 4px 8px rgba(0,0,0,.5))}
+  #signal .ic{font-size:72px;filter:drop-shadow(0 4px 8px rgba(0,0,0,.5))}
   #signal .cap{font-weight:900;font-size:13px;background:rgba(4,20,30,.7);border-radius:20px;padding:4px 12px;display:inline-block;margin-top:2px}
   #diversign{position:absolute;left:50%;top:42%;transform:translateX(-50%);display:none;z-index:7;text-align:center;pointer-events:none}
   #diversign.on{display:block}
-  #diversign .ic{font-size:74px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.55))}
+  #diversign .ic{font-size:96px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.55))}
   #diversign .cap{font-weight:900;font-size:14px;color:#04202e;background:#ffd23c;border-radius:20px;padding:5px 16px;display:inline-block;margin-top:2px;box-shadow:0 3px 0 #a8701c}
 
   /* narration + actions */
@@ -315,7 +315,7 @@ function diverTexture(sc,k,a){
   x.fillStyle='#1a1a1e'; x.beginPath(); x.arc(214,56,6,0,7); x.fill();     // first stage on the tank valve
   const tex=new THREE.CanvasTexture(cv); tex.minFilter=THREE.LinearFilter; return tex;
 }
-const DIVER_PLAYER={suit:'#232a33',vest:'#ffcf3f',fin:'#ffcf3f',glove:'#ffcf3f'};   // black + yellow
+const DIVER_PLAYER={suit:'#232a33',vest:'#f2f5f9',fin:'#ffcf3f',glove:'#ffcf3f'};   // black suit, WHITE belly, yellow hands/fins
 const DIVER_INSTR ={suit:'#5a2636',vest:'#1fa8d6',fin:'#ff9f2e',glove:'#ff9f2e'};   // maroon + blue + orange
 function makeDiverSprite(scheme,size){ const s=size||3;
   const texN=diverTexture(scheme,0,0), texA=diverTexture(scheme,1,0), texB=diverTexture(scheme,-1,0),
@@ -730,7 +730,7 @@ function chapter2(){
       setDiverHand(beachDiver,null); diverSign(null);
       showSignal(s.emo,'Instructor: '+s.name);
       say(s.teach);
-      await button('🙋 Signal '+s.emo+' back','good');
+      await button('🙋 Signal it back','good');
       setDiverHand(beachDiver,s.emo); diverSign(s.emo,'You: '+s.name); sChime(true);
       flashBubble('👍 Clear and steady – well done.');
       await wait(2000);
@@ -759,7 +759,7 @@ function chapter3(){
   showChapterTitle('Chapter Three','Signals quiz');
   $('help').innerHTML='<b>Signals quiz</b><br>Read the instruction, then choose the correct hand sign from the buttons below.';
   $('help').classList.add('on');
-  const OPTS=Object.keys(SIGN_INFO).map(k=>({label:SIGN_INFO[k].emo,key:k}));
+  const OPTS=Object.keys(SIGN_INFO).map(k=>({label:'<span style="font-size:40px;line-height:1">'+SIGN_INFO[k].emo+'</span>',key:k}));
   (async function(){
     say("Now it’s your turn. Read each instruction and choose the right sign below.");
     await wait(1600);
@@ -795,7 +795,7 @@ function chapter4(){
   showChapterTitle('Chapter Four','How much air?');
   $('help').innerHTML='<b>Air signals</b><br>☝️ 1 finger = 10 bar &bull; ✌️ 2 = 20 &bull; 🤟 3 = 40<br>✊ fist = 50 &bull; 🙌 two hands (a T) = 100';
   $('help').classList.add('on');
-  const OPTS=AIR_STEPS.map(s=>({label:s.emo,key:String(s.bar)}));   // quiz answers show the SIGN only, no numbers
+  const OPTS=AIR_STEPS.map(s=>({label:'<span style="font-size:40px;line-height:1">'+s.emo+'</span>',key:String(s.bar)}));   // quiz answers show the SIGN only, no numbers
   (async function(){
     // 1) the "how much air?" question sign
     showSignal('✌️🖐️','Instructor: How much air?');
