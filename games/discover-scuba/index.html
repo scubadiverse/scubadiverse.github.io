@@ -169,7 +169,7 @@ function makeDiver(accent){
   const skin =new THREE.MeshStandardMaterial({color:0xe7b489, roughness:.6});
   const dark =new THREE.MeshStandardMaterial({color:0x0e0f13, roughness:.8});
   const glass=new THREE.MeshStandardMaterial({color:0x8fd0ec, metalness:.4, roughness:.15, transparent:true, opacity:.75});
-  const tankM=new THREE.MeshStandardMaterial({color:0x2f6f92, metalness:.5, roughness:.35});
+  const tankM=new THREE.MeshStandardMaterial({color:0x9aa0a6, metalness:.7, roughness:.3}); // silver tank
   // torso: shoulders -> hips, lying along Z
   const chest=new THREE.Mesh(new THREE.CylinderGeometry(.4,.46,1.15,16), suit); chest.rotation.x=Math.PI/2; chest.position.z=.5; rig.add(chest);
   const hips =new THREE.Mesh(new THREE.CylinderGeometry(.42,.34,1.0,16), suit); hips.rotation.x=Math.PI/2; hips.position.z=-.55; rig.add(hips);
@@ -183,6 +183,7 @@ function makeDiver(accent){
   const lensR=new THREE.Mesh(new THREE.CircleGeometry(.085,16), glass); lensR.position.set(.1,.05,1.79); rig.add(lensR);
   const reg=new THREE.Mesh(new THREE.BoxGeometry(.13,.11,.1), dark); reg.position.set(0,-.13,1.62); rig.add(reg);
   const hose=new THREE.Mesh(new THREE.TorusGeometry(.24,.03,6,14,2), dark); hose.position.set(.2,.1,1.2); hose.rotation.set(.4,0,.3); rig.add(hose);
+  const snork=new THREE.Mesh(new THREE.TorusGeometry(.16,.03,6,14,3.4), acc); snork.position.set(.28,.18,1.5); snork.rotation.set(0,0,-.5); rig.add(snork); // yellow snorkel
   // tank + BCD on the back (+Y)
   const bcd=new THREE.Mesh(new THREE.BoxGeometry(.7,.3,1.3), acc); bcd.position.set(0,.42,.05); rig.add(bcd);
   const tank=new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,1.25,14), tankM); tank.rotation.x=Math.PI/2; tank.position.set(0,.6,.05); rig.add(tank);
@@ -193,14 +194,14 @@ function makeDiver(accent){
   const foGeo=new THREE.CylinderGeometry(.1,.085,.85,10);
   const foL=new THREE.Mesh(foGeo,suit); foL.position.set(.19,-.05,1.65); foL.rotation.set(Math.PI/2,0,.34); rig.add(foL);
   const foR=new THREE.Mesh(foGeo.clone(),suit); foR.position.set(-.19,-.05,1.65); foR.rotation.set(Math.PI/2,0,-.34); rig.add(foR);
-  const hands=new THREE.Mesh(new THREE.SphereGeometry(.15,12,12), suit); hands.position.set(0,-.05,2.05); rig.add(hands);
+  const hands=new THREE.Mesh(new THREE.SphereGeometry(.15,12,12), acc); hands.position.set(0,-.05,2.05); rig.add(hands); // gloves
   // legs together with fins
   const legGeo=new THREE.CylinderGeometry(.16,.12,1.35,10);
   const legL=new THREE.Mesh(legGeo,suit); legL.rotation.x=Math.PI/2; legL.position.set(.17,-.02,-1.25); rig.add(legL);
   const legR=new THREE.Mesh(legGeo.clone(),suit); legR.rotation.x=Math.PI/2; legR.position.set(-.17,-.02,-1.25); rig.add(legR);
-  const finGeo=new THREE.BoxGeometry(.4,.07,1.05);
-  const finL=new THREE.Mesh(finGeo,dark); finL.position.set(.17,-.02,-2.15); rig.add(finL);
-  const finR=new THREE.Mesh(finGeo.clone(),dark); finR.position.set(-.17,-.02,-2.15); rig.add(finR);
+  const finGeo=new THREE.BoxGeometry(.42,.06,1.1);
+  const finL=new THREE.Mesh(finGeo,acc); finL.position.set(.17,-.02,-2.2); rig.add(finL); // yellow fins
+  const finR=new THREE.Mesh(finGeo.clone(),acc); finR.position.set(-.17,-.02,-2.2); rig.add(finR);
   g.userData={rig,finL,finR,legL,legR};
   return g;
 }
@@ -270,7 +271,8 @@ function buildWorld(){
   const faMat=new THREE.MeshStandardMaterial({color:0x1b1f27,roughness:.7});
   const faL=new THREE.Mesh(new THREE.CylinderGeometry(.085,.07,1.3,10),faMat); faL.position.set(.27,-.66,-1.05); faL.rotation.set(1.26,0,-.16); fpArms.add(faL);
   const faR=new THREE.Mesh(new THREE.CylinderGeometry(.085,.07,1.3,10),faMat); faR.position.set(-.27,-.66,-1.05); faR.rotation.set(1.26,0,.16); fpArms.add(faR);
-  const fGloves=new THREE.Mesh(new THREE.SphereGeometry(.11,12,10),faMat); fGloves.scale.set(1.7,.8,1); fGloves.position.set(0,-.46,-1.6); fpArms.add(fGloves);
+  const fgloveMat=new THREE.MeshStandardMaterial({color:0xffcf3f,roughness:.5});
+  const fGloves=new THREE.Mesh(new THREE.SphereGeometry(.11,12,10),fgloveMat); fGloves.scale.set(1.7,.8,1); fGloves.position.set(0,-.46,-1.6); fpArms.add(fGloves);
   camera.add(fpArms); fpArms.visible=false;
   scene.add(camera);
   camera.position.set(0,0,0);
