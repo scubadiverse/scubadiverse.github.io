@@ -56,7 +56,8 @@
   #warn.on{display:block;animation:warnpop .35s cubic-bezier(.2,1.5,.4,1)}
   @keyframes warnpop{from{transform:translateX(-50%) scale(.7);opacity:0}to{transform:translateX(-50%) scale(1);opacity:1}}
   #narr{position:absolute;left:50%;bottom:104px;transform:translateX(-50%);width:min(760px,92%);text-align:center;
-    font-size:18px;font-weight:800;line-height:1.35;text-shadow:0 2px 10px rgba(0,0,0,.9);z-index:6;opacity:0;transition:opacity .4s}
+    font-size:18px;font-weight:800;line-height:1.35;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9);z-index:6;opacity:0;transition:opacity .4s;
+    background:rgba(4,20,30,.78);border:1px solid rgba(159,233,255,.35);border-radius:14px;padding:10px 16px}
   #narr.on{opacity:1}
   #actions{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);display:flex;gap:12px;flex-wrap:wrap;justify-content:center;z-index:7;width:min(860px,94%)}
   .abtn{pointer-events:auto;cursor:pointer;font-family:'Nunito';font-weight:900;font-size:15px;color:#04202e;
@@ -407,7 +408,7 @@ function animate(){ requestAnimationFrame(animate); const dt=Math.min(clock.getD
   // breathing bar
   meter(breathM, bp);
   // first-person arms (your own hands, clasped in front) + arm-mistake wiggle
-  if(fpArms){ fpArms.visible=V.diveActive; if(armWiggle>0){ armWiggle-=dt; const w=Math.sin(t*22)*.25; fpArms.children[0].rotation.z=-.13+w; fpArms.children[1].rotation.z=.13-w; } else { fpArms.children[0].rotation.z=-.13; fpArms.children[1].rotation.z=.13; } }
+  if(fpArms){ fpArms.visible=!!(V.diveActive && V.camMode==='eyes'); if(armWiggle>0){ armWiggle-=dt; const w=Math.sin(t*22)*.25; fpArms.children[0].rotation.z=-.13+w; fpArms.children[1].rotation.z=.13-w; } else { fpArms.children[0].rotation.z=-.13; fpArms.children[1].rotation.z=.13; } }
   // real-time first-person dive loop
   if(diveTick) diveTick(dt);
   // real-time controllable swim: you PILOT the diver; the diver stays HORIZONTAL
@@ -473,29 +474,31 @@ async function enterWater(){ V.underwater=true; V.reef=true; setMask(true); V.bu
   await new Promise(res=>{ let dp=0; const id=setInterval(()=>{ dp+=.08; depthReadout(Math.min(1.5,dp)); if(dp>=1.5){clearInterval(id);res();} },70); });
 }
 
-/* THE DIVE — first-person, you pilot the diver and juggle the real skills live */
+/* THE DIVE — you steer the diver (3rd/1st person, WASD/arrows), skills happen live */
 function interactiveDive(){
-  objective('Your dive'); showSignal(null); stopBreathing(); V.bubbles=false;
+  showSignal(null); startBreathing(); V.bubbles=false;
   const diver=makeDiver(0xffcf3f); scene.add(diver);
-  V.pd={x:0,y:-.3,z:6}; V.hd=Math.PI; V.diver=diver; V.camMode='eyes'; V.swimActive=true; V.moving=false; V.diveActive=true;
-  setMask(true); showMeter(breathM,true); showMeter(earM,true); showMeter(trimM,false);
-  let breath=1, ear=0, water=0, air=200, timeLeft=42, earTimer=6, waterTimer=11, done=false;
-  meter(breathM,1); meter(earM,0);
-  say("You're diving! Fish ahead. Kick with your <b>legs</b> (hands still), keep <b>breathing</b> through your mouth, <b>equalise</b> your ears, and <b>clear your mask</b> if water gets in.");
-  const kick   =mkhold('🦵 Kick (hold)','good',()=>{IN.fwd=1;},()=>{IN.fwd=0;});
-  const breathe=mkbtn('🫁 Breathe','',()=>{ breath=Math.min(1,breath+.5); sBreathOnce(); });
-  const eq     =mkbtn('🤏 Equalise','',()=>{ if(ear>.12){ ear=0; meter(earM,0); earTimer=R(7,11); sChime(true); } });
-  const clr    =mkbtn('😮‍💨 Clear mask','',()=>{ if(water>.1){ water=0; setWater(0); waterTimer=R(10,15); sChime(true); } });
-  const arms   =mkbtn('🖐 Use arms','warn',()=>{ armWiggle=.8; if(warnCd<=0){ warnCd=3; warnMsg('Legs only! Keep your hands together or alongside your body.'); } });
-  setControls([kick,breathe,eq,clr,arms]);
+  V.pd={x:0,y:-.3,z:8}; V.hd=Math.PI; V.diver=diver; V.camMode='behind'; V.swimActive=true; V.moving=false; V.diveActive=true;
+  setMask(false); showMeter(breathM,false); showMeter(earM,true); showMeter(trimM,false); meter(earM,0);
+  objective('Dive &ndash; WASD/arrows to swim &bull; Q/E up-down');
+  say("You're diving! Steer with the <b>arrow keys</b> or WASD. Kick with your legs, keep breathing through your mouth, and watch for the reminders to equalise or clear your mask.");
+  let ear=0, water=0, air=200, earTimer=9, waterTimer=14, remind=12, done=false, fp=false;
+  // movement (also works on touch); keyboard handles the rest
+  const swim =mkhold('🦵 Swim','good',()=>{IN.fwd=1;},()=>{IN.fwd=0;});
+  const left =mkhold('◀ Turn','',()=>{IN.left=1;},()=>{IN.left=0;});
+  const right=mkhold('Turn ▶','',()=>{IN.right=1;},()=>{IN.right=0;});
+  const view =mkbtn('👁 First-person','',()=>{});
+  view.onclick=()=>{ fp=!fp; V.camMode=fp?'eyes':'behind'; setMask(fp); view.innerHTML=fp?'🎥 Third-person':'👁 First-person'; };
+  const eq   =mkbtn('🤏 Equalise','',()=>{ if(ear>.12){ ear=0; meter(earM,0); earTimer=R(9,14); sChime(true); say('Ears equalised &ndash; nice, do it early and often.'); } });
+  const clr  =mkbtn('😮‍💨 Clear mask','',()=>{ if(water>.1){ water=0; setWater(0); waterTimer=R(12,18); sChime(true); say('Mask cleared &ndash; you exhaled and pushed the water out.'); } });
+  const arms =mkbtn('🖐 Use arms','warn',()=>{ armWiggle=.8; if(warnCd<=0){ warnCd=3; warnMsg('Legs only! Keep your hands together or alongside your body &ndash; do not swim with your arms.'); } });
+  const fin  =mkbtn('🏁 Finish dive','good',()=>{ done=true; diveTick=null; V.diveActive=false; V.swimActive=false; IN.fwd=IN.left=IN.right=IN.up=IN.down=0; scene.remove(diver); V.diver=null; setWater(0); showMeter(earM,false); diveSuccess(); });
+  setControls([swim,left,right,view,eq,clr,arms,fin]);
   diveTick=(dt)=>{ if(done)return;
-    breath-=dt*.13; meter(breathM,Math.max(0,breath));
-    if(breath<=.1 && warnCd<=0){ warnCd=3; warnMsg('Keep breathing through your mouth &ndash; never hold your breath!'); breath=.1; }
-    air-=dt*(V.moving?1.1:.6); airReadout(Math.max(0,air));
-    earTimer-=dt; if(earTimer<=0){ ear=Math.min(1,ear+dt*.16); meter(earM,ear); if(ear>=1 && warnCd<=0){ warnCd=3; warnMsg('Equalise now &ndash; pinch your nose and gently blow!'); } }
-    waterTimer-=dt; if(waterTimer<=0){ water=Math.min(1,water+dt*.11); setWater(water*.85); if(water>=1 && warnCd<=0){ warnCd=3; warnMsg('Water in your mask &ndash; look up and exhale to clear it.'); } }
-    timeLeft-=dt; objective('Enjoy the dive &bull; '+Math.max(0,Math.ceil(timeLeft))+'s');
-    if(timeLeft<=0){ done=true; diveTick=null; V.diveActive=false; V.swimActive=false; IN.fwd=0; scene.remove(diver); V.diver=null; setWater(0); showMeter(earM,false); diveSuccess(); }
+    air-=dt*(V.moving?1.0:.55); airReadout(Math.max(0,air));
+    earTimer-=dt; if(earTimer<=0){ ear=Math.min(1,ear+dt*.18); meter(earM,ear); if(ear>=1 && warnCd<=0){ warnCd=3.5; warnMsg('Equalise your ears &ndash; pinch your nose and gently blow (tap Equalise).'); } }
+    waterTimer-=dt; if(waterTimer<=0){ water=Math.min(1,water+dt*.13); setWater(water*.85); if(water>=1 && warnCd<=0){ warnCd=3.5; warnMsg('Water in your mask &ndash; look up and exhale to clear it (tap Clear mask).'); } }
+    remind-=dt; if(remind<=0 && warnCd<=0 && ear<.4 && water<.3){ remind=18; warnCd=1.5; say('Keep breathing slowly through your mouth &ndash; never hold your breath. Kick gently, hands still.'); }
   };
 }
 function diveSuccess(){ stopBreathing(); showHUD(true); objective('Great first dive!');
