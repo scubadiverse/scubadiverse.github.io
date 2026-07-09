@@ -425,10 +425,8 @@ function refreshAlertBtn(){
 }
 
 // ---- projects (add / rename / delete) ----
-var PALETTE=['#2ea6ff','#ff7a59','#3ddc97','#c792ff','#ffcf5c','#ff6b9d','#5ad1e6','#f0a35e'];
-// distinct colour families per chart so the three bars are easy to tell apart
-var CHART_HOURS=['#ff9f43','#ff6b6b','#ffd166','#ff8fab','#f0932b','#eb4d4b','#f6b93b'];
-var CHART_PROG =['#3ddc97','#5ad1e6','#8a6dff','#00b894','#0abde3','#a29bfe','#55efc4'];
+// One distinct colour per project (green, blue, graphite, red, violet, turquoise, yellow)
+var PALETTE=['#2ecc71','#3aa0ff','#79838f','#ff5c5c','#a06bff','#1abc9c','#ffcf3f'];
 function projColor(id){
   for(var i=0;i<S.projects.length;i++) if(S.projects[i].id===id) return PALETTE[i%PALETTE.length];
   return '#888';
@@ -776,15 +774,15 @@ function renderSplitHours(){
     S.projects.forEach(function(p){ var h=(sh[p.id]||0)*t/60; hoursBy[p.id]=h; total+=h; });
   }
   // the stacked bar, sized by hours
-  bar.innerHTML = total>0 ? S.projects.map(function(p,i){
+  bar.innerHTML = total>0 ? S.projects.map(function(p){
     var pct=Math.round(hoursBy[p.id]/total*100);
-    return '<div class="s" style="width:'+pct+'%;background:'+CHART_HOURS[i%CHART_HOURS.length]+'"></div>';
+    return '<div class="s" style="width:'+pct+'%;background:'+projColor(p.id)+'"></div>';
   }).join('') : '';
   // labels
-  var rows=S.projects.map(function(p,i){
+  var rows=S.projects.map(function(p){
     var h=Math.round(hoursBy[p.id]*10)/10, extra='';
     if(hasTargets && p.target>0){ var left=Math.max(0,p.target-projMins(p.id)); extra=left>0?(' ('+left+' min left)'):' ✓'; }
-    return '<span style="color:'+CHART_HOURS[i%CHART_HOURS.length]+'">■</span> '+esc(p.name)+' — <b>'+h+'h</b>'+extra;
+    return '<span style="color:'+projColor(p.id)+'">■</span> '+esc(p.name)+' — <b>'+h+'h</b>'+extra;
   });
   el.innerHTML=(hasTargets?'🎯 Your goals today:<br>':'⏱️ Suggested for you (estimated):<br>')+rows.join('<br>');
 }
@@ -1236,13 +1234,13 @@ function renderDoneSplit(){
   if(!bar||!txt) return;
   var tot=projTotals(), sum=0; S.projects.forEach(function(p){ sum+=tot[p.id]||0; });
   if(sum<=0){ bar.innerHTML=''; txt.innerHTML='<span class="muted">No time logged yet.</span>'; return; }
-  bar.innerHTML=S.projects.map(function(p,i){
+  bar.innerHTML=S.projects.map(function(p){
     var pct=Math.round((tot[p.id]||0)/sum*100);
-    return '<div class="s" style="width:'+pct+'%;background:'+CHART_PROG[i%CHART_PROG.length]+'"></div>';
+    return '<div class="s" style="width:'+pct+'%;background:'+projColor(p.id)+'"></div>';
   }).join('');
-  txt.innerHTML=S.projects.map(function(p,i){
+  txt.innerHTML=S.projects.map(function(p){
     var pct=Math.round((tot[p.id]||0)/sum*100), h=Math.round((tot[p.id]||0)/60*10)/10;
-    return '<span style="color:'+CHART_PROG[i%CHART_PROG.length]+'">■</span> '+esc(p.name)+' — <b>'+h+'h</b> ('+pct+'%)';
+    return '<span style="color:'+projColor(p.id)+'">■</span> '+esc(p.name)+' — <b>'+h+'h</b> ('+pct+'%)';
   }).join('<br>');
 }
 function renderProjProgress(){
