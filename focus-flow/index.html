@@ -1214,7 +1214,7 @@ function dayStreak(days){
   return streak;
 }
 function renderProgress(){
-  var el=document.getElementById('progBars'); if(!el) return;
+  if(!document.getElementById('pTotal')) return;
   var all=progressData();
   var totMin=0,totBlocks=0,totWins=0;
   all.forEach(function(e){ totMin+=e.min||0; totBlocks+=e.blocks||0; totWins+=e.wins||0; });
