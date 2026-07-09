@@ -63,8 +63,8 @@
   /* narration + actions */
   /* floating red warning above the diver */
   #warn{position:absolute;left:50%;top:118px;transform:translateX(-50%);z-index:9;display:none;max-width:90%;text-align:center;
-    background:rgba(190,22,52,.94);border:2px solid #ff8098;border-radius:14px;padding:11px 20px;font-weight:900;font-size:15px;
-    color:#fff;box-shadow:0 10px 26px rgba(0,0,0,.5)}
+    background:#b81636;border:2px solid #ff8098;border-radius:14px;padding:12px 22px;font-weight:900;font-size:15px;line-height:1.35;
+    color:#fff;box-shadow:0 10px 26px rgba(0,0,0,.55)}
   #warn.on{display:block;animation:warnpop .35s cubic-bezier(.2,1.5,.4,1)}
   @keyframes warnpop{from{transform:translateX(-50%) scale(.7);opacity:0}to{transform:translateX(-50%) scale(1);opacity:1}}
   #narr{position:absolute;left:50%;bottom:104px;transform:translateX(-50%);width:min(760px,92%);text-align:center;
@@ -276,10 +276,10 @@ function diverTexture(sc,k,a){
   x.strokeStyle=suit; x.lineWidth=34;
   x.beginPath(); x.moveTo(196,102); x.lineTo(104,94-k*14); x.stroke();
   x.beginPath(); x.moveTo(196,118); x.lineTo(106,124+k*14); x.stroke();
-  // big rounded fins (back-left) — follow the legs
+  // proper fin blades trailing back-left — follow the kick
   x.fillStyle=fin;
-  x.save();x.translate(96,90-k*14);x.beginPath();x.ellipse(0,0,26,20,-.2,0,7);x.fill();x.restore();
-  x.save();x.translate(98,128+k*14);x.beginPath();x.ellipse(0,0,26,20,.2,0,7);x.fill();x.restore();
+  x.beginPath(); x.moveTo(108,88-k*14); x.quadraticCurveTo(44,58-k*18,20,76-k*18); x.quadraticCurveTo(46,98-k*16,104,100-k*14); x.closePath(); x.fill();
+  x.beginPath(); x.moveTo(110,122+k*14); x.quadraticCurveTo(42,118+k*18,20,140+k*18); x.quadraticCurveTo(48,132+k*16,106,132+k*14); x.closePath(); x.fill();
   // yellow tank on the back
   x.save(); x.translate(150,56); x.rotate(-.12);
   x.fillStyle=tank; x.beginPath(); x.roundRect?x.roundRect(-6,-16,80,34,14):x.rect(-6,-16,80,34); x.fill();
@@ -343,12 +343,10 @@ function standingDiverTexture(sc,hands){
   const suit=sc.suit,vest=sc.vest,fin=sc.fin,glove=sc.glove,skin='#f0c095',tank='#c2c8ce';
   x.lineJoin='round'; x.lineCap='round';
   const RR=(a,b,c,d,r)=>{ if(x.roundRect){x.beginPath();x.roundRect(a,b,c,d,r);x.fill();} else x.fillRect(a,b,c,d); };
-  // ---- big yellow fins on the feet ----
+  // ---- proper fin blades on the feet (long flippers, not balls) ----
   x.fillStyle=fin;
-  x.save();x.translate(104,372);x.rotate(-.12);x.beginPath();x.ellipse(0,0,26,26,0,0,7);x.fill();
-    x.beginPath();x.ellipse(0,14,20,16,0,0,7);x.fill();x.restore();
-  x.save();x.translate(156,372);x.rotate(.12);x.beginPath();x.ellipse(0,0,26,26,0,0,7);x.fill();
-    x.beginPath();x.ellipse(0,14,20,16,0,0,7);x.fill();x.restore();
+  x.save();x.translate(102,360);x.rotate(-.14);x.beginPath();x.ellipse(0,20,16,36,0,0,7);x.fill();x.restore();
+  x.save();x.translate(158,360);x.rotate(.14);x.beginPath();x.ellipse(0,20,16,36,0,0,7);x.fill();x.restore();
   // ---- stubby legs ----
   x.strokeStyle=suit; x.lineWidth=34;
   x.beginPath();x.moveTo(112,286);x.lineTo(106,352);x.stroke();
@@ -565,13 +563,20 @@ function audioInit(){ if(AC)return; try{ AC=new(window.AudioContext||window.webk
   const n=Math.floor(AC.sampleRate*2); noiseBuf=AC.createBuffer(1,n,AC.sampleRate); const d=noiseBuf.getChannelData(0); for(let i=0;i<n;i++)d[i]=Math.random()*2-1; }catch(e){AC=null;} }
 function audioResume(){ try{ if(AC&&AC.state==='suspended')AC.resume(); }catch(e){} }
 function nz(){ const s=AC.createBufferSource(); s.buffer=noiseBuf; s.loop=true; return s; }
-function sBreath(inh){ if(!AC)return; const s=nz(),bp=AC.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=inh?680:360; bp.Q.value=1.1;
-  const g=AC.createGain(),t=AC.currentTime,dur=inh?.6:.85; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(inh?.2:.26,t+(inh?.18:.24)); g.gain.linearRampToValueAtTime(0,t+dur);
+function sBreath(inh){ if(!AC)return; const s=nz(),bp=AC.createBiquadFilter(); const t=AC.currentTime, dur=inh?1.5:2.0;
+  // inhale: air rushing IN through the regulator (filter sweeps up); exhale: lower, bubbly (sweeps down)
+  if(inh){ bp.type='bandpass'; bp.Q.value=.8; bp.frequency.setValueAtTime(320,t); bp.frequency.linearRampToValueAtTime(950,t+dur*.65); bp.frequency.linearRampToValueAtTime(500,t+dur); }
+  else { bp.type='lowpass'; bp.Q.value=.6; bp.frequency.setValueAtTime(820,t); bp.frequency.linearRampToValueAtTime(240,t+dur); }
+  const g=AC.createGain(); g.gain.setValueAtTime(0,t);
+  g.gain.linearRampToValueAtTime(inh?.24:.28, t+dur*(inh?.4:.3));
+  g.gain.linearRampToValueAtTime(.0001, t+dur);
+  // exhale gets a slow bubbling tremolo
+  if(!inh){ const lfo=AC.createOscillator(),lg=AC.createGain(); lfo.frequency.value=11; lg.gain.value=.10; lfo.connect(lg); lg.connect(g.gain); lfo.start(t); lfo.stop(t+dur); }
   s.connect(bp); bp.connect(g); g.connect(master); s.start(t); s.stop(t+dur+.05); if(!inh)sBubbles(); }
 function sBubbles(){ if(!AC||Math.random()<.4)return; const s=nz(),hp=AC.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=1700; const g=AC.createGain(),t=AC.currentTime; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.06,t+.02); g.gain.exponentialRampToValueAtTime(.001,t+.3); s.connect(hp); hp.connect(g); g.connect(master); s.start(t); s.stop(t+.34); }
 function sPurge(){ if(!AC)return; const s=nz(),bp=AC.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=1200; bp.Q.value=.6; const g=AC.createGain(),t=AC.currentTime; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.25,t+.03); g.gain.exponentialRampToValueAtTime(.001,t+.4); s.connect(bp); bp.connect(g); g.connect(master); s.start(t); s.stop(t+.45); }
 function sChime(ok){ if(!AC)return; const o=AC.createOscillator(); o.type='sine'; const t=AC.currentTime; o.frequency.setValueAtTime(ok?660:280,t); o.frequency.exponentialRampToValueAtTime(ok?990:200,t+.18); const g=AC.createGain(); g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.25,t+.03); g.gain.exponentialRampToValueAtTime(.0001,t+.4); o.connect(g); g.connect(master); o.start(t); o.stop(t+.42); }
-function startBreathing(){ if(!AC||breathing)return; breathing=true; let inh=true; (function cyc(){ if(!breathing)return; sBreath(inh); inh=!inh; breathTimer=setTimeout(cyc, inh?1000:900); })(); }
+function startBreathing(){ if(!AC||breathing)return; breathing=true; let inh=true; (function cyc(){ if(!breathing)return; sBreath(inh); const gap=inh?1650:2300; inh=!inh; breathTimer=setTimeout(cyc, gap); })(); }
 function stopBreathing(){ breathing=false; if(breathTimer)clearTimeout(breathTimer); breathTimer=null; }
 function sBreathOnce(){ if(!AC)return; sBreath(true); setTimeout(()=>{ if(AC)sBreath(false); },420); }
 function setMuted(m){ muted=m; if(master)master.gain.value=m?0:.5; mutebtn.textContent=m?'🔇':'🔊'; }
@@ -587,8 +592,8 @@ function animate(){ requestAnimationFrame(animate); const dt=Math.min(clock.getD
   camera.rotation.z=Math.sin(t*.5)*.006;
   camera.rotation.y=V.look*0.15;
   // background / fog per environment
-  if(V.underwater){ renderer.setClearColor(0x0e6f96); if(!scene.fog)scene.fog=new THREE.FogExp2(0x0e6f96,0.02); }
-  else { renderer.setClearColor(0x8fd4ef); scene.fog=null; }
+  if(V.underwater){ renderer.setClearColor(0x062138); if(!scene.fog)scene.fog=new THREE.FogExp2(0x062138,0.016); }
+  else { renderer.setClearColor(0x08243c); scene.fog=null; }
   // instructor idle bob + optional hold + signal arm
   if(instructor){ instructor.position.y=-.6+Math.sin(t*.9)*.1; const u=instructor.userData;
     if(u.finL)u.finL.rotation.x=Math.sin(t*3)*.4; if(u.finR)u.finR.rotation.x=-Math.sin(t*3)*.4;
@@ -790,7 +795,7 @@ function chapter4(){
   showChapterTitle('Chapter Four','How much air?');
   $('help').innerHTML='<b>Air signals</b><br>☝️ 1 finger = 10 bar &bull; ✌️ 2 = 20 &bull; 🤟 3 = 40<br>✊ fist = 50 &bull; 🙌 two hands (a T) = 100';
   $('help').classList.add('on');
-  const OPTS=AIR_STEPS.map(s=>({label:s.emo+' '+s.bar,key:String(s.bar)}));
+  const OPTS=AIR_STEPS.map(s=>({label:s.emo,key:String(s.bar)}));   // quiz answers show the SIGN only, no numbers
   (async function(){
     // 1) the "how much air?" question sign
     showSignal('✌️🖐️','Instructor: How much air?');
@@ -859,8 +864,13 @@ function interactiveDive(){
   // spontaneous events that pop up above the diver's head
   (async function events(){
     await wait(3500);
+    // draw events from a shuffled bag so the SAME one never repeats back-to-back
+    let bag=[];
+    const nextKind=()=>{ if(!bag.length){ bag=['swim','turtle','equalise','flood'];
+        for(let i=bag.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [bag[i],bag[j]]=[bag[j],bag[i]]; } }
+      return bag.shift(); };
     while(!done){
-      const kind=['swim','turtle','equalise','flood','turtle'][Math.floor(Math.random()*5)];
+      const kind=nextKind();
       if(kind==='swim'){
         const c=await bubbleChoice('How do you swim?', [{label:'🦵 Legs',key:'legs',cls:'good'},{label:'🖐 Arms',key:'arms',cls:'warn'}]);
         if(done)break;
