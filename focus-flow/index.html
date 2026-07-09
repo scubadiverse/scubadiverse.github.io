@@ -957,9 +957,8 @@ var MOODS={
   calm:{emo:"😌",msg:"Calm is a wonderful place to work from. Notice it in your body, and let it steady your next block.",tools:[]},
   grateful:{emo:"🙏",msg:"Beautiful. Naming one thing you're grateful for right now makes the good feeling last longer.",tools:[]},
   motivated:{emo:"💪",msg:"That's momentum. Ride it – start your most important thing while the energy is here.",tools:[]},
-  content:{emo:"🙂",msg:"Content is underrated. Enjoy this steady, good feeling – you don't have to chase anything right now.",tools:[]},
   hopeful:{emo:"🌤️",msg:"Hope is quiet fuel. Let it pull you gently forward, one small step at a time.",tools:[]},
-  proud:{emo:"🌟",msg:"You have every right to feel proud. Take it in – you did that. Let it remind you what you're capable of.",tools:[]},
+  successful:{emo:"🏆",msg:"You did it – that's success. Take a moment to really feel it, and let it remind you what you're capable of.",tools:[]},
   sad:{emo:"😔",msg:"It's okay to feel low. Be as gentle with yourself as you'd be with a good friend. Water, daylight or a short walk can lift the fog a little.",tools:["b"]},
   panicked:{emo:"😨",msg:"You are safe in this moment. Let's slow everything down together with one round of breathing. This wave will rise, peak, and pass – they always do.",tools:["b","g"]},
   overwhelmed:{emo:"🤯",msg:"Too much is landing at once. Let's make it small: pick ONE thing and let the rest wait. You do not have to do it all today. Doing the next single piece is enough.",tools:["s","g","b"]}
@@ -1067,7 +1066,7 @@ function pickMood(k,btn){
   if(m.tools.indexOf('b')>=0) acts+='<button class="primary" onclick="startBreathe()">Breathe with me</button>';
   if(m.tools.indexOf('g')>=0) acts+='<button onclick="startGround()">Grounding (5-4-3-2-1)</button>';
   if(m.tools.indexOf('s')>=0) acts+='<button onclick="tinyStep()">Break it into one tiny step</button>';
-  if(['happy','calm','grateful','motivated','content','hopeful','proud'].indexOf(k)<0) acts+='<button onclick="showReset()">🚶 Step away &amp; reset</button>';
+  if(['happy','calm','grateful','motivated','hopeful','successful'].indexOf(k)<0) acts+='<button onclick="showReset()">🚶 Step away &amp; reset</button>';
   var give = (k==='frustrated'||k==='overwhelmed')
     ? '<div class="foot" style="text-align:left;margin-top:10px">Before you give up: take a 5-minute break, drink water, then do just ONE tiny piece. If it is still too heavy after that, stopping to rest is okay too – that is not failure.</div>'
     : '';
