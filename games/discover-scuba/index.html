@@ -290,11 +290,16 @@ function diverTexture(sc,k,a){
   x.fillStyle=vest; x.beginPath(); x.roundRect?x.roundRect(168,82,74,48,22):x.rect(168,82,74,48); x.fill();
   x.fillStyle=fin; x.fillRect(198,84,10,44); // vest zip
   x.fillStyle='#111'; x.beginPath(); x.roundRect?x.roundRect(170,132,70,14,6):x.rect(170,132,70,14); x.fill(); // weight belt
-  // chunky arm + big round MITT hand — paddles up/down with a (the wrong way to swim)
+  // chunky arm + glove hand WITH FINGERS — reaches forward (paddles up/down with a)
   const hx=300+a*8, hy=136-a*40;
   x.strokeStyle=suit; x.lineWidth=24;
   x.beginPath(); x.moveTo(238,108); x.quadraticCurveTo(272,116+a*12,hx,hy); x.stroke();
-  x.fillStyle=glove; x.beginPath(); x.arc(hx+6,hy+2,17,0,7); x.fill();
+  x.save(); x.translate(hx+8,hy+2); x.rotate(a*.4);
+  x.fillStyle=glove; x.beginPath(); x.roundRect?x.roundRect(-13,-13,20,26,9):x.rect(-13,-13,20,26); x.fill(); // palm
+  for(let i=0;i<4;i++){ const fy=-11+i*7.3; x.beginPath();                        // four fingers pointing forward
+    x.roundRect?x.roundRect(6,fy,17,6,3):x.rect(6,fy,17,6); x.fill(); }
+  x.beginPath(); x.roundRect?x.roundRect(-11,-19,16,8,4):x.rect(-11,-19,16,8); x.fill(); // thumb
+  x.restore();
   // big round head: hood, face
   x.fillStyle='#241820'; x.beginPath(); x.arc(276,86,40,0,7); x.fill();
   x.fillStyle=skin; x.beginPath(); x.arc(288,92,29,0,7); x.fill();
@@ -363,17 +368,18 @@ function standingDiverTexture(sc,hands){
   x.strokeStyle=suit; x.lineWidth=26;
   x.beginPath(); x.moveTo(cx-44,166); x.quadraticCurveTo(cx-62,208,cx-56,250); x.stroke();
   x.beginPath(); x.moveTo(cx+44,166); x.quadraticCurveTo(cx+62,208,cx+56,250); x.stroke();
-  // cartoon glove HANDS (palm + thumb + finger bumps, Mario-glove style).
+  // cartoon glove HANDS with real FINGERS (palm + four fingers + a thumb).
   // If a sign emoji is given, the emoji IS the hand (drawn big over a wrist cuff).
   const drawHand=(px,py,emo,side)=>{
-    if(emo){ x.fillStyle=glove; x.beginPath(); x.arc(px,py-6,10,0,7); x.fill();   // small cuff
-      x.font='38px "Noto Color Emoji",Arial'; x.textAlign='center'; x.textBaseline='middle'; x.fillText(emo,px,py+6); return; }
+    if(emo){ x.fillStyle=glove; x.beginPath(); x.arc(px,py-8,10,0,7); x.fill();   // small cuff
+      x.font='40px "Noto Color Emoji",Arial'; x.textAlign='center'; x.textBaseline='middle'; x.fillText(emo,px,py+4); return; }
     x.fillStyle=glove;
-    x.beginPath(); x.arc(px,py,16,0,7); x.fill();                                 // palm / back of hand
-    x.beginPath(); x.arc(px+side*15,py-6,7,0,7); x.fill();                        // thumb
-    for(let i=-1;i<=1;i++){ x.beginPath(); x.arc(px+i*9,py+14,6.5,0,7); x.fill(); } // three finger bumps
+    x.beginPath(); x.roundRect?x.roundRect(px-13,py-14,26,20,9):x.rect(px-13,py-14,26,20); x.fill();   // palm
+    for(let i=0;i<4;i++){ const fx=px-11+i*7.3; x.beginPath();                     // four fingers pointing down
+      x.roundRect?x.roundRect(fx,py+2,6,17,3):x.rect(fx,py+2,6,17); x.fill(); }
+    x.beginPath(); x.roundRect?x.roundRect(px+side*12-4,py-12,8,16,4):x.rect(px+side*12-4,py-12,8,16); x.fill(); // thumb
   };
-  drawHand(cx-56,258, hands&&hands.l, -1); drawHand(cx+56,258, hands&&hands.r, 1);
+  drawHand(cx-56,256, hands&&hands.l, -1); drawHand(cx+56,256, hands&&hands.r, 1);
   // ---- big round head + hood ----
   x.fillStyle='#241820'; x.beginPath(); x.arc(cx,86,58,0,7); x.fill();      // neoprene hood
   x.fillStyle=skin;      x.beginPath(); x.arc(cx,94,44,0,7); x.fill();      // face
