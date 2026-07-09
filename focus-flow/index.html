@@ -230,17 +230,17 @@
   <div class="stat"><span>Focus blocks done</span><b id="pBlocks">0</b></div>
   <div class="stat"><span>Small wins logged</span><b id="pWins">0</b></div>
   <div class="stat"><span>Day streak</span><b id="pStreak">0 days</b></div>
-  <div class="foot" style="text-align:left;margin:12px 0 4px">Share of your time per project</div>
+  <div class="foot" style="text-align:left;margin:14px 0 4px">◐ How your time splits across projects</div>
   <div class="split" id="doneSplitBar"></div>
   <div id="doneSplitTxt" style="font-size:13px;margin-top:6px"></div>
-  <div class="foot" style="text-align:left;margin:14px 0 6px">Progress today (% of each goal)</div>
+  <div class="foot" style="text-align:left;margin:16px 0 6px">▮ Hours spent on each project</div>
+  <div id="projBreak"></div>
+  <div class="foot" style="text-align:left;margin:16px 0 6px">◔ Progress toward each goal today</div>
   <div id="projProgress"></div>
-  <div class="foot" style="text-align:left;margin:14px 0 2px">Focus trend – last 14 days</div>
+  <div class="foot" style="text-align:left;margin:16px 0 2px">📈 Focus trend – last 14 days</div>
   <div id="prodLine"></div>
   <div id="prodProjection" class="foot" style="text-align:left;margin-top:4px"></div>
-  <div class="foot" style="text-align:left;margin:14px 0 6px">Time per project (total)</div>
-  <div id="projBreak"></div>
-  <div class="foot" style="text-align:left;margin:14px 0 6px">Daily time per project</div>
+  <div class="foot" style="text-align:left;margin:16px 0 6px">〰 Daily time per project</div>
   <div id="projLines"></div>
   <div class="foot" style="margin-top:10px">It builds up day by day. Slow progress is still progress – keep going.</div>
 </div>
@@ -1242,9 +1242,9 @@ function renderDoneSplit(){
     return '<div class="s" style="width:'+pct+'%;background:'+projColor(p.id)+'"></div>';
   }).join('');
   txt.innerHTML=S.projects.map(function(p){
-    var pct=Math.round((tot[p.id]||0)/sum*100);
-    return '<span style="color:'+projColor(p.id)+'">■</span> '+esc(p.name)+' '+pct+'%';
-  }).join(' &nbsp; ');
+    var pct=Math.round((tot[p.id]||0)/sum*100), h=Math.round((tot[p.id]||0)/60*10)/10;
+    return '<span style="color:'+projColor(p.id)+'">■</span> '+esc(p.name)+' <b>'+pct+'%</b> ('+h+'h)';
+  }).join('<br>');
 }
 function renderProjProgress(){
   var el=document.getElementById('projProgress'); if(!el) return;
