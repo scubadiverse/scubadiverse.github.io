@@ -160,12 +160,12 @@ const R=(a,b)=>a+Math.random()*(b-a);
 const V={ underwater:false, maskOn:false, bubbles:false, water:0, signal:null, holdYou:false, reef:false, regOut:false, kick:0, look:0 };
 /* real-time swim controls */
 const IN={fwd:0,left:0,right:0,up:0,down:0,fast:0};
-let warnCd=0, schoolCenters=[], diveTick=null, armWiggle=0, signHideT=0;
+let warnCd=0, schoolCenters=[], diveTick=null, armWiggle=0, signHideT=0, stopHideT=0;
 addEventListener('keydown',e=>{ const k=e.code; if(k==='KeyW'||k==='ArrowUp')IN.fwd=1; else if(k==='KeyA'||k==='ArrowLeft')IN.left=1; else if(k==='KeyD'||k==='ArrowRight')IN.right=1; else if(k==='KeyQ'||k==='PageUp')IN.up=1; else if(k==='KeyE'||k==='KeyZ'||k==='PageDown')IN.down=1; else if(k==='ShiftLeft'||k==='ShiftRight')IN.fast=1; else return; e.preventDefault(); });
 addEventListener('keyup',e=>{ const k=e.code; if(k==='KeyW'||k==='ArrowUp')IN.fwd=0; else if(k==='KeyA'||k==='ArrowLeft')IN.left=0; else if(k==='KeyD'||k==='ArrowRight')IN.right=0; else if(k==='KeyQ'||k==='PageUp')IN.up=0; else if(k==='KeyE'||k==='KeyZ'||k==='PageDown')IN.down=0; else if(k==='ShiftLeft'||k==='ShiftRight')IN.fast=0; });
 
 /* ---------- world ---------- */
-let instructor=null, fishG=null, propMask=null, propReg=null, propHand=null, bubbleP=null, signFish=null, fpArms=null;
+let instructor=null, fishG=null, propMask=null, propReg=null, propHand=null, bubbleP=null, signFish=null, fpArms=null, stopSign=null;
 
 // A recognizable human scuba diver in horizontal trim (head +Z, fins -Z):
 // wetsuit body, head with two-lens mask + regulator, tank, arms reaching
@@ -232,8 +232,8 @@ function fishSchool(n,center,radius,color){
 }
 // Hand-drawn CARTOON scuba diver (side view, facing right), like the fish art.
 // k is the kick phase (-1..1) so the legs & fins scissor when swimming.
-function diverTexture(sc,k){
-  k=k||0;
+function diverTexture(sc,k,a){
+  k=k||0; a=a||0;
   const cv=document.createElement('canvas'); cv.width=360; cv.height=200; const x=cv.getContext('2d');
   const suit=sc.suit, vest=sc.vest, fin=sc.fin, glove=sc.glove, skin='#e8b58a', tank='#c2c8ce';
   x.lineJoin='round'; x.lineCap='round';
@@ -253,10 +253,11 @@ function diverTexture(sc,k){
   x.fillStyle=suit; x.beginPath(); x.ellipse(200,98,70,36,0,0,7); x.fill();
   x.fillStyle=vest; x.beginPath(); x.ellipse(206,94,50,27,0,0,7); x.fill();
   x.fillStyle=fin; x.fillRect(196,70,10,50); // vest stripe
-  // arms forward + glove
+  // arm + glove — paddles up/down with a (the wrong way to swim)
+  const hx=292+a*6, hy=126-a*34;
   x.strokeStyle=suit; x.lineWidth=17;
-  x.beginPath(); x.moveTo(232,102); x.lineTo(292,126); x.stroke();
-  x.fillStyle=glove; x.beginPath(); x.arc(296,128,11,0,7); x.fill();
+  x.beginPath(); x.moveTo(232,102); x.quadraticCurveTo(266,110+a*10,hx,hy); x.stroke();
+  x.fillStyle=glove; x.beginPath(); x.arc(hx+4,hy+2,11,0,7); x.fill();
   // head: hood, face, mask, snorkel, regulator
   x.fillStyle='#241820'; x.beginPath(); x.arc(272,86,30,0,7); x.fill();
   x.fillStyle=skin; x.beginPath(); x.arc(282,92,21,0,7); x.fill();
@@ -270,9 +271,23 @@ function diverTexture(sc,k){
 const DIVER_PLAYER={suit:'#232a33',vest:'#ffcf3f',fin:'#ffcf3f',glove:'#ffcf3f'};   // black + yellow
 const DIVER_INSTR ={suit:'#5a2636',vest:'#1fa8d6',fin:'#ff9f2e',glove:'#ff9f2e'};   // maroon + blue + orange
 function makeDiverSprite(scheme,size){ const s=size||3;
-  const texN=diverTexture(scheme,0), texA=diverTexture(scheme,1), texB=diverTexture(scheme,-1);
+  const texN=diverTexture(scheme,0,0), texA=diverTexture(scheme,1,0), texB=diverTexture(scheme,-1,0),
+        texArmU=diverTexture(scheme,0,1), texArmD=diverTexture(scheme,0,-1);
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:texN,transparent:true,depthWrite:false}));
-  sp.scale.set(s*1.6,s*0.9,1); sp.userData={isDiverSprite:true,texN,texA,texB}; return sp; }
+  sp.scale.set(s*1.6,s*0.9,1); sp.userData={isDiverSprite:true,texN,texA,texB,texArmU,texArmD}; return sp; }
+// A red STOP sign that floats above the diver when he swims with his arms.
+function makeStopSign(){
+  const cv=document.createElement('canvas'); cv.width=512; cv.height=300; const x=cv.getContext('2d');
+  x.fillStyle='rgba(200,26,44,.96)'; if(x.roundRect){x.beginPath();x.roundRect(8,8,496,284,28);x.fill();} else x.fillRect(8,8,496,284);
+  x.strokeStyle='#fff'; x.lineWidth=8; if(x.roundRect){x.beginPath();x.roundRect(22,22,468,258,20);x.stroke();}
+  x.fillStyle='#fff'; x.textAlign='center'; x.textBaseline='middle';
+  x.font='bold 60px Nunito,Arial,sans-serif'; x.fillText('✋ STOP',256,66);
+  x.font='bold 29px Nunito,Arial,sans-serif';
+  const words='Divers use their legs to swim. Use your legs - you can hold your hands together or keep them alongside your body.'.split(' ');
+  let line='',y=128; for(const w of words){ if((line+w).length>27){ x.fillText(line,256,y); y+=38; line=''; } line+=w+' '; } x.fillText(line.trim(),256,y);
+  const tex=new THREE.CanvasTexture(cv); tex.minFilter=THREE.LinearFilter;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false})); sp.scale.set(6,3.5,1); return sp;
+}
 function particles(n,spread,color,size,y){
   const geo=new THREE.BufferGeometry(),pos=new Float32Array(n*3);
   for(let i=0;i<n;i++){ pos[i*3]=R(-spread,spread); pos[i*3+1]=(y||0)+R(-spread,spread); pos[i*3+2]=R(-spread,spread);}
@@ -318,6 +333,7 @@ function buildWorld(){
   const fgloveMat=new THREE.MeshStandardMaterial({color:0xffcf3f,roughness:.5});
   const fGloves=new THREE.Mesh(new THREE.SphereGeometry(.11,12,10),fgloveMat); fGloves.scale.set(1.7,.8,1); fGloves.position.set(0,-.46,-1.6); fpArms.add(fGloves);
   camera.add(fpArms); fpArms.visible=false;
+  stopSign=makeStopSign(); stopSign.visible=false; scene.add(stopSign);
   scene.add(camera);
   camera.position.set(0,0,0);
 }
@@ -455,6 +471,10 @@ function animate(){ requestAnimationFrame(animate); const dt=Math.min(clock.getD
   // the sign fish turns to face the diver when chased
   if(signFish&&signFish.visible){ signFish.children[0].position.y=Math.sin(t*2.4)*.14;
     if(signHideT>0){ signHideT-=dt; if(signHideT<=0) signFish.visible=false; } }
+  // STOP sign floats above the diver while he swims with his arms
+  if(stopSign){ if(V.armsMoving){ stopSign.visible=true; stopHideT=1.2; }
+    else if(stopSign.visible){ stopHideT-=dt; if(stopHideT<=0) stopSign.visible=false; }
+    if(stopSign.visible && V.diver){ stopSign.position.set(V.pd.x, V.pd.y+3.7, V.pd.z); } }
   // props follow subtle motion
   if(propMask&&propMask.visible) propMask.position.y=-.1+Math.sin(t*2)*.02;
   if(propReg&&propReg.visible) propReg.rotation.z=Math.sin(t*2)*.05;
@@ -474,9 +494,12 @@ function animate(){ requestAnimationFrame(animate); const dt=Math.min(clock.getD
     if(IN.up)p.y+=2.2*dt; if(IN.down)p.y-=2.2*dt; p.y=Math.max(-2.6,Math.min(2.2,p.y));
     p.x=Math.max(-34,Math.min(34,p.x)); p.z=Math.max(-46,Math.min(34,p.z));
     d.position.set(p.x, p.y+Math.sin(t*1.5)*.05, p.z);
-    // cartoon leg-kick: swap between the two scissor frames while swimming
+    // cartoon animation: arm-paddle (wrong) > leg-kick (swimming) > neutral
     const u=d.userData;
-    if(u.texN){ d.material.map = V.moving ? (Math.floor(t*7)%2 ? u.texA : u.texB) : u.texN; d.material.needsUpdate=true; }
+    if(u.texN){ let m=u.texN;
+      if(V.armsMoving) m = Math.floor(t*8)%2 ? u.texArmU : u.texArmD;
+      else if(V.moving) m = Math.floor(t*7)%2 ? u.texA : u.texB;
+      d.material.map=m; d.material.needsUpdate=true; }
     // real-time coaching
     if(IN.fast && warnCd<=0){ warnCd=3.5; warnMsg('You are swimming too fast &ndash; using too much air and tiring out. Slow down and enjoy the dive.'); }
     if(V.moving && warnCd<=0){ for(const c of schoolCenters){ if(Math.hypot(p.x-c.x,p.z-c.z) < (c.r||5)+3){ warnCd=4.5;
@@ -550,7 +573,7 @@ function interactiveDive(){
   view.onclick=()=>{ fp=!fp; V.camMode=fp?'eyes':'behind'; setMask(fp); view.innerHTML=fp?'🎥 Third-person':'👁 First-person'; };
   const eq   =mkbtn('🤏 Equalise','',()=>{ if(ear>.12){ ear=0; meter(earM,0); earTimer=R(9,14); sChime(true); say('Ears equalised &ndash; nice, do it early and often.'); } });
   const clr  =mkbtn('😮‍💨 Clear mask','',()=>{ if(water>.1){ water=0; setWater(0); waterTimer=R(12,18); sChime(true); say('Mask cleared &ndash; you exhaled and pushed the water out.'); } });
-  const arms =mkbtn('🖐 Use arms','warn',()=>{ armWiggle=.8; if(warnCd<=0){ warnCd=3; warnMsg('Legs only! Keep your hands together or alongside your body &ndash; do not swim with your arms.'); } });
+  const arms =mkhold('🖐 Move your arms','warn',()=>{ V.armsMoving=true; },()=>{ V.armsMoving=false; });
   const fin  =mkbtn('🏁 Finish dive','good',()=>{ done=true; diveTick=null; V.diveActive=false; V.swimActive=false; IN.fwd=IN.left=IN.right=IN.up=IN.down=0; scene.remove(diver); V.diver=null; setWater(0); showMeter(earM,false); $('help').classList.remove('on'); $('earM').style.bottom=''; signFish.visible=false; diveSuccess(); });
   setControls([swim,left,right,view,eq,clr,arms,fin]);
   diveTick=(dt)=>{ if(done)return;
