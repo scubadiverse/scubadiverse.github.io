@@ -229,8 +229,11 @@
   <div class="stat"><span>Day streak</span><b id="pStreak">0 days</b></div>
   <div class="foot" style="text-align:left;margin:12px 0 2px">Focus trend – last 14 days</div>
   <div id="prodLine"></div>
-  <div class="foot" style="text-align:left;margin:14px 0 6px">Time per project</div>
+  <div id="prodProjection" class="foot" style="text-align:left;margin-top:4px"></div>
+  <div class="foot" style="text-align:left;margin:14px 0 6px">Time per project (total)</div>
   <div id="projBreak"></div>
+  <div class="foot" style="text-align:left;margin:14px 0 6px">Daily time per project</div>
+  <div id="projLines"></div>
   <div class="foot" style="margin-top:10px">It builds up day by day. Slow progress is still progress – keep going.</div>
 </div>
 
@@ -1178,7 +1181,45 @@ function renderProgress(){
   var st=dayStreak(all);
   document.getElementById('pStreak').textContent=st+" day"+(st===1?'':'s');
   renderProdLine(all);
+  renderProjection(all);
   renderProjBreak();
+  renderProjLines();
+}
+function renderProjection(all){
+  var el=document.getElementById('prodProjection'); if(!el) return;
+  var days=(all||progressData());
+  var recent=days.slice(-7), sum=0;
+  recent.forEach(function(d){ sum+=d.min||0; });
+  var avg=recent.length? sum/recent.length : 0;
+  var week=Math.round(avg*7/60*10)/10;
+  var month=Math.round(avg*30/60);
+  el.innerHTML='Average <b>'+Math.round(avg)+' min/day</b> · at this pace ≈ <b>'+week+' h/week</b> ('+month+' h/month)';
+}
+function projDays(){
+  var arr=(S.history||[]).slice(-13).map(function(h){ return h.mins||{}; });
+  arr.push(S.mins||{});
+  return arr;
+}
+function renderProjLines(){
+  var el=document.getElementById('projLines'); if(!el) return;
+  if(!S.projects.length){ el.innerHTML=''; return; }
+  var arr=projDays(), n=arr.length, W=300,H=80,pad=8, max=1;
+  arr.forEach(function(m){ S.projects.forEach(function(p){ if((m[p.id]||0)>max) max=m[p.id]; }); });
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;display:block">';
+  S.projects.forEach(function(p){
+    var pts=arr.map(function(m,i){
+      var x=pad+(n<=1?(W-2*pad)/2:(i/(n-1))*(W-2*pad));
+      var y=H-pad-((m[p.id]||0)/max)*(H-2*pad);
+      return x.toFixed(1)+' '+y.toFixed(1);
+    });
+    svg+='<path d="M'+pts.join(' L ')+'" fill="none" stroke="'+projColor(p.id)+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="0.92"/>';
+  });
+  svg+='</svg>';
+  var leg=S.projects.map(function(p){
+    return '<span style="display:inline-flex;align-items:center;gap:4px;margin:2px 10px 0 0;font-size:12px">'+
+      '<span style="width:10px;height:10px;border-radius:2px;background:'+projColor(p.id)+';display:inline-block"></span>'+esc(p.name)+'</span>';
+  }).join('');
+  el.innerHTML=svg+'<div style="margin-top:6px">'+leg+'</div>';
 }
 function projTotals(){
   var t={};
