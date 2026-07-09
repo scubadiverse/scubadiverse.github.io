@@ -99,6 +99,8 @@
     box-shadow:0 6px 0 #0d7d96,0 10px 20px rgba(0,0,0,.35);transition:transform .08s}
   .abtn:active{transform:translateY(3px);box-shadow:0 3px 0 #0d7d96}
   .abtn.good{background:linear-gradient(180deg,#8bffb0,#2ec46a);box-shadow:0 6px 0 #1c7a3f,0 10px 20px rgba(0,0,0,.35);color:#04231a}
+  .abtn.signal{background:linear-gradient(180deg,#12507f,#0b3355);box-shadow:0 6px 0 #06233a,0 10px 20px rgba(0,0,0,.4);color:#fff;font-size:24px;padding:16px 30px}
+  .abtn.signal .emo{font-size:34px;vertical-align:-4px}
   .abtn.warn{background:linear-gradient(180deg,#ffd0da,#ff5470);box-shadow:0 6px 0 #a81f3c,0 10px 20px rgba(0,0,0,.35);color:#2a0a12}
   .abtn.hold{background:linear-gradient(180deg,#ffe58f,#ffb63f);box-shadow:0 6px 0 #a8701c,0 10px 20px rgba(0,0,0,.35);color:#2a1a04}
 
@@ -399,9 +401,55 @@ function makeStandingDiver(scheme,size){ const s=size||7;
 // make the standing toy diver hold up a hand-sign emoji (rebuilds his texture)
 function setDiverHand(sprite,emoji){ if(!sprite)return; const sc=sprite.userData.scheme;
   const t=standingDiverTexture(sc, emoji?{r:emoji}:null); sprite.material.map=t; sprite.material.map.needsUpdate=true; sprite.material.needsUpdate=true; }
-// big on-screen readout of the sign the DIVER is making
-function diverSign(ic,cap){ const el=$('diversign'); if(!ic){ el.classList.remove('on'); return; }
-  el.innerHTML='<div class="ic">'+ic+'</div><div class="cap">'+cap+'</div>'; el.classList.add('on'); }
+/* ===== ANIMATED HAND SIGNS — proper cartoon hands drawn on canvas ===== */
+const SGN_SK='#f3c18c', SGN_SKE='#cf8f52', SGN_SKH='#ffdcae', SGN_SUIT='#20262e';
+function _sr(x,a,b,c,d,r){ x.beginPath(); if(x.roundRect)x.roundRect(a,b,c,d,r); else x.rect(a,b,c,d); x.fill(); }
+// a flat cartoon hand (palm/back up), fingers pointing LEFT, centred at (cx,cy) with a wetsuit cuff
+function _flat(x,cx,cy){ x.save(); x.translate(cx,cy);
+  x.fillStyle=SGN_SUIT; _sr(x,40,-27,50,54,18);                                   // cuff
+  const fg=(x0,y0,len,w)=>{ x.fillStyle=SGN_SKE; _sr(x,x0-len,y0-w/2-2,len+8,w+4,(w+4)/2); x.fillStyle=SGN_SK; _sr(x,x0-len,y0-w/2,len+4,w,w/2);
+    x.strokeStyle=SGN_SKE; x.lineWidth=2; x.beginPath(); x.moveTo(x0-len*0.45,y0-w/2+3); x.lineTo(x0-len*0.45,y0+w/2-3); x.stroke(); };
+  x.fillStyle=SGN_SKE; _sr(x,-52,-42,96,84,32); x.fillStyle=SGN_SK; _sr(x,-48,-38,90,76,28);
+  fg(-46,-26,66,20); fg(-46,-6,80,21); fg(-46,14,70,20); fg(-46,32,54,18);
+  x.save(); x.translate(-6,34); x.rotate(0.5); x.fillStyle=SGN_SKE; _sr(x,-13,-5,26,48,13); x.fillStyle=SGN_SK; _sr(x,-10,-2,20,42,10); x.restore();
+  x.fillStyle=SGN_SKH; _sr(x,-46,-36,84,14,7); x.restore(); }
+function _fistBase(x,cx,cy){ x.fillStyle=SGN_SKE; _sr(x,cx-42,cy-38,84,76,26); x.fillStyle=SGN_SK; _sr(x,cx-38,cy-34,76,68,22);
+  x.strokeStyle=SGN_SKE; x.lineWidth=2; for(let i=0;i<4;i++){ const kx=cx-30+i*20; x.beginPath(); x.moveTo(kx,cy-30); x.lineTo(kx,cy-4); x.stroke(); } }
+function _fingerUp(x,fx,top){ x.fillStyle=SGN_SKE; _sr(x,fx-10,top,20,-(top)-32<0?96:96,10); }
+function _up(x,up){ x.save(); x.translate(150,160); if(!up)x.scale(1,-1); _fistBase(x,0,0);
+  x.fillStyle=SGN_SKE; _sr(x,-18,-98,34,66,16); x.fillStyle=SGN_SK; _sr(x,-15,-94,28,60,13); x.restore(); }
+function _fingers(n){ return function(x){ x.save(); x.translate(150,168); _fistBase(x,0,0);
+  const xs=[-30,-10,10,30]; for(let i=0;i<n;i++){ const fx=xs[i]; x.fillStyle=SGN_SKE; _sr(x,fx-9,-104,18,72,9); x.fillStyle=SGN_SK; _sr(x,fx-7,-100,14,66,7); } x.restore(); }; }
+const SIGNDRAW={
+  ok(x){ x.save(); x.translate(150,158);
+    for(let i=0;i<3;i++){ const fx=8+i*22; x.fillStyle=SGN_SKE; _sr(x,fx-11,-96,22,82,11); x.fillStyle=SGN_SK; _sr(x,fx-9,-92,18,76,9); }
+    x.fillStyle=SGN_SKE; x.beginPath(); x.arc(0,0,40,0,7); x.fill(); x.fillStyle=SGN_SK; x.beginPath(); x.arc(0,0,36,0,7); x.fill();
+    x.strokeStyle=SGN_SKE; x.lineWidth=22; x.beginPath(); x.arc(-34,-30,23,0,7); x.stroke();
+    x.strokeStyle=SGN_SK; x.lineWidth=16; x.beginPath(); x.arc(-34,-30,23,0,7); x.stroke(); x.restore(); },
+  problem(x,t){ const slide=Math.sin(t*2*Math.PI/1.2)*40; _flat(x,150+slide,150); },
+  ears(x,t){ const ph=(t/1.1)%2; if(ph<1){ _flat(x,150+Math.sin(t*5)*30,150); }
+    else { x.save(); x.translate(150,178); _fistBase(x,0,0); x.fillStyle=SGN_SKE; _sr(x,-48,-112,20,86,10); x.fillStyle=SGN_SK; _sr(x,-46,-108,16,80,8); x.restore(); } },
+  up(x){ _up(x,true); }, down(x){ _up(x,false); },
+  air(x,t){ const tap=Math.abs(Math.sin(t*5))*16; x.save(); x.translate(150,150);
+    x.fillStyle=SGN_SKE; _sr(x,-100,-52,50,104,22); x.fillStyle=SGN_SK; _sr(x,-96,-48,42,96,18);   // open left palm (vertical)
+    x.save(); x.translate(6-tap,6); _fistBase(x,44,0);
+    x.fillStyle=SGN_SKE; _sr(x,-46,-18,66,16,8); x.fillStyle=SGN_SK; _sr(x,-46,-16,62,12,6);
+    x.fillStyle=SGN_SKE; _sr(x,-46,6,66,16,8);  x.fillStyle=SGN_SK; _sr(x,-46,8,62,12,6); x.restore(); x.restore(); },
+  n1:_fingers(1), n2:_fingers(2), n3:_fingers(3), n4:_fingers(4),
+  fist(x){ x.save(); x.translate(150,150); _fistBase(x,0,0); x.restore(); },
+  T(x){ x.save(); x.translate(150,158);
+    x.fillStyle=SGN_SKE; _sr(x,-22,-28,44,82,16); x.fillStyle=SGN_SK; _sr(x,-19,-25,38,76,13);       // vertical hand
+    for(let i=0;i<4;i++){ const fx=-18+i*12; x.fillStyle=SGN_SKE; _sr(x,fx-5,-70,12,46,6); x.fillStyle=SGN_SK; _sr(x,fx-4,-67,10,42,5); }
+    x.fillStyle=SGN_SKE; _sr(x,-72,-94,144,26,12); x.fillStyle=SGN_SK; _sr(x,-68,-91,136,20,10); x.restore(); }  // horizontal hand on top = T
+};
+const _activeSigns=[];
+function makeSignCanvas(kind,px){ const c=document.createElement('canvas'); c.width=300; c.height=300; c.style.width=px+'px'; c.style.height=px+'px';
+  c._kind=kind; c._x=c.getContext('2d'); _activeSigns.push(c); return c; }
+function tickSigns(t){ for(let i=_activeSigns.length-1;i>=0;i--){ const c=_activeSigns[i]; if(!c.isConnected){ _activeSigns.splice(i,1); continue; }
+  const x=c._x; x.clearRect(0,0,300,300); (SIGNDRAW[c._kind]||SIGNDRAW.problem)(x,t); } }
+// big on-screen READOUT of the sign the DIVER is making (animated)
+function diverSign(kind,cap){ const el=$('diversign'); if(!kind){ el.classList.remove('on'); return; }
+  el.innerHTML='<div class="ic"></div><div class="cap">'+cap+'</div>'; el.querySelector('.ic').appendChild(makeSignCanvas(kind,124)); el.classList.add('on'); }
 function showChapterTitle(k,t){ chapterEl.innerHTML='<div class="k">'+k+'</div><div class="t">'+t+'</div>'; chapterEl.classList.add('on'); setTimeout(()=>chapterEl.classList.remove('on'),3200); }
 function setSurface(frac){ surfaceEl.style.height=(frac*100)+'%'; }
 function particles(n,spread,color,size,y){
@@ -487,7 +535,9 @@ function meter(el,frac){ el.querySelector('i').style.width=Math.max(0,Math.min(1
 function showMeter(el,on){ el.classList.toggle('on',on); }
 function setMask(on){ V.maskOn=on; maskEl.classList.toggle('on',on); }
 function setWater(f){ V.water=f; waterEl.style.height=(f*46)+'%'; } // fills up to mask centre
-function showSignal(ic,cap){ if(!ic){ signalEl.classList.remove('on'); V.signal=null; return;} signalEl.querySelector('.ic').textContent=ic; signalEl.querySelector('.cap').textContent=cap; signalEl.classList.add('on'); }
+function showSignal(kind,cap){ if(!kind){ signalEl.classList.remove('on'); V.signal=null; return;}
+  const ic=signalEl.querySelector('.ic'); ic.innerHTML=''; ic.appendChild(makeSignCanvas(kind,100));
+  signalEl.querySelector('.cap').textContent=cap; signalEl.classList.add('on'); }
 function doFlash(){ flash.style.transition='none'; flash.style.opacity='.85'; requestAnimationFrame(()=>{ flash.style.transition='opacity .5s'; flash.style.opacity='0'; }); }
 
 /* ---------- action buttons + promise flow ---------- */
@@ -496,7 +546,8 @@ function button(label,cls){ return new Promise(res=>{ clearActions();
   const b=document.createElement('button'); b.className='abtn '+(cls||''); b.innerHTML=label; b.onclick=()=>{ clearActions(); res(); };
   actEl.appendChild(b); }); }
 function choose(opts){ return new Promise(res=>{ clearActions();
-  opts.forEach((o,i)=>{ const b=document.createElement('button'); b.className='abtn '+(o.cls||''); b.innerHTML=o.label;
+  opts.forEach((o,i)=>{ const b=document.createElement('button'); b.className='abtn '+(o.cls||'');
+    if(o.node) b.appendChild(o.node); else b.innerHTML=o.label;
     b.onclick=()=>{ clearActions(); res(o.key!==undefined?o.key:i); }; actEl.appendChild(b); }); }); }
 // hold a button for `secs` cumulative seconds; optional wrong button triggers onWrong and restarts
 function hold(label,secs,opt){ opt=opt||{}; return new Promise(res=>{ clearActions();
@@ -586,6 +637,7 @@ exitbtn.addEventListener('click',()=>location.reload());
 /* ---------- animation ---------- */
 let bp=0; // breathing phase for the bar
 function animate(){ requestAnimationFrame(animate); const dt=Math.min(clock.getDelta(),.05); const t=performance.now()*.001;
+  tickSigns(t);   // animate the hand-sign canvases
   // gentle first-person head bob + breathing sway
   bp=(Math.sin(t*1.1)+1)/2;
   camera.position.y=Math.sin(t*1.1)*.05 + (V.underwater?0:0);
@@ -702,17 +754,17 @@ function chapter1(){
   beachInstr =makeStandingDiver(DIVER_INSTR,7);    beachInstr.position.set(2.3,-.4,-6.4);  scene.add(beachInstr);
   setSurface(.46); // water up to the chest
   showChapterTitle('Chapter One','In the water');
-  showSignal('👌','OK?');
+  showSignal('ok','OK?');
   say("You're in the water up to your chest &ndash; mask on, fins on, regulator in. Your instructor is right beside you. Take a few easy breaths, then we go under.");
   setControls([ mkbtn('Learn the hand signals ▶','good',()=>{ hush(); showSignal(null); chapter2(); }) ]);
 }
 
 /* CHAPTER TWO — hand signals: instructor shows, you copy */
 const SIGN_STEPS=[
-  {emo:'👌', name:'OK', teach:"The most important signal. Thumb and finger make a circle. It means <b>“I’m OK”</b> and also asks <b>“are you OK?”</b>"},
-  {emo:'✋', name:'Something is wrong', teach:"A flat hand rocking side to side, then <b>point at the problem</b> (here, your mask). It means <b>“something’s not right”</b>."},
-  {emo:'👍', name:'Go up', teach:"Thumb <b>up</b> means <b>“let’s go up”</b> – it is NOT the OK sign."},
-  {emo:'👎', name:'Go down', teach:"Thumb <b>down</b> means <b>“let’s go down”</b>."}
+  {kind:'ok', name:'OK', teach:"The most important signal. Thumb and finger make a circle. It means <b>“I’m OK”</b> and also asks <b>“are you OK?”</b>"},
+  {kind:'problem', name:'Something is wrong', teach:"A flat hand <b>sliding side to side</b> (left, right, left), then <b>point at the problem</b>. It means <b>“something’s not right”</b>. (A raised palm is STOP, not this.)"},
+  {kind:'up', name:'Go up', teach:"Thumb <b>up</b> means <b>“let’s go up”</b> – it is NOT the OK sign."},
+  {kind:'down', name:'Go down', teach:"Thumb <b>down</b> means <b>“let’s go down”</b>."}
 ];
 function chapter2(){
   V.underwater=false; setMask(false); clearActions(); showSignal(null); hideBubble(); diverSign(null);
@@ -727,13 +779,13 @@ function chapter2(){
     say("Underwater you can’t talk, so divers use their hands. Watch your instructor, then signal the same thing back.");
     await wait(2000);
     for(const s of SIGN_STEPS){
-      setDiverHand(beachDiver,null); diverSign(null);
-      showSignal(s.emo,'Instructor: '+s.name);
+      diverSign(null);
+      showSignal(s.kind,'Instructor: '+s.name);
       say(s.teach);
-      await button('🙋 Signal it back','good');
-      setDiverHand(beachDiver,s.emo); diverSign(s.emo,'You: '+s.name); sChime(true);
+      await button('<span class="emo">🙋</span> Signal it back','signal');
+      diverSign(s.kind,'You: '+s.name); sChime(true);
       flashBubble('👍 Clear and steady – well done.');
-      await wait(2000);
+      await wait(2200);
     }
     setDiverHand(beachDiver,null); diverSign(null); showSignal(null);
     say("Great – you can copy every signal. Next, the instructor asks and you answer on your own.");
@@ -742,8 +794,8 @@ function chapter2(){
 }
 
 /* CHAPTER THREE — signals quiz: read the instruction, pick the right sign */
-const SIGN_INFO={ ok:{emo:'👌',name:'OK'}, problem:{emo:'✋',name:'Something is wrong'},
-  ears:{emo:'👂',name:'Ear problem'}, up:{emo:'👍',name:'Go up'}, down:{emo:'👎',name:'Go down'} };
+const SIGN_INFO={ ok:{kind:'ok',name:'OK'}, problem:{kind:'problem',name:'Something is wrong'},
+  ears:{kind:'ears',name:'Ear problem'}, up:{kind:'up',name:'Go up'}, down:{kind:'down',name:'Go down'} };
 const QUIZ=[
   {q:'Show the sign that you are <b>OK</b>.', a:'ok'},
   {q:'Show the sign that you <b>have a problem</b>.', a:'problem'},
@@ -759,21 +811,21 @@ function chapter3(){
   showChapterTitle('Chapter Three','Signals quiz');
   $('help').innerHTML='<b>Signals quiz</b><br>Read the instruction, then choose the correct hand sign from the buttons below.';
   $('help').classList.add('on');
-  const OPTS=Object.keys(SIGN_INFO).map(k=>({label:'<span style="font-size:40px;line-height:1">'+SIGN_INFO[k].emo+'</span>',key:k}));
+  const mkOpts=()=>Object.keys(SIGN_INFO).map(k=>({node:makeSignCanvas(SIGN_INFO[k].kind,58),key:k}));
   (async function(){
     say("Now it’s your turn. Read each instruction and choose the right sign below.");
     await wait(1600);
     for(let i=0;i<QUIZ.length;i++){
-      const item=QUIZ[i]; setDiverHand(beachDiver,null); diverSign(null);
+      const item=QUIZ[i]; diverSign(null);
       say('<b>'+(i+1)+'/'+QUIZ.length+'.</b> '+item.q);
       let ok=false;
       while(!ok){
-        const k=await choose(OPTS);
-        if(k===item.a){ ok=true; setDiverHand(beachDiver,SIGN_INFO[k].emo); diverSign(SIGN_INFO[k].emo,'You: '+SIGN_INFO[k].name); sChime(true); flashBubble('👍 Correct!'); await wait(1700); }
+        const k=await choose(mkOpts());
+        if(k===item.a){ ok=true; diverSign(SIGN_INFO[k].kind,'You: '+SIGN_INFO[k].name); sChime(true); flashBubble('👍 Correct!'); await wait(1800); }
         else { warnMsg('That’s the “'+SIGN_INFO[k].name+'” sign – try again.'); }
       }
     }
-    setDiverHand(beachDiver,null); diverSign(null);
+    diverSign(null);
     say("Perfect signalling! You can ask and answer underwater now.");
     setControls([ mkbtn('Next: how much air? ▶','good',()=>{ hush(); chapter4(); }) ]);
   })();
@@ -781,11 +833,12 @@ function chapter3(){
 
 /* CHAPTER FOUR — air signals: "how much air?" and showing the amount in bar */
 const AIR_STEPS=[
-  {emo:'☝️', name:'one finger', bar:10},
-  {emo:'✌️', name:'two fingers', bar:20},
-  {emo:'🤟', name:'three fingers', bar:40},
-  {emo:'✊', name:'a fist', bar:50},
-  {emo:'🙌', name:'two hands (a T)', bar:100}
+  {kind:'n1', name:'1 finger', bar:10},
+  {kind:'n2', name:'2 fingers', bar:20},
+  {kind:'n3', name:'3 fingers', bar:30},
+  {kind:'n4', name:'4 fingers', bar:40},
+  {kind:'fist', name:'a fist', bar:50},
+  {kind:'T', name:'a T (one hand up, the other flat on top)', bar:100}
 ];
 function chapter4(){
   clearActions(); showSignal(null); hideBubble(); diverSign(null);
@@ -793,34 +846,34 @@ function chapter4(){
   if(!beachInstr){ beachInstr=makeStandingDiver(DIVER_INSTR,7); beachInstr.position.set(2.3,-.4,-6.4); scene.add(beachInstr); }
   setSurface(.46);
   showChapterTitle('Chapter Four','How much air?');
-  $('help').innerHTML='<b>Air signals</b><br>☝️ 1 finger = 10 bar &bull; ✌️ 2 = 20 &bull; 🤟 3 = 40<br>✊ fist = 50 &bull; 🙌 two hands (a T) = 100';
+  $('help').innerHTML='<b>Air signals</b><br>1 finger = 10 bar &bull; 2 = 20 &bull; 3 = 30 &bull; 4 = 40<br>fist = 50 &bull; a T (one hand up, one flat on top) = 100';
   $('help').classList.add('on');
-  const OPTS=AIR_STEPS.map(s=>({label:'<span style="font-size:40px;line-height:1">'+s.emo+'</span>',key:String(s.bar)}));   // quiz answers show the SIGN only, no numbers
+  const mkOpts=()=>AIR_STEPS.map(s=>({node:makeSignCanvas(s.kind,58),key:String(s.bar)}));   // answers show the SIGN only, no numbers
   (async function(){
-    // 1) the "how much air?" question sign
-    showSignal('✌️🖐️','Instructor: How much air?');
-    say("Your instructor taps two fingers on an open palm. That asks <b>“how much air do you have?”</b> You answer in bar.");
+    // 1) the "how much air?" question sign (two fingers tapping the open palm)
+    showSignal('air','Instructor: How much air?');
+    say("Your instructor <b>taps two fingers on an open palm</b>. That asks <b>“how much air do you have?”</b> You answer in bar.");
     await button('🙋 I understand the question','good');
     // 2) teach the amounts
     showSignal(null);
-    say("Here is how to show the amount:<br>☝️ 1 finger = <b>10 bar</b> &bull; ✌️ 2 fingers = <b>20</b> &bull; 🤟 3 fingers = <b>40</b> &bull; ✊ a fist = <b>50</b> &bull; 🙌 two hands as a T = <b>100</b>.");
+    say("Show the amount with your fingers:<br><b>1 finger = 10 bar</b>, 2 = 20, 3 = 30, 4 = 40, <b>a fist = 50</b>, and <b>a T (one hand up, the other flat on top) = 100</b>.");
     await button('Got it – quiz me ▶','good');
     // 3) quiz: instructor asks, you signal the amount
-    $('help').innerHTML='<b>Show the amount</b><br>☝️10 &bull; ✌️20 &bull; 🤟40 &bull; ✊50 &bull; 🙌100<br>Choose the matching button below.';
-    const ask=[50,100,20,10,40];
+    $('help').innerHTML='<b>Show the amount</b><br>1 finger=10 &bull; 2=20 &bull; 3=30 &bull; 4=40 &bull; fist=50 &bull; T=100<br>Choose the matching sign below.';
+    const ask=[50,100,20,10,40,30];
     for(let i=0;i<ask.length;i++){
       const bar=ask[i], step=AIR_STEPS.find(s=>s.bar===bar);
-      setDiverHand(beachDiver,null); diverSign(null);
-      showSignal('✌️🖐️','Instructor: How much air?');
+      diverSign(null);
+      showSignal('air','Instructor: How much air?');
       say('<b>'+(i+1)+'/'+ask.length+'.</b> You have <b>'+bar+' bar</b> left. Signal it.');
       let ok=false;
       while(!ok){
-        const k=await choose(OPTS);
-        if(k===String(bar)){ ok=true; setDiverHand(beachDiver,step.emo); diverSign(step.emo,'You: '+bar+' bar'); sChime(true); flashBubble('👍 '+bar+' bar – correct!'); await wait(1700); }
+        const k=await choose(mkOpts());
+        if(k===String(bar)){ ok=true; diverSign(step.kind,'You: '+bar+' bar'); sChime(true); flashBubble('👍 '+bar+' bar – correct!'); await wait(1800); }
         else { const g=AIR_STEPS.find(s=>String(s.bar)===k); warnMsg('That’s '+(g?g.bar:'?')+' bar – try again.'); }
       }
     }
-    setDiverHand(beachDiver,null); diverSign(null); showSignal(null);
+    diverSign(null); showSignal(null);
     say("Excellent – you can ask for and show your air. Time to put your face in and explore the reef.");
     setControls([ mkbtn('Put your face in &amp; go under ▶','good',()=>{ hush(); showSignal(null); $('help').classList.remove('on'); clearChapterActors(); goUnderwater(); }) ]);
   })();
@@ -886,7 +939,7 @@ function interactiveDive(){
         else { flashBubble('👍 You let it come to you &ndash; respectful diving.'); await wait(1600); }
         ta.visible=false; ta.userData.sign.visible=false;
       } else if(kind==='equalise'){
-        showSignal('👂','Ears'); const c=await bubbleChoice('Your ears feel the pressure.', [{label:'🤏 Pinch nose &amp; blow',key:'ok',cls:'good'}]); if(done)break;
+        showSignal('ears','Ears'); const c=await bubbleChoice('Your ears feel the pressure.', [{label:'🤏 Pinch nose &amp; blow',key:'ok',cls:'good'}]); if(done)break;
         showSignal(null); sChime(true); flashBubble('👍 Ears equalised &ndash; do it early and often.');
       } else {
         setMask(true); let w=0; const id=setInterval(()=>{ w+=.06; setWater(Math.min(1,w)); },40); await wait(700); clearInterval(id); setWater(1);
