@@ -222,13 +222,16 @@
 </div>
 
 <div class="card">
-  <b>📈 Your progress</b>
+  <b>📈 Productivity</b>
   <div class="stat"><span>Total focus time</span><b id="pTotal">0 h</b></div>
   <div class="stat"><span>Focus blocks done</span><b id="pBlocks">0</b></div>
   <div class="stat"><span>Small wins logged</span><b id="pWins">0</b></div>
   <div class="stat"><span>Day streak</span><b id="pStreak">0 days</b></div>
-  <div class="bars" id="progBars" style="margin-top:10px"></div>
-  <div class="foot">It builds up day by day. Slow progress is still progress – keep going.</div>
+  <div class="foot" style="text-align:left;margin:12px 0 2px">Focus trend – last 14 days</div>
+  <div id="prodLine"></div>
+  <div class="foot" style="text-align:left;margin:14px 0 6px">Time per project</div>
+  <div id="projBreak"></div>
+  <div class="foot" style="margin-top:10px">It builds up day by day. Slow progress is still progress – keep going.</div>
 </div>
 
 <div class="card">
@@ -335,7 +338,7 @@ function load(){
     var tot=0; for(var mk in (s.mins||{})) tot+=s.mins[mk];
     if(tot>0 || (s.blocks||0)>0 || (s.wins&&s.wins.length)){
       if(!s.history) s.history=[];
-      s.history.push({day:s.day, min:tot, blocks:s.blocks||0, wins:(s.wins?s.wins.length:0)});
+      s.history.push({day:s.day, min:tot, blocks:s.blocks||0, wins:(s.wins?s.wins.length:0), mins:(s.mins||{})});
       if(s.history.length>180) s.history=s.history.slice(-180);
     }
     s.day=todayKey(); s.mins={}; s.blocks=0; s.lastProj=null; s.wins=[]; s.targetNotified={};
@@ -455,6 +458,11 @@ function renderProjEdit(){
       '<button class="pill" onclick="deleteProject(\''+p.id+'\')">🗑</button>';
     el.appendChild(row);
   });
+  if(S.projects.length>=7){
+    var note=document.createElement('div'); note.className='foot'; note.style.textAlign='left';
+    note.textContent='Maximum of 7 projects reached. Delete one to add another.';
+    el.appendChild(note); return;
+  }
   var add=document.createElement('div'); add.className='row'; add.style.marginTop='10px';
   add.innerHTML='<input type="text" id="newProjName" placeholder="New project name…" '+
     'style="flex:1;min-width:140px;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px">'+
@@ -464,7 +472,8 @@ function renderProjEdit(){
 function addProject(){
   var inp=document.getElementById('newProjName'); var name=(inp.value||'').trim();
   if(!name) return;
-  S.projects.push({id:newId(),name:name}); save();
+  if(S.projects.length>=7){ renderProjEdit(); return; }
+  S.projects.push({id:newId(),name:name,target:0}); save();
   renderProjects(); renderProjEdit(); paintStats();
 }
 function renameProject(id,name){
@@ -1168,13 +1177,44 @@ function renderProgress(){
   document.getElementById('pWins').textContent=totWins;
   var st=dayStreak(all);
   document.getElementById('pStreak').textContent=st+" day"+(st===1?'':'s');
-  var days=all.slice(-14), max=1;
-  days.forEach(function(e){ if((e.min||0)>max) max=e.min; });
-  el.innerHTML=days.map(function(e){
-    var p=e.day.split('-'), lbl=p[2]+'/'+p[1];
-    var pct=Math.round((e.min||0)/max*100);
-    return '<div class="bar"><span class="h">'+lbl+'</span><span class="t"><span class="f" style="width:'+pct+'%"></span></span>'+
-      '<span class="muted" style="width:40px;text-align:right">'+(e.min||0)+'m</span></div>';
+  renderProdLine(all);
+  renderProjBreak();
+}
+function projTotals(){
+  var t={};
+  (S.history||[]).forEach(function(h){ var m=h.mins||{}; for(var k in m) t[k]=(t[k]||0)+(m[k]||0); });
+  for(var k in S.mins) t[k]=(t[k]||0)+(S.mins[k]||0);
+  return t;
+}
+function renderProdLine(all){
+  var el=document.getElementById('prodLine'); if(!el) return;
+  var days=(all||progressData()).slice(-14);
+  var W=300,H=88,pad=8, n=days.length, max=1;
+  days.forEach(function(d){ if((d.min||0)>max) max=d.min; });
+  var pts=days.map(function(d,i){
+    var x=pad+(n<=1?(W-2*pad)/2:(i/(n-1))*(W-2*pad));
+    var y=H-pad-((d.min||0)/max)*(H-2*pad);
+    return [x,y];
+  });
+  if(!pts.length){ el.innerHTML=''; return; }
+  var line=pts.map(function(p,i){return (i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1);}).join(' ');
+  var area=line+' L '+pts[n-1][0].toFixed(1)+' '+(H-pad)+' L '+pts[0][0].toFixed(1)+' '+(H-pad)+' Z';
+  var last=pts[n-1];
+  el.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;display:block">'+
+    '<path d="'+area+'" fill="rgba(110,231,255,.16)"/>'+
+    '<path d="'+line+'" fill="none" stroke="#6ee7ff" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'+
+    '<circle cx="'+last[0].toFixed(1)+'" cy="'+last[1].toFixed(1)+'" r="4" fill="#ff7a59"/></svg>';
+}
+function renderProjBreak(){
+  var el=document.getElementById('projBreak'); if(!el) return;
+  var tot=projTotals(), max=1;
+  S.projects.forEach(function(p){ if((tot[p.id]||0)>max) max=tot[p.id]; });
+  if(!S.projects.length){ el.innerHTML='<span class="muted" style="font-size:13px">No projects.</span>'; return; }
+  el.innerHTML=S.projects.map(function(p){
+    var m=tot[p.id]||0, pct=Math.round(m/max*100), hrs=(Math.round(m/60*10)/10);
+    return '<div class="bar"><span class="h" style="width:auto;min-width:64px;max-width:96px;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.name)+'</span>'+
+      '<span class="t"><span class="f" style="width:'+pct+'%;background:'+projColor(p.id)+'"></span></span>'+
+      '<span class="muted" style="width:44px;text-align:right">'+hrs+'h</span></div>';
   }).join('');
 }
 function runBreathe(round,total){
