@@ -65,6 +65,22 @@
     font-size:12px;font-weight:700;line-height:1.55;color:#dff3ff}
   #help.on{display:block}
   #help b{color:#9fe9ff;font-family:'Luckiest Guy';letter-spacing:.02em}
+  /* spontaneous speech bubble above the diver's head */
+  #bubble{position:absolute;z-index:8;display:none;transform:translate(-50%,-100%);max-width:320px;text-align:center;
+    background:rgba(6,26,38,.95);border:2px solid #9fe9ff;border-radius:16px;padding:11px 15px;pointer-events:auto;
+    font-weight:800;font-size:15px;color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+  #bubble.on{display:block;animation:pop .25s cubic-bezier(.2,1.5,.4,1)}
+  #bubble::after{content:'';position:absolute;left:50%;bottom:-12px;transform:translateX(-50%);
+    border:11px solid transparent;border-top-color:#9fe9ff}
+  #bubble .bwrap{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:9px}
+  #bubble button{pointer-events:auto;cursor:pointer;font-family:'Nunito';font-weight:900;font-size:14px;color:#04202e;
+    background:linear-gradient(180deg,#8fe9ff,#1fb6d6);border:none;border-radius:11px;padding:9px 14px;box-shadow:0 4px 0 #0d7d96}
+  #bubble button.good{background:linear-gradient(180deg,#8bffb0,#2ec46a);box-shadow:0 4px 0 #1c7a3f;color:#04231a}
+  #bubble button.warn{background:linear-gradient(180deg,#ffd0da,#ff5470);box-shadow:0 4px 0 #a81f3c;color:#2a0a12}
+  #viewbtn,#finbtn{position:absolute;top:14px;display:none;z-index:8;pointer-events:auto;cursor:pointer;
+    font-family:'Nunito';font-weight:900;font-size:13px;color:#fff;background:rgba(4,20,30,.6);
+    border:2px solid rgba(255,255,255,.28);border-radius:12px;padding:8px 12px;backdrop-filter:blur(3px)}
+  #viewbtn{left:170px} #finbtn{left:232px}
   #actions{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);display:flex;gap:12px;flex-wrap:wrap;justify-content:center;z-index:7;width:min(860px,94%)}
   .abtn{pointer-events:auto;cursor:pointer;font-family:'Nunito';font-weight:900;font-size:15px;color:#04202e;
     background:linear-gradient(180deg,#8fe9ff,#1fb6d6);border:none;border-radius:14px;padding:13px 20px;
@@ -123,9 +139,12 @@
   <div id="help"></div>
   <div id="narr"></div>
   <div id="actions"></div>
+  <div id="bubble"></div>
 
   <button id="exitbtn">✕ Exit</button>
   <button id="mutebtn">🔊</button>
+  <button id="viewbtn">👁 View</button>
+  <button id="finbtn">🏁 Finish</button>
 
   <div id="screen"></div>
   <div class="credit">Discover Scuba &bull; first-person dive simulator &bull; the instructor is always with you</div>
@@ -144,6 +163,7 @@ const cvs=$('c'), maskEl=$('mask'), waterEl=$('water'), flash=$('flash'), hud=$(
 const objEl=$('objective'), narrEl=$('narr'), actEl=$('actions'), screenEl=$('screen');
 const depthG=$('depthG'), airG=$('airG'), breathM=$('breathM'), earM=$('earM'), trimM=$('trimM');
 const signalEl=$('signal'), warnEl=$('warn'), exitbtn=$('exitbtn'), mutebtn=$('mutebtn');
+const bubbleEl=$('bubble'), viewbtn=$('viewbtn'), finbtn=$('finbtn');
 
 /* ---------- three ---------- */
 const renderer=new THREE.WebGLRenderer({canvas:cvs,antialias:true});
@@ -396,6 +416,13 @@ function hold(label,secs,opt){ opt=opt||{}; return new Promise(res=>{ clearActio
   requestAnimationFrame(tick);
 }); }
 function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
+/* speech bubble that floats above the diver's head */
+function hideBubble(){ bubbleEl.classList.remove('on'); bubbleEl.innerHTML=''; }
+function flashBubble(html,ms){ bubbleEl.innerHTML=html; bubbleEl.classList.add('on'); const cur=html; setTimeout(()=>{ if(bubbleEl.innerHTML===cur)hideBubble(); }, ms||1700); }
+function bubbleChoice(prompt,opts){ return new Promise(res=>{
+  bubbleEl.innerHTML=prompt+'<div class="bwrap"></div>'; const wrap=bubbleEl.querySelector('.bwrap');
+  opts.forEach(o=>{ const b=document.createElement('button'); b.className=o.cls||''; b.innerHTML=o.label; b.onclick=()=>{ hideBubble(); res(o.key!==undefined?o.key:o.label); }; wrap.appendChild(b); });
+  bubbleEl.classList.add('on'); }); }
 // persistent control button (does NOT clear the action row on click)
 function mkbtn(label,cls,onClick){ const b=document.createElement('button'); b.className='abtn '+(cls||''); b.innerHTML=label; b.onclick=onClick; return b; }
 // a hold-to-act button that sets a flag while pressed (for continuous kicking)
@@ -516,6 +543,9 @@ function animate(){ requestAnimationFrame(animate); const dt=Math.min(clock.getD
     }
     d.visible=(V.camMode!=='eyes'); camera.position.set(cx,cy,cz); camera.lookAt(lx,ly,lz);
   }
+  // keep the speech bubble pinned above the diver's head
+  if(bubbleEl.classList.contains('on') && V.diver){ const v=new THREE.Vector3(V.pd.x, V.pd.y+2.1, V.pd.z); v.project(camera);
+    if(v.z<1){ bubbleEl.style.left=((v.x*.5+.5)*innerWidth)+'px'; bubbleEl.style.top=(((-v.y*.5+.5)*innerHeight)-8)+'px'; } }
   renderer.render(scene,camera);
 }
 
@@ -553,35 +583,47 @@ async function enterWater(){ V.underwater=true; V.reef=true; setMask(true); V.bu
   await new Promise(res=>{ let dp=0; const id=setInterval(()=>{ dp+=.08; depthReadout(Math.min(1.5,dp)); if(dp>=1.5){clearInterval(id);res();} },70); });
 }
 
-/* THE DIVE — you steer the diver (3rd/1st person, WASD/arrows), skills happen live */
+/* THE DIVE — you swim with the keyboard; choices POP UP above the diver's head */
 function interactiveDive(){
-  showSignal(null); startBreathing(); V.bubbles=false;
+  showSignal(null); startBreathing(); V.bubbles=false; clearActions();
   const diver=makeDiverSprite(DIVER_PLAYER,3.4); scene.add(diver);
-  V.pd={x:0,y:-.3,z:8}; V.hd=Math.PI; V.diver=diver; V.camMode='behind'; V.swimActive=true; V.moving=false; V.diveActive=true;
-  setMask(false); showMeter(breathM,false); showMeter(earM,true); showMeter(trimM,false); meter(earM,0);
-  $('earM').style.bottom='132px';
-  $('help').innerHTML='<b>How to dive</b><br>⬆ ⬇ ⬅ ➡ / WASD &ndash; swim &amp; turn<br>Q / E &ndash; go up / down<br>🦵 Legs only &ndash; keep your hands still<br>🤏 Equalise &bull; 😮&zwj;💨 clear your mask when reminded<br>👁 switch view &bull; 🏁 finish the dive';
+  V.pd={x:0,y:-.3,z:8}; V.hd=Math.PI; V.diver=diver; V.camMode='behind'; V.swimActive=true; V.moving=false; V.diveActive=true; V.armsMoving=false;
+  setMask(false); showMeter(breathM,false); showMeter(earM,false); showMeter(trimM,false);
+  $('help').innerHTML='<b>How to dive</b><br>⬆ ⬇ ⬅ ➡ / WASD &ndash; swim &amp; turn<br>Q / E &ndash; go up / down<br>🦵 Your legs move you &ndash; keep your hands still<br>Watch for pop-ups above your head';
   $('help').classList.add('on');
-  objective('Dive &ndash; use the arrow keys / WASD');
-  say("You're diving! Steer with the <b>arrow keys</b> or WASD. Kick with your legs, keep breathing through your mouth, and watch for the reminders to equalise or clear your mask.");
-  let ear=0, water=0, air=200, earTimer=9, waterTimer=14, remind=12, done=false, fp=false;
-  // movement (also works on touch); keyboard handles the rest
-  const swim =mkhold('🦵 Kick &ndash; legs','good',()=>{IN.fwd=1;},()=>{IN.fwd=0;});
-  const left =mkhold('◀ Turn','',()=>{IN.left=1;},()=>{IN.left=0;});
-  const right=mkhold('Turn ▶','',()=>{IN.right=1;},()=>{IN.right=0;});
-  const view =mkbtn('👁 First-person','',()=>{});
-  view.onclick=()=>{ fp=!fp; V.camMode=fp?'eyes':'behind'; setMask(fp); view.innerHTML=fp?'🎥 Third-person':'👁 First-person'; };
-  const eq   =mkbtn('🤏 Equalise','',()=>{ if(ear>.12){ ear=0; meter(earM,0); earTimer=R(9,14); sChime(true); say('Ears equalised &ndash; nice, do it early and often.'); } });
-  const clr  =mkbtn('😮‍💨 Clear mask','',()=>{ if(water>.1){ water=0; setWater(0); waterTimer=R(12,18); sChime(true); say('Mask cleared &ndash; you exhaled and pushed the water out.'); } });
-  const arms =mkhold('🖐 Move your arms','warn',()=>{ V.armsMoving=true; },()=>{ V.armsMoving=false; });
-  const fin  =mkbtn('🏁 Finish dive','good',()=>{ done=true; diveTick=null; V.diveActive=false; V.swimActive=false; IN.fwd=IN.left=IN.right=IN.up=IN.down=0; scene.remove(diver); V.diver=null; setWater(0); showMeter(earM,false); $('help').classList.remove('on'); $('earM').style.bottom=''; signFish.visible=false; diveSuccess(); });
-  setControls([swim,left,right,view,eq,clr,arms,fin]);
-  diveTick=(dt)=>{ if(done)return;
-    air-=dt*(V.moving?1.0:.55); airReadout(Math.max(0,air));
-    earTimer-=dt; if(earTimer<=0){ ear=Math.min(1,ear+dt*.18); meter(earM,ear); if(ear>=1 && warnCd<=0){ warnCd=3.5; warnMsg('Equalise your ears &ndash; pinch your nose and gently blow (tap Equalise).'); } }
-    waterTimer-=dt; if(waterTimer<=0){ water=Math.min(1,water+dt*.13); setWater(water*.85); if(water>=1 && warnCd<=0){ warnCd=3.5; warnMsg('Water in your mask &ndash; look up and exhale to clear it (tap Clear mask).'); } }
-    remind-=dt; if(remind<=0 && warnCd<=0 && ear<.4 && water<.3){ remind=18; warnCd=1.5; say('Keep breathing slowly through your mouth &ndash; never hold your breath. Kick gently, hands still.'); }
-  };
+  objective('Dive &ndash; swim with the arrow keys / WASD');
+  let done=false, fp=false, air=200;
+  viewbtn.style.display='block'; finbtn.style.display='block'; viewbtn.innerHTML='👁 1st'; finbtn.innerHTML='🏁 End';
+  viewbtn.onclick=()=>{ fp=!fp; V.camMode=fp?'eyes':'behind'; setMask(fp); viewbtn.innerHTML=fp?'🎥 3rd':'👁 1st'; };
+  function endDive(){ if(done)return; done=true; V.diveActive=false; V.swimActive=false; V.armsMoving=false;
+    IN.fwd=IN.left=IN.right=IN.up=IN.down=0; diveTick=null; scene.remove(diver); V.diver=null; setWater(0); hideBubble();
+    $('help').classList.remove('on'); viewbtn.style.display='none'; finbtn.style.display='none'; signFish.visible=false; diveSuccess(); }
+  finbtn.onclick=endDive;
+  diveTick=(dt)=>{ if(done)return; air-=dt*(V.moving?1.0:.55); airReadout(Math.max(0,air)); };
+  // spontaneous events that pop up above the diver's head
+  (async function events(){
+    await wait(3500);
+    while(!done){
+      const kind=['swim','equalise','flood','swim'][Math.floor(Math.random()*4)];
+      if(kind==='swim'){
+        const c=await bubbleChoice('How do you swim?', [{label:'🦵 Legs',key:'legs',cls:'good'},{label:'🖐 Arms',key:'arms',cls:'warn'}]);
+        if(done)break;
+        if(c==='arms'){ V.armsMoving=true; await wait(2600); V.armsMoving=false; flashBubble('👍 Legs only from now on.'); }
+        else flashBubble('👍 Legs only &ndash; calm and steady.');
+      } else if(kind==='equalise'){
+        showSignal('👂','Ears'); const c=await bubbleChoice('Your ears feel the pressure.', [{label:'🤏 Pinch nose &amp; blow',key:'ok',cls:'good'}]); if(done)break;
+        showSignal(null); sChime(true); flashBubble('👍 Ears equalised &ndash; do it early and often.');
+      } else {
+        setMask(true); let w=0; const id=setInterval(()=>{ w+=.06; setWater(Math.min(1,w)); },40); await wait(760); clearInterval(id); setWater(1);
+        const c=await bubbleChoice('Your mask is flooded! What do you do?', [{label:'🆘 Signal for help',key:'help'},{label:'😮&zwj;💨 Clear it',key:'clear',cls:'good'}]); if(done)break;
+        if(c==='help'){ showSignal('🆘','Help'); await wait(1300); showSignal(null); }
+        await bubbleChoice('Fingers on the TOP of your mask, look up, and BLOW through your nose.', [{label:'😤 Blow through your nose',key:'blow',cls:'good'}]); if(done)break;
+        await new Promise(r=>{ let w2=1; const id2=setInterval(()=>{ w2-=.08; setWater(Math.max(0,w2)); if(w2<=0){clearInterval(id2);r();} },35); });
+        sChime(true); flashBubble('👍 Mask cleared &ndash; well done.'); if(!fp)setMask(false);
+      }
+      await wait(R(5000,8000));
+    }
+  })();
 }
 function diveSuccess(){ stopBreathing(); showHUD(true); objective('Great first dive!');
   screenEl.className='on'; screenEl.innerHTML='<div class="panel"><div class="kick">Safety stop done &bull; back on the beach</div>'+
