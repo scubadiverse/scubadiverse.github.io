@@ -218,6 +218,7 @@
   <div class="stat"><span>Blocks done</span><b id="sBlocks">0</b></div>
   <div class="stat"><span>Suggested split now</span><b id="sSplitTxt">–</b></div>
   <div class="split" id="splitBar"></div>
+  <div id="splitHours" style="font-size:13px;margin-top:8px"></div>
   <div class="foot" id="splitWhy">Split keeps every project moving, leaning to the ones you've touched least.</div>
 </div>
 
@@ -227,7 +228,9 @@
   <div class="stat"><span>Focus blocks done</span><b id="pBlocks">0</b></div>
   <div class="stat"><span>Small wins logged</span><b id="pWins">0</b></div>
   <div class="stat"><span>Day streak</span><b id="pStreak">0 days</b></div>
-  <div class="foot" style="text-align:left;margin:12px 0 2px">Focus trend – last 14 days</div>
+  <div class="foot" style="text-align:left;margin:12px 0 6px">Progress today (% of each goal)</div>
+  <div id="projProgress"></div>
+  <div class="foot" style="text-align:left;margin:14px 0 2px">Focus trend – last 14 days</div>
   <div id="prodLine"></div>
   <div id="prodProjection" class="foot" style="text-align:left;margin-top:4px"></div>
   <div class="foot" style="text-align:left;margin:14px 0 6px">Time per project (total)</div>
@@ -747,6 +750,40 @@ function show(id){ if(id) document.getElementById(id).classList.add('show'); }
 function hide(id){ if(id) document.getElementById(id).classList.remove('show'); }
 function showTimed(id,ms){ show(id); setTimeout(function(){hide(id);},ms); }
 
+// Estimate a sensible total focus time for a day (for users without targets).
+function estDailyMinutes(){
+  var all=progressData(), recent=all.slice(-7), sum=0;
+  recent.forEach(function(d){ sum+=d.min||0; });
+  var avg=recent.length? sum/recent.length : 0;
+  return Math.max(avg, 120); // suggest at least 2h across projects
+}
+// Suggested time per project, shown in HOURS (two ways):
+// - if you set targets, it uses those; - if not, it estimates and splits for you.
+function renderSplitHours(){
+  var el=document.getElementById('splitHours'); if(!el) return;
+  if(!S.projects.length){ el.innerHTML=''; return; }
+  var hasTargets=S.projects.some(function(p){ return p.target>0; });
+  var rows;
+  if(hasTargets){
+    rows=S.projects.map(function(p){
+      if(p.target>0){
+        var done=projMins(p.id), left=Math.max(0,p.target-done), th=(Math.round(p.target/60*10)/10);
+        return esc(p.name)+' — <b>'+th+'h</b> '+(left>0?('('+left+' min left)'):'✓ done');
+      }
+      return esc(p.name)+' — <span class="muted">no target</span>';
+    });
+    el.innerHTML='🎯 Your goals today:<br>'+rows.join('<br>');
+  } else {
+    var total=estDailyMinutes(), sh=splitShares();
+    rows=S.projects.map(function(p){
+      var h=Math.round((sh[p.id]||0)*total/60*10)/10;
+      return esc(p.name)+' — <b>≈ '+h+'h</b>';
+    });
+    el.innerHTML='⏱️ Suggested for you today (we worked it out):<br>'+rows.join('<br>')+
+      '<div class="foot" style="text-align:left;margin-top:4px">Tip: set a target per project (Edit) to steer this yourself.</div>';
+  }
+}
+
 // ---- suggested split (N projects: lean to the least-worked) ----
 function splitShares(){
   var ps=S.projects, n=ps.length, sh={};
@@ -780,6 +817,7 @@ function paintStats(){
     txt.push(p.name.split(' ')[0]+' '+pct+'%');
   });
   document.getElementById('sSplitTxt').textContent = S.projects.length? txt.join(' · ') : '–';
+  renderSplitHours();
   // tired point
   if(S.tiredPoints.length){
     var sum=0;for(var i=0;i<S.tiredPoints.length;i++)sum+=S.tiredPoints[i];
@@ -1180,10 +1218,26 @@ function renderProgress(){
   document.getElementById('pWins').textContent=totWins;
   var st=dayStreak(all);
   document.getElementById('pStreak').textContent=st+" day"+(st===1?'':'s');
+  renderProjProgress();
   renderProdLine(all);
   renderProjection(all);
   renderProjBreak();
   renderProjLines();
+}
+function renderProjProgress(){
+  var el=document.getElementById('projProgress'); if(!el) return;
+  if(!S.projects.length){ el.innerHTML=''; return; }
+  var hasTargets=S.projects.some(function(p){ return p.target>0; });
+  var total=0, sh=null;
+  if(!hasTargets){ total=estDailyMinutes(); sh=splitShares(); }
+  el.innerHTML=S.projects.map(function(p){
+    var done=projMins(p.id);
+    var goal = p.target>0 ? p.target : (sh?(sh[p.id]||0)*total:0);
+    var pct = goal>0 ? Math.min(100,Math.round(done/goal*100)) : 0;
+    return '<div class="bar"><span class="h" style="width:auto;min-width:64px;max-width:96px;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.name)+'</span>'+
+      '<span class="t"><span class="f" style="width:'+pct+'%;background:'+projColor(p.id)+'"></span></span>'+
+      '<span class="muted" style="width:40px;text-align:right">'+pct+'%</span></div>';
+  }).join('');
 }
 function renderProjection(all){
   var el=document.getElementById('prodProjection'); if(!el) return;
