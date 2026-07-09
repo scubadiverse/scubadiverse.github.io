@@ -303,10 +303,11 @@ function diverTexture(sc,k,a){
   x.fillStyle='#9bd6f0'; x.beginPath(); x.ellipse(298,85,15,11,0,0,7); x.fill();
   x.fillStyle='#0c1c2c'; x.beginPath(); x.arc(300,86,6,0,7); x.fill();
   x.fillStyle='rgba(255,255,255,.6)'; x.beginPath(); x.ellipse(294,82,4,3,0,0,7); x.fill();
-  // orange regulator in the mouth + hose
-  x.fillStyle=fin; x.beginPath(); x.arc(294,112,9,0,7); x.fill();
-  x.strokeStyle=fin; x.lineWidth=6; x.beginPath(); x.moveTo(289,114); x.quadraticCurveTo(250,128,214,112); x.stroke();
-  x.fillStyle='#2a2a2a'; x.beginPath(); x.arc(294,112,3.5,0,7); x.fill();
+  // black regulator in the mouth + hose running back up to the TANK first stage
+  x.strokeStyle='#1a1a1e'; x.lineWidth=6; x.beginPath(); x.moveTo(289,113); x.quadraticCurveTo(244,120,214,58); x.stroke();
+  x.fillStyle='#1a1a1e'; x.beginPath(); x.arc(294,112,9,0,7); x.fill();
+  x.fillStyle='#4a4a4e'; x.beginPath(); x.arc(294,112,3.5,0,7); x.fill();
+  x.fillStyle='#1a1a1e'; x.beginPath(); x.arc(214,56,6,0,7); x.fill();     // first stage on the tank valve
   const tex=new THREE.CanvasTexture(cv); tex.minFilter=THREE.LinearFilter; return tex;
 }
 const DIVER_PLAYER={suit:'#232a33',vest:'#ffcf3f',fin:'#ffcf3f',glove:'#ffcf3f'};   // black + yellow
@@ -358,14 +359,21 @@ function standingDiverTexture(sc,hands){
   x.fillStyle=fin;  x.fillRect(cx-5,150,10,86);            // vest zip
   x.fillStyle='#111'; RR(cx-52,238,104,18,8);              // weight belt
   x.fillStyle=vest; x.beginPath();x.arc(cx-30,196,9,0,7);x.fill(); x.beginPath();x.arc(cx+30,196,9,0,7);x.fill(); // pockets
-  // ---- chunky arms with big round MITT hands ----
+  // ---- chunky arms hanging alongside the body ----
   x.strokeStyle=suit; x.lineWidth=26;
-  x.beginPath(); x.moveTo(cx-46,168); x.quadraticCurveTo(cx-74,214,cx-70,256); x.stroke();
-  x.beginPath(); x.moveTo(cx+46,168); x.quadraticCurveTo(cx+74,214,cx+70,256); x.stroke();
-  // round hands (glove colour). Show a hand-sign emoji big if provided.
-  const drawHand=(px,py,emo)=>{ x.fillStyle=glove; x.beginPath(); x.arc(px,py,20,0,7); x.fill();
-    if(emo){ x.font='30px "Noto Color Emoji",Arial'; x.textAlign='center'; x.textBaseline='middle'; x.fillText(emo,px,py+1); } };
-  drawHand(cx-70,262, hands&&hands.l); drawHand(cx+70,262, hands&&hands.r);
+  x.beginPath(); x.moveTo(cx-44,166); x.quadraticCurveTo(cx-62,208,cx-56,250); x.stroke();
+  x.beginPath(); x.moveTo(cx+44,166); x.quadraticCurveTo(cx+62,208,cx+56,250); x.stroke();
+  // cartoon glove HANDS (palm + thumb + finger bumps, Mario-glove style).
+  // If a sign emoji is given, the emoji IS the hand (drawn big over a wrist cuff).
+  const drawHand=(px,py,emo,side)=>{
+    if(emo){ x.fillStyle=glove; x.beginPath(); x.arc(px,py-6,10,0,7); x.fill();   // small cuff
+      x.font='38px "Noto Color Emoji",Arial'; x.textAlign='center'; x.textBaseline='middle'; x.fillText(emo,px,py+6); return; }
+    x.fillStyle=glove;
+    x.beginPath(); x.arc(px,py,16,0,7); x.fill();                                 // palm / back of hand
+    x.beginPath(); x.arc(px+side*15,py-6,7,0,7); x.fill();                        // thumb
+    for(let i=-1;i<=1;i++){ x.beginPath(); x.arc(px+i*9,py+14,6.5,0,7); x.fill(); } // three finger bumps
+  };
+  drawHand(cx-56,258, hands&&hands.l, -1); drawHand(cx+56,258, hands&&hands.r, 1);
   // ---- big round head + hood ----
   x.fillStyle='#241820'; x.beginPath(); x.arc(cx,86,58,0,7); x.fill();      // neoprene hood
   x.fillStyle=skin;      x.beginPath(); x.arc(cx,94,44,0,7); x.fill();      // face
@@ -374,10 +382,11 @@ function standingDiverTexture(sc,hands){
   x.fillStyle='#9bd6f0'; RR(cx-36,70,72,32,16);                            // lens glass
   x.fillStyle='#0c1c2c'; x.beginPath();x.arc(cx-17,86,9,0,7);x.fill(); x.beginPath();x.arc(cx+17,86,9,0,7);x.fill(); // eyes
   x.fillStyle='rgba(255,255,255,.6)'; x.beginPath();x.ellipse(cx-20,82,4,3,0,0,7);x.fill(); x.beginPath();x.ellipse(cx+14,82,4,3,0,0,7);x.fill();
-  // ---- orange regulator in the mouth + hose ----
-  x.fillStyle=fin; x.beginPath();x.arc(cx,120,11,0,7);x.fill();
-  x.strokeStyle=fin; x.lineWidth=8; x.beginPath();x.moveTo(cx+9,122);x.quadraticCurveTo(cx+48,150,cx+30,196);x.stroke();
-  x.fillStyle='#2a2a2a'; x.beginPath();x.arc(cx,120,4,0,7);x.fill();       // reg centre
+  // ---- black regulator in the mouth + hose running up to the TANK first stage ----
+  x.strokeStyle='#1a1a1e'; x.lineWidth=8; x.beginPath();x.moveTo(cx+9,120);x.quadraticCurveTo(cx+44,138,cx+52,116);x.stroke();
+  x.fillStyle='#1a1a1e'; x.beginPath();x.arc(cx,120,11,0,7);x.fill();
+  x.fillStyle='#4a4a4e'; x.beginPath();x.arc(cx,120,4,0,7);x.fill();       // reg centre
+  x.fillStyle='#1a1a1e'; x.beginPath();x.arc(cx+52,114,7,0,7);x.fill();    // first stage on the tank valve
   const tex=new THREE.CanvasTexture(cv); tex.minFilter=THREE.LinearFilter; return tex;
 }
 function makeStandingDiver(scheme,size){ const s=size||7;
