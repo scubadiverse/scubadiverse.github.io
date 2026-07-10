@@ -832,7 +832,7 @@ function paintStats(){
     var seg=document.createElement('div'); seg.className='s';
     seg.style.cssText='height:100%;width:'+pct+'%;background:'+splitColor(p.id);
     bar.appendChild(seg);
-    txt.push(p.name.split(' ')[0]+' '+pct+'%');
+    txt.push(p.name+' '+pct+'%');
   });
   document.getElementById('sSplitTxt').textContent = S.projects.length? txt.join(' · ') : '–';
   renderSplitHours();
