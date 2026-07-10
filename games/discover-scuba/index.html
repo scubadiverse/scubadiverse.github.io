@@ -25,7 +25,7 @@
   #flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:4}
   /* water surface (chest-deep chapters) */
   #surface{position:absolute;left:0;right:0;bottom:0;height:0;pointer-events:none;z-index:2;
-    background:linear-gradient(rgba(12,52,84,.55),rgba(5,26,46,.85));border-top:3px solid rgba(150,205,235,.55)}
+    background:linear-gradient(rgba(120,212,226,.42),rgba(70,185,205,.7));border-top:3px solid rgba(210,245,252,.65)}
   /* big chapter title */
   #chapter{position:absolute;left:0;right:0;top:20%;text-align:center;z-index:9;pointer-events:none;opacity:0;transition:opacity .6s}
   #chapter.on{opacity:1}
@@ -340,34 +340,39 @@ function makeStopSign(){
 // A standing cartoon diver (front view) in the chunky toy-figurine / Lego style:
 // big round head, stubby chubby body, clearly visible round mitt HANDS, big fins.
 // `hands` optionally overrides the hand emoji/pose per side ({l:'👌',r:''}) for signals.
-function standingDiverTexture(sc,hands){
+// face: 0 = facing the viewer (front), +1 = turned to face RIGHT, -1 = turned to face LEFT (so two divers can face each other)
+function standingDiverTexture(sc,hands,face){
   const cv=document.createElement('canvas'); cv.width=260; cv.height=400; const x=cv.getContext('2d'); const cx=130;
   const suit=sc.suit,vest=sc.vest,fin=sc.fin,glove=sc.glove,skin='#f0c095',tank='#c2c8ce';
   x.lineJoin='round'; x.lineCap='round';
   const RR=(a,b,c,d,r)=>{ if(x.roundRect){x.beginPath();x.roundRect(a,b,c,d,r);x.fill();} else x.fillRect(a,b,c,d); };
-  // ---- proper fin blades on the feet (long flippers, not balls) ----
+  const f=face||0, dF=20*f;                 // turn amount; dF = how far the head/face shifts toward the buddy
+  // ---- proper fin blades on the feet (long flippers), angled toward the facing side ----
   x.fillStyle=fin;
-  x.save();x.translate(102,360);x.rotate(-.14);x.beginPath();x.ellipse(0,20,16,36,0,0,7);x.fill();x.restore();
-  x.save();x.translate(158,360);x.rotate(.14);x.beginPath();x.ellipse(0,20,16,36,0,0,7);x.fill();x.restore();
+  x.save();x.translate(102+dF*0.4,360);x.rotate(-.14+f*0.10);x.beginPath();x.ellipse(0,20,16,36,0,0,7);x.fill();x.restore();
+  x.save();x.translate(158+dF*0.4,360);x.rotate(.14+f*0.10);x.beginPath();x.ellipse(0,20,16,36,0,0,7);x.fill();x.restore();
   // ---- stubby legs ----
   x.strokeStyle=suit; x.lineWidth=34;
-  x.beginPath();x.moveTo(112,286);x.lineTo(106,352);x.stroke();
-  x.beginPath();x.moveTo(148,286);x.lineTo(154,352);x.stroke();
-  // ---- yellow tank peeking behind a shoulder ----
-  x.fillStyle=tank; RR(cx+30,110,30,86,14);
-  x.fillStyle=fin;  RR(cx+30,110,30,86,14); x.globalAlpha=1;
-  x.fillStyle='#8b929a'; x.fillRect(cx+40,104,12,12);
-  // ---- chubby rounded torso (wetsuit) ----
-  x.fillStyle=suit; x.beginPath(); x.ellipse(cx,206,62,74,0,0,7); x.fill();
+  x.beginPath();x.moveTo(112+dF*0.3,286);x.lineTo(106+dF*0.5,352);x.stroke();
+  x.beginPath();x.moveTo(148+dF*0.3,286);x.lineTo(154+dF*0.5,352);x.stroke();
+  // ---- yellow tank: peeks behind a shoulder (front), or moves to the BACK when turned ----
+  const tankX = cx + (f?-46*f:30);
+  x.fillStyle=tank; RR(tankX,110,30,86,14);
+  x.fillStyle=fin;  RR(tankX,110,30,86,14); x.globalAlpha=1;
+  x.fillStyle='#8b929a'; x.fillRect(tankX+10,104,12,12);
+  // ---- chubby rounded torso (wetsuit); a touch narrower when turned ----
+  x.fillStyle=suit; x.beginPath(); x.ellipse(cx+dF*0.3,206, f?52:62,74,0,0,7); x.fill();
   // ---- BCD vest over the chest ----
-  x.fillStyle=vest; RR(cx-42,150,84,86,26);
-  x.fillStyle=fin;  x.fillRect(cx-5,150,10,86);            // vest zip
-  x.fillStyle='#111'; RR(cx-52,238,104,18,8);              // weight belt
-  x.fillStyle=vest; x.beginPath();x.arc(cx-30,196,9,0,7);x.fill(); x.beginPath();x.arc(cx+30,196,9,0,7);x.fill(); // pockets
-  // ---- chunky arms hanging alongside the body ----
+  x.fillStyle=vest; RR(cx-42+dF*0.5+(f?6*f:0),150, 84-(f?14:0),86,26);
+  x.fillStyle=fin;  x.fillRect(cx-5+dF*0.6,150,10,86);            // vest zip
+  x.fillStyle='#111'; RR(cx-52+dF*0.4,238, 104-(f?12:0),18,8);    // weight belt
+  if(!f){ x.fillStyle=vest; x.beginPath();x.arc(cx-30,196,9,0,7);x.fill(); x.beginPath();x.arc(cx+30,196,9,0,7);x.fill(); } // pockets
+  // ---- chunky arms: hang alongside (front), or near arm forward / far arm tucked (turned) ----
   x.strokeStyle=suit; x.lineWidth=26;
-  x.beginPath(); x.moveTo(cx-44,166); x.quadraticCurveTo(cx-62,208,cx-56,250); x.stroke();
-  x.beginPath(); x.moveTo(cx+44,166); x.quadraticCurveTo(cx+62,208,cx+56,250); x.stroke();
+  if(f){ x.beginPath(); x.moveTo(cx+f*30,168); x.quadraticCurveTo(cx+f*64,206,cx+f*70,244); x.stroke();  // front arm reaches toward buddy
+         x.beginPath(); x.moveTo(cx-f*36,170); x.quadraticCurveTo(cx-f*30,206,cx-f*20,242); x.stroke(); } // back arm (short)
+  else { x.beginPath(); x.moveTo(cx-44,166); x.quadraticCurveTo(cx-62,208,cx-56,250); x.stroke();
+         x.beginPath(); x.moveTo(cx+44,166); x.quadraticCurveTo(cx+62,208,cx+56,250); x.stroke(); }
   // cartoon glove HANDS with real FINGERS (palm + four fingers + a thumb).
   // If a sign emoji is given, the emoji IS the hand (drawn big over a wrist cuff).
   const drawHand=(px,py,emo,side)=>{
@@ -379,28 +384,34 @@ function standingDiverTexture(sc,hands){
       x.roundRect?x.roundRect(fx,py+2,6,17,3):x.rect(fx,py+2,6,17); x.fill(); }
     x.beginPath(); x.roundRect?x.roundRect(px+side*12-4,py-12,8,16,4):x.rect(px+side*12-4,py-12,8,16); x.fill(); // thumb
   };
-  drawHand(cx-56,256, hands&&hands.l, -1); drawHand(cx+56,256, hands&&hands.r, 1);
-  // ---- big round head + hood ----
-  x.fillStyle='#241820'; x.beginPath(); x.arc(cx,86,58,0,7); x.fill();      // neoprene hood
-  x.fillStyle=skin;      x.beginPath(); x.arc(cx,94,44,0,7); x.fill();      // face
-  // ---- big diving mask (two round eyes through a wide visor) ----
-  x.fillStyle='#15181c'; RR(cx-42,66,84,42,20);                            // mask frame
-  x.fillStyle='#9bd6f0'; RR(cx-36,70,72,32,16);                            // lens glass
-  x.fillStyle='#0c1c2c'; x.beginPath();x.arc(cx-17,86,9,0,7);x.fill(); x.beginPath();x.arc(cx+17,86,9,0,7);x.fill(); // eyes
-  x.fillStyle='rgba(255,255,255,.6)'; x.beginPath();x.ellipse(cx-20,82,4,3,0,0,7);x.fill(); x.beginPath();x.ellipse(cx+14,82,4,3,0,0,7);x.fill();
+  if(f){ drawHand(cx+f*70,250, hands&&hands.r, f); drawHand(cx-f*20,246, hands&&hands.l, -f); }
+  else { drawHand(cx-56,256, hands&&hands.l, -1); drawHand(cx+56,256, hands&&hands.r, 1); }
+  // ---- big round head + hood; when turned, hood shows the back of the head on the far side ----
+  const hx=cx+dF;
+  x.fillStyle='#241820'; x.beginPath(); x.ellipse(hx-10*f,86, f?54:58,58,0,0,7); x.fill();   // neoprene hood
+  x.fillStyle=skin;      x.beginPath(); x.ellipse(hx+6*f,94, f?38:44,44,0,0,7); x.fill();     // face
+  // ---- big diving mask (two round eyes through a wide visor), turned toward the buddy ----
+  x.fillStyle='#15181c'; RR(hx-30+16*f,66, f?66:84,42,20);                  // mask frame
+  x.fillStyle='#9bd6f0'; RR(hx-24+18*f,70, f?54:72,32,16);                  // lens glass
+  x.fillStyle='#0c1c2c';
+  if(!f){ x.beginPath();x.arc(hx-17,86,9,0,7);x.fill(); x.beginPath();x.arc(hx+17,86,9,0,7);x.fill(); // eyes
+    x.fillStyle='rgba(255,255,255,.6)'; x.beginPath();x.ellipse(hx-20,82,4,3,0,0,7);x.fill(); x.beginPath();x.ellipse(hx+14,82,4,3,0,0,7);x.fill(); }
+  else { x.beginPath();x.arc(hx+20*f,86,10,0,7);x.fill();      // near eye toward the front edge
+         x.beginPath();x.arc(hx+2*f,86,6,0,7);x.fill();        // far eye smaller, near centre
+         x.fillStyle='rgba(255,255,255,.6)'; x.beginPath();x.ellipse(hx+16*f,82,4,3,0,0,7);x.fill(); }
   // ---- black regulator in the mouth + hose running up to the TANK first stage ----
-  x.strokeStyle='#1a1a1e'; x.lineWidth=8; x.beginPath();x.moveTo(cx+9,120);x.quadraticCurveTo(cx+44,138,cx+52,116);x.stroke();
-  x.fillStyle='#1a1a1e'; x.beginPath();x.arc(cx,120,11,0,7);x.fill();
-  x.fillStyle='#4a4a4e'; x.beginPath();x.arc(cx,120,4,0,7);x.fill();       // reg centre
-  x.fillStyle='#1a1a1e'; x.beginPath();x.arc(cx+52,114,7,0,7);x.fill();    // first stage on the tank valve
+  x.strokeStyle='#1a1a1e'; x.lineWidth=8; x.beginPath();x.moveTo(hx+9,120);x.quadraticCurveTo(hx+44,138,tankX+8,116);x.stroke();
+  x.fillStyle='#1a1a1e'; x.beginPath();x.arc(hx,120,11,0,7);x.fill();
+  x.fillStyle='#4a4a4e'; x.beginPath();x.arc(hx,120,4,0,7);x.fill();       // reg centre
+  x.fillStyle='#1a1a1e'; x.beginPath();x.arc(tankX+8,114,7,0,7);x.fill();  // first stage on the tank valve
   const tex=new THREE.CanvasTexture(cv); tex.minFilter=THREE.LinearFilter; return tex;
 }
-function makeStandingDiver(scheme,size){ const s=size||7;
-  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:standingDiverTexture(scheme),transparent:true,depthWrite:false}));
-  sp.scale.set(s*0.65,s,1); sp.userData={scheme}; return sp; }
+function makeStandingDiver(scheme,size,face){ const s=size||7;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:standingDiverTexture(scheme,null,face||0),transparent:true,depthWrite:false}));
+  sp.scale.set(s*0.65,s,1); sp.userData={scheme,face:face||0}; return sp; }
 // make the standing toy diver hold up a hand-sign emoji (rebuilds his texture)
 function setDiverHand(sprite,emoji){ if(!sprite)return; const sc=sprite.userData.scheme;
-  const t=standingDiverTexture(sc, emoji?{r:emoji}:null); sprite.material.map=t; sprite.material.map.needsUpdate=true; sprite.material.needsUpdate=true; }
+  const t=standingDiverTexture(sc, emoji?{r:emoji}:null, sprite.userData.face||0); sprite.material.map=t; sprite.material.map.needsUpdate=true; sprite.material.needsUpdate=true; }
 /* ===== ANIMATED HAND SIGNS — proper cartoon hands drawn on canvas ===== */
 const SGN_SK='#f3c18c', SGN_SKE='#cf8f52', SGN_SKH='#ffdcae', SGN_SUIT='#20262e';
 const _problemImg=new Image(); _problemImg.src='problem-sign.png';   // 3D rigged hand, 20 frames (5x4, 200px cells)
@@ -660,7 +671,7 @@ function animate(){ requestAnimationFrame(animate); const dt=Math.min(clock.getD
   camera.rotation.y=V.look*0.15;
   // background / fog per environment
   if(V.underwater){ renderer.setClearColor(0x062138); if(!scene.fog)scene.fog=new THREE.FogExp2(0x062138,0.016); }
-  else { renderer.setClearColor(0x08243c); scene.fog=null; }
+  else { renderer.setClearColor(0x46b5cb); scene.fog=null; }   // light turquoise at the surface so the divers (dark legs) stay visible
   // instructor idle bob + optional hold + signal arm
   if(instructor){ instructor.position.y=-.6+Math.sin(t*.9)*.1; const u=instructor.userData;
     if(u.finL)u.finL.rotation.x=Math.sin(t*3)*.4; if(u.finR)u.finR.rotation.x=-Math.sin(t*3)*.4;
@@ -765,8 +776,8 @@ function chapter1(){
   V.underwater=false; V.reef=false; setMask(false); clearActions();
   camera.position.set(0,.35,0); camera.rotation.set(0,0,0);
   clearChapterActors();
-  beachDiver =makeStandingDiver(DIVER_PLAYER,7.5); beachDiver.position.set(-.9,-.4,-6);   scene.add(beachDiver);
-  beachInstr =makeStandingDiver(DIVER_INSTR,7);    beachInstr.position.set(2.3,-.4,-6.4);  scene.add(beachInstr);
+  beachDiver =makeStandingDiver(DIVER_PLAYER,7.5,1); beachDiver.position.set(-.9,-.4,-6);   scene.add(beachDiver);
+  beachInstr =makeStandingDiver(DIVER_INSTR,7,-1);    beachInstr.position.set(2.3,-.4,-6.4);  scene.add(beachInstr);
   setSurface(.46); // water up to the chest
   showChapterTitle('Chapter One','In the water');
   showSignal('ok','OK?');
@@ -784,8 +795,8 @@ const SIGN_STEPS=[
 function chapter2(){
   V.underwater=false; setMask(false); clearActions(); showSignal(null); hideBubble(); diverSign(null);
   camera.position.set(0,.35,0); camera.rotation.set(0,0,0);
-  if(!beachDiver){ beachDiver=makeStandingDiver(DIVER_PLAYER,7.5); beachDiver.position.set(-.9,-.4,-6); scene.add(beachDiver); }
-  if(!beachInstr){ beachInstr=makeStandingDiver(DIVER_INSTR,7); beachInstr.position.set(2.3,-.4,-6.4); scene.add(beachInstr); }
+  if(!beachDiver){ beachDiver=makeStandingDiver(DIVER_PLAYER,7.5,1); beachDiver.position.set(-.9,-.4,-6); scene.add(beachDiver); }
+  if(!beachInstr){ beachInstr=makeStandingDiver(DIVER_INSTR,7,-1); beachInstr.position.set(2.3,-.4,-6.4); scene.add(beachInstr); }
   setSurface(.46);
   showChapterTitle('Chapter Two','Hand signals');
   $('help').innerHTML='<b>Hand signals</b><br>Keep your hand clear and easy to see.<br>Watch the instructor, then copy the signal.';
@@ -820,8 +831,8 @@ const QUIZ=[
 ];
 function chapter3(){
   clearActions(); showSignal(null); hideBubble(); diverSign(null);
-  if(!beachDiver){ beachDiver=makeStandingDiver(DIVER_PLAYER,7.5); beachDiver.position.set(-.9,-.4,-6); scene.add(beachDiver); }
-  if(!beachInstr){ beachInstr=makeStandingDiver(DIVER_INSTR,7); beachInstr.position.set(2.3,-.4,-6.4); scene.add(beachInstr); }
+  if(!beachDiver){ beachDiver=makeStandingDiver(DIVER_PLAYER,7.5,1); beachDiver.position.set(-.9,-.4,-6); scene.add(beachDiver); }
+  if(!beachInstr){ beachInstr=makeStandingDiver(DIVER_INSTR,7,-1); beachInstr.position.set(2.3,-.4,-6.4); scene.add(beachInstr); }
   setSurface(.46);
   showChapterTitle('Chapter Three','Signals quiz');
   $('help').innerHTML='<b>Signals quiz</b><br>Read the instruction, then choose the correct hand sign from the buttons below.';
@@ -857,8 +868,8 @@ const AIR_STEPS=[
 ];
 function chapter4(){
   clearActions(); showSignal(null); hideBubble(); diverSign(null);
-  if(!beachDiver){ beachDiver=makeStandingDiver(DIVER_PLAYER,7.5); beachDiver.position.set(-.9,-.4,-6); scene.add(beachDiver); }
-  if(!beachInstr){ beachInstr=makeStandingDiver(DIVER_INSTR,7); beachInstr.position.set(2.3,-.4,-6.4); scene.add(beachInstr); }
+  if(!beachDiver){ beachDiver=makeStandingDiver(DIVER_PLAYER,7.5,1); beachDiver.position.set(-.9,-.4,-6); scene.add(beachDiver); }
+  if(!beachInstr){ beachInstr=makeStandingDiver(DIVER_INSTR,7,-1); beachInstr.position.set(2.3,-.4,-6.4); scene.add(beachInstr); }
   setSurface(.46);
   showChapterTitle('Chapter Four','How much air?');
   $('help').innerHTML='<b>Air signals</b><br>1 finger = 10 bar &bull; 2 = 20 &bull; 3 = 30 &bull; 4 = 40<br>fist = 50 &bull; a T (one hand up, one flat on top) = 100';
