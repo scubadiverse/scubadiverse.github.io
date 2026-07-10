@@ -6,7 +6,7 @@ android {
     namespace 'net.scubadiverse.focusflow'
     compileSdk 34
     defaultConfig {
-        applicationId "net.scubadiverse.focusflow"
+        applicationId "app.ainative.focusflow"
         minSdk 26
         targetSdk 34
         versionCode 9
