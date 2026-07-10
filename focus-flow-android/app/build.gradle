@@ -4,12 +4,12 @@ plugins {
 }
 android {
     namespace 'net.scubadiverse.focusflow'
-    compileSdk 34
+    compileSdk 35
     defaultConfig {
         applicationId "app.ainative.focusflow"
         minSdk 26
-        targetSdk 34
-        versionCode 9
+        targetSdk 35
+        versionCode 10
         versionName "1.8"
     }
     signingConfigs {
