@@ -84,7 +84,7 @@
   #help.on{display:block}
   #help b{color:#9fe9ff;font-family:'Luckiest Guy';letter-spacing:.02em}
   /* spontaneous speech bubble above the diver's head */
-  #bubble{position:absolute;z-index:8;display:none;transform:translate(-50%,-100%);max-width:320px;text-align:center;
+  #bubble{position:absolute;left:50%;top:60%;z-index:8;display:none;transform:translate(-50%,-100%);max-width:320px;text-align:center;
     background:rgba(6,26,38,.95);border:2px solid #9fe9ff;border-radius:16px;padding:11px 15px;pointer-events:auto;
     font-weight:800;font-size:15px;color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.5)}
   #bubble.on{display:block;animation:pop .25s cubic-bezier(.2,1.5,.4,1)}
@@ -643,8 +643,10 @@ function makeSignSprite(text){
   const cv=document.createElement('canvas'); cv.width=512; cv.height=320; const x=cv.getContext('2d');
   x.fillStyle='#7a5222'; x.fillRect(238,210,36,100);                      // pole
   x.fillStyle='#f0dcac'; x.fillRect(24,24,464,190); x.strokeStyle='#7a5222'; x.lineWidth=14; x.strokeRect(24,24,464,190);
-  x.fillStyle='#5a3410'; x.textAlign='center'; x.textBaseline='middle'; x.font='bold 36px Nunito, Arial, sans-serif';
-  const words=text.split(' '); let line='',y=78; for(const w of words){ if((line+w).length>18){ x.fillText(line,256,y); y+=46; line=''; } line+=w+' '; } x.fillText(line.trim(),256,y);
+  x.fillStyle='#5a3410'; x.textAlign='center'; x.textBaseline='middle'; x.font='bold 32px Nunito, Arial, sans-serif';
+  const words=text.split(' '); const lines=[]; let line=''; for(const w of words){ if((line+w).length>18){ lines.push(line.trim()); line=''; } line+=w+' '; } lines.push(line.trim());
+  const lh=40, cyc=24+190/2; let y=cyc-(lines.length-1)*lh/2;                 // wrap, then vertically centre inside the board so nothing spills out
+  for(const L of lines){ x.fillText(L,256,y); y+=lh; }
   const tex=new THREE.CanvasTexture(cv); tex.minFilter=THREE.LinearFilter;
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false})); sp.scale.set(4.4,2.75,1); return sp;
 }
