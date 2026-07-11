@@ -118,6 +118,13 @@ class MainActivity : AppCompatActivity() {
             getSharedPreferences("focusflow", Context.MODE_PRIVATE).edit().putString("official", number).apply()
         }
 
+        // Saved emergency contacts (JSON array of {name, number}) so the whole-screen
+        // lock can offer them alongside 112, and never block reaching them.
+        @JavascriptInterface
+        fun setEmergencyContacts(json: String) {
+            getSharedPreferences("focusflow", Context.MODE_PRIVATE).edit().putString("contacts", json).apply()
+        }
+
         // Schedule a one-shot reminder that fires even if the app is closed.
         @JavascriptInterface
         fun scheduleAlert(id: String, delaySec: Double, title: String, body: String) {

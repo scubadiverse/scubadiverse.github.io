@@ -1409,6 +1409,13 @@ function groundNext(){
 }
 
 // ---- emergency (always available) ----
+// Keep the native whole-screen lock in sync so it can offer 112 AND your contacts,
+// and never block reaching them.
+function pushEmergencyToNative(){
+  if(!inNativeApp) return;
+  try{ if(window.AndroidBridge.setEmergency) window.AndroidBridge.setEmergency((S.emergency&&S.emergency.official)||'112'); }catch(e){}
+  try{ if(window.AndroidBridge.setEmergencyContacts) window.AndroidBridge.setEmergencyContacts(JSON.stringify((S.emergency&&S.emergency.contacts)||[])); }catch(e){}
+}
 function callNumber(num){
   var n=(num||'').replace(/\s/g,''); if(!n) return;
   if(inNativeApp && window.AndroidBridge.dial){ try{ window.AndroidBridge.dial(n); return; }catch(e){} }
@@ -1437,13 +1444,12 @@ function addEmergencyContact(){
   var n=document.getElementById('ecName').value.trim(), num=document.getElementById('ecNum').value.trim();
   if(!n||!num) return;
   if(!S.emergency) S.emergency={official:'112',contacts:[]};
-  S.emergency.contacts.push({name:n, number:num}); save();
+  S.emergency.contacts.push({name:n, number:num}); save(); pushEmergencyToNative();
   document.getElementById('ecName').value=''; document.getElementById('ecNum').value='';
   openEmergency();
 }
-function removeEmergencyContact(i){ S.emergency.contacts.splice(i,1); save(); openEmergency(); }
-function setOfficial(v){ v=(v||'').trim()||'112'; S.emergency.official=v; save();
-  if(inNativeApp && window.AndroidBridge.setEmergency){ try{ window.AndroidBridge.setEmergency(v); }catch(e){} } }
+function removeEmergencyContact(i){ S.emergency.contacts.splice(i,1); save(); pushEmergencyToNative(); openEmergency(); }
+function setOfficial(v){ v=(v||'').trim()||'112'; S.emergency.official=v; save(); pushEmergencyToNative(); }
 
 // ---- 23:00 wind-down lock (within this app) ----
 function afterCurfew(){ var h=new Date().getHours(); return h>=23 || h<6; }
@@ -1550,7 +1556,7 @@ resumeTimer();
 initFirebase();
 // whole-screen lock is a native-app feature – show and restore its state
 if(inNativeApp){
-  try{ if(window.AndroidBridge.setEmergency) window.AndroidBridge.setEmergency((S.emergency&&S.emergency.official)||'112'); }catch(e){}
+  pushEmergencyToNative();
   document.getElementById('guardRow').style.display='flex';
   var gb=document.getElementById('guardBtn');
   if(S.guard && window.AndroidBridge.hasOverlay && window.AndroidBridge.hasOverlay()){

@@ -23,6 +23,7 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.Button
 import android.widget.FrameLayout
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
@@ -131,22 +132,52 @@ class ScreenGuardService : Service() {
                 FrameLayout.LayoutParams.MATCH_PARENT
             ).apply { gravity = Gravity.CENTER }
         )
-        val emg = Button(this)
-        emg.text = "\uD83C\uDD98 Emergency call"
-        emg.setOnClickListener {
-            val num = getSharedPreferences("focusflow", Context.MODE_PRIVATE).getString("official", "112") ?: "112"
-            try {
-                val i = Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + num))
-                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                startActivity(i)
-            } catch (e: Exception) {}
+        // Emergency must NEVER be blocked. Every emergency button first drops the
+        // whole-screen lock and stops the service, THEN opens the dialer, so the
+        // overlay can never cover the call screen. Both 112 and any saved contact work.
+        val prefs = getSharedPreferences("focusflow", Context.MODE_PRIVATE)
+        val official = prefs.getString("official", "112") ?: "112"
+
+        val emgCol = LinearLayout(this)
+        emgCol.orientation = LinearLayout.VERTICAL
+        emgCol.gravity = Gravity.CENTER_HORIZONTAL
+
+        fun addEmergencyButton(label: String, number: String) {
+            val b = Button(this)
+            b.text = label
+            b.setOnClickListener {
+                removeOverlay()
+                try {
+                    val i = Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + number))
+                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    startActivity(i)
+                } catch (e: Exception) {}
+                stopSelf()
+            }
+            val blp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            blp.topMargin = 14
+            emgCol.addView(b, blp)
         }
+
+        addEmergencyButton("\uD83C\uDD98 Call " + official + " (emergency)", official)
+        try {
+            val arr = org.json.JSONArray(prefs.getString("contacts", "[]") ?: "[]")
+            for (idx in 0 until arr.length()) {
+                val c = arr.getJSONObject(idx)
+                val name = c.optString("name")
+                val number = c.optString("number")
+                if (number.isNotBlank()) addEmergencyButton("\uD83D\uDCDE " + name + " (" + number + ")", number)
+            }
+        } catch (e: Exception) {}
+
         val elp = FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT
         )
         elp.gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-        elp.bottomMargin = 140
-        root.addView(emg, elp)
+        elp.bottomMargin = 120
+        root.addView(emgCol, elp)
         try {
             wm?.addView(root, lp)
         } catch (e: Exception) {
