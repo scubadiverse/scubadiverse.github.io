@@ -421,6 +421,7 @@ function setDiverHand(sprite,emoji){ if(!sprite)return; const sc=sprite.userData
 /* ===== ANIMATED HAND SIGNS — proper cartoon hands drawn on canvas ===== */
 const SGN_SK='#f7c63e', SGN_SKE='#e0a52a', SGN_SKH='#ffdd72', SGN_SUIT='#20262e';   // emoji-style yellow so every sign matches
 const _problemImg=new Image(); _problemImg.src='problem-sign.png';   // 3D rigged hand, 20 frames (5x4, 200px cells)
+const _teeImg=new Image(); _teeImg.src='tee-sign.png';               // 3D two-hand T = 100 bar
 function _sr(x,a,b,c,d,r){ x.beginPath(); if(x.roundRect)x.roundRect(a,b,c,d,r); else x.rect(a,b,c,d); x.fill(); }
 // a flat cartoon hand (palm/back up), fingers pointing LEFT, centred at (cx,cy) with a wetsuit cuff
 function _flat(x,cx,cy){ x.save(); x.translate(cx,cy);
@@ -469,7 +470,9 @@ const SIGNDRAW={
     x.fillStyle=SGN_SKE; _sr(x,-46,6,66,16,8);  x.fillStyle=SGN_SK; _sr(x,-46,8,62,12,6); x.restore(); x.restore(); },
   n1:_fingers(1), n2:_fingers(2), n3:_fingers(3), n4:_fingers(4),
   fist(x){ x.save(); x.translate(150,150); _fistBase(x,0,0); x.restore(); },
-  T(x){ x.save(); x.translate(150,158);
+  T(x){ // 100 bar = two hands forming a T (one vertical, one flat on top), rendered from the 3D model
+    if(_teeImg.complete && _teeImg.naturalWidth){ x.drawImage(_teeImg,0,0,300,300); return; }
+    x.save(); x.translate(150,158);
     x.fillStyle=SGN_SKE; _sr(x,-22,-28,44,82,16); x.fillStyle=SGN_SK; _sr(x,-19,-25,38,76,13);       // vertical hand
     for(let i=0;i<4;i++){ const fx=-18+i*12; x.fillStyle=SGN_SKE; _sr(x,fx-5,-70,12,46,6); x.fillStyle=SGN_SK; _sr(x,fx-4,-67,10,42,5); }
     x.fillStyle=SGN_SKE; _sr(x,-72,-94,144,26,12); x.fillStyle=SGN_SK; _sr(x,-68,-91,136,20,10); x.restore(); }  // horizontal hand on top = T
