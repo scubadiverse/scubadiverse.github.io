@@ -1,7 +1,7 @@
 {
-  "name": "Focus & Flow \u2013 Time Manager",
-  "short_name": "Focus & Flow",
-  "description": "Focus blocks with water, break and rest reminders.",
+  "name": "ProjectSavvy – Project Manager",
+  "short_name": "ProjectSavvy",
+  "description": "ADHD-friendly project, time and productivity manager with breaks and calm.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
