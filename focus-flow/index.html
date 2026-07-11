@@ -32,6 +32,13 @@
   .sub{color:var(--muted);font-size:13px;margin:0 0 16px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:16px;
     padding:18px;margin-bottom:14px}
+  /* Wide screens (tablet / desktop landscape): 2-column layout. Phones stay single-column. */
+  @media (min-width:900px){
+    body{max-width:1200px}
+    h1,.sub{text-align:center}
+    .wide{column-count:2;column-gap:24px}
+    .wide>.card{break-inside:avoid;-webkit-column-break-inside:avoid;display:inline-block;width:100%}
+  }
   .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
   .grow{flex:1}
   button{font:inherit;border:0;border-radius:12px;padding:12px 16px;cursor:pointer;
@@ -128,6 +135,7 @@
 <div id="restBanner" class="banner rest">🌙 You've done a long day. Wind down soon – rest is part of the work.</div>
 <div id="switchBanner" class="banner switch">🔄 Good block. Switch projects to stay fresh?</div>
 
+<div class="wide">
 <div class="card">
   <div class="row"><b class="grow">Projects</b>
     <button class="pill" id="editProjBtn" onclick="toggleEditProj()">✏️ Edit</button></div>
@@ -246,6 +254,7 @@
   <div class="stat"><span>Strongest hours (from your sessions)</span><b id="sPeak">learning…</b></div>
   <div class="bars" id="bars"></div>
   <div class="foot">Learns your strongest hours from your own focus sessions.</div>
+</div>
 </div>
 
 <!-- Optional cloud sign-in is disabled for launch (fully on-device). Re-enable later. -->
