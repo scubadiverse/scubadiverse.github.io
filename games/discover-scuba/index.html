@@ -51,11 +51,17 @@
   #trimM{bottom:156px} #trimM .bar>i{background:linear-gradient(90deg,#3bd46a,#c7ff3b)}
 
   /* instructor signal bubble */
-  #signal{position:absolute;left:50%;top:88px;transform:translateX(-50%);display:none;z-index:6;text-align:center}
+  #signal{position:absolute;left:50%;top:88px;transform:translateX(-50%);display:none;z-index:6;text-align:center;transition:left .25s,top .25s}
   #signal.on{display:block}
+  #signal.rside{left:66%;top:6px}                   /* floating above the instructor's (right diver) head */
+  #signal.rside .ic{font-size:56px}
+  #signal.rside canvas{width:74px!important;height:74px!important}
   #signal .ic{font-size:72px;filter:drop-shadow(0 4px 8px rgba(0,0,0,.5))}
   #signal .cap{font-weight:900;font-size:13px;background:rgba(4,20,30,.7);border-radius:20px;padding:4px 12px;display:inline-block;margin-top:2px}
   #diversign{position:absolute;left:50%;top:42%;transform:translateX(-50%);display:none;z-index:7;text-align:center;pointer-events:none}
+  #diversign.lside{left:38%;top:6px}                /* floating above the player's (left diver) head */
+  #diversign.lside canvas{width:74px!important;height:74px!important}
+  #diversign.lside .ic{transform:scaleX(-1)}        /* mirror so the left diver signs with the other hand */
   #diversign.on{display:block}
   #diversign .ic{font-size:96px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.55))}
   #diversign .cap{font-weight:900;font-size:14px;color:#04202e;background:#ffd23c;border-radius:20px;padding:5px 16px;display:inline-block;margin-top:2px;box-shadow:0 3px 0 #a8701c}
@@ -475,7 +481,8 @@ function tickSigns(t){ for(let i=_activeSigns.length-1;i>=0;i--){ const c=_activ
   const x=c._x; x.clearRect(0,0,300,300); (SIGNDRAW[c._kind]||SIGNDRAW.problem)(x,t); } }
 // big on-screen READOUT of the sign the DIVER is making (animated)
 function diverSign(kind,cap){ const el=$('diversign'); if(!kind){ el.classList.remove('on'); return; }
-  el.innerHTML='<div class="ic"></div><div class="cap">'+cap+'</div>'; el.querySelector('.ic').appendChild(makeSignCanvas(kind,124)); el.classList.add('on'); }
+  el.innerHTML='<div class="ic"></div><div class="cap">'+cap+'</div>'; el.querySelector('.ic').appendChild(makeSignCanvas(kind,124));
+  el.classList.toggle('lside', !V.underwater); el.classList.add('on'); }   // player = left diver on the surface
 function showChapterTitle(k,t){ chapterEl.innerHTML='<div class="k">'+k+'</div><div class="t">'+t+'</div>'; chapterEl.classList.add('on'); setTimeout(()=>chapterEl.classList.remove('on'),3200); }
 function setSurface(frac){ surfaceEl.style.height=(frac*100)+'%'; }
 function particles(n,spread,color,size,y){
@@ -563,7 +570,7 @@ function setMask(on){ V.maskOn=on; maskEl.classList.toggle('on',on); }
 function setWater(f){ V.water=f; waterEl.style.height=(f*46)+'%'; } // fills up to mask centre
 function showSignal(kind,cap){ if(!kind){ signalEl.classList.remove('on'); V.signal=null; return;}
   const ic=signalEl.querySelector('.ic'); ic.innerHTML=''; ic.appendChild(makeSignCanvas(kind,100));
-  signalEl.querySelector('.cap').textContent=cap; signalEl.classList.add('on'); }
+  signalEl.querySelector('.cap').textContent=cap; signalEl.classList.toggle('rside', !V.underwater); signalEl.classList.add('on'); }   // instructor = right diver on the surface
 function doFlash(){ flash.style.transition='none'; flash.style.opacity='.85'; requestAnimationFrame(()=>{ flash.style.transition='opacity .5s'; flash.style.opacity='0'; }); }
 
 /* ---------- action buttons + promise flow ---------- */
