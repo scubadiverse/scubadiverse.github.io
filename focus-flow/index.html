@@ -479,8 +479,11 @@ function renderProjects(){
     b.style.cssText='flex:1;min-width:130px;text-align:left;border-radius:14px;padding:14px'+
       (active?';box-shadow:0 0 0 2px '+c+' inset;border-color:'+c:'');
     var mn = p.target>0 ? (projMins(p.id)+' / '+p.target+' min'+(projMins(p.id)>=p.target?' ✓':'')) : (projMins(p.id)+' min today');
+    // Nudge users to rename projects that still have a default name.
+    var isDefault = /^project\s*(one|two|three|four|five|six|seven|\d+)?$/i.test((p.name||'').trim());
     b.innerHTML='<div class="nm"><span class="dot" style="background:'+c+'"></span>'+esc(p.name)+'</div>'+
-      '<div class="mn">'+mn+'</div>';
+      '<div class="mn">'+mn+'</div>'+
+      (isDefault ? '<div class="mn" style="color:var(--accent);margin-top:3px">✏️ Tap Edit to change project name</div>' : '');
     b.onclick=function(){ pick(p.id); };
     el.appendChild(b);
   });
