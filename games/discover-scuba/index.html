@@ -63,6 +63,8 @@
   #bubble.understudent{left:38%;top:84%}            /* the "well done" sits under the student (left) diver */
   #diversign.lside canvas{width:74px!important;height:74px!important}
   #diversign.lside .ic{transform:scaleX(-1)}        /* mirror so the left diver signs with the other hand */
+  #diversign.quizans{left:50%;top:98px;transform:translateX(-50%)}   /* quiz answer sits BELOW the top instruction, never hiding it */
+  #diversign.quizans canvas{width:150px!important;height:150px!important}   /* bigger so the answered sign is clear */
   #diversign.on{display:block}
   #diversign .ic{font-size:96px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.55))}
   #diversign .cap{font-weight:900;font-size:14px;color:#04202e;background:#ffd23c;border-radius:20px;padding:5px 16px;display:inline-block;margin-top:2px;box-shadow:0 3px 0 #a8701c}
@@ -500,7 +502,9 @@ function tickSigns(t){ for(let i=_activeSigns.length-1;i>=0;i--){ const c=_activ
 // big on-screen READOUT of the sign the DIVER is making (animated)
 function diverSign(kind,cap){ const el=$('diversign'); if(!kind){ el.classList.remove('on'); return; }
   el.innerHTML='<div class="ic"></div><div class="cap">'+cap+'</div>'; el.querySelector('.ic').appendChild(makeSignCanvas(kind,124));
-  el.classList.toggle('lside', !V.underwater); el.classList.add('on'); }   // player = left diver on the surface
+  const quiz=narrEl.classList.contains('top');   // the signals quiz keeps its instruction at the top
+  el.classList.toggle('quizans', quiz);          // so the answer shows BELOW it (bigger), never hiding it
+  el.classList.toggle('lside', !V.underwater && !quiz); el.classList.add('on'); }   // player = left diver on the surface
 function showChapterTitle(k,t){ chapterEl.innerHTML='<div class="k">'+k+'</div><div class="t">'+t+'</div>'; chapterEl.classList.add('on'); setTimeout(()=>chapterEl.classList.remove('on'),3200); }
 function setSurface(frac){ surfaceEl.style.height=(frac*100)+'%'; }
 function particles(n,spread,color,size,y){
