@@ -1444,19 +1444,34 @@ function runBreathe(round,total){
   if(round>=total){ document.getElementById('bcue').textContent="Well done. Notice how you feel now."; return; }
   rnd.textContent="Round "+(round+1)+" of "+total;
   var steps=[
-    {t:"Breathe in…",c:"Breathe in",grow:true,ms:4000},
-    {t:"Hold…",c:"Hold",grow:true,ms:4000},
-    {t:"Breathe out…",c:"Breathe out",grow:false,ms:4000},
-    {t:"Hold…",c:"Hold",grow:false,ms:4000}
+    {t:"Breathe in…",c:"Breathe in",grow:true,secs:4},
+    {t:"Hold…",c:"Hold",grow:true,secs:4},
+    {t:"Breathe out…",c:"Breathe out",grow:false,secs:4},
+    {t:"Hold…",c:"Hold",grow:false,secs:4}
   ];
   var i=0;
+  function paint(word,n){
+    // phase word + a big per-second number so you know how long to hold
+    circle.innerHTML='<span style="display:block;font-size:19px">'+word+
+      '</span><span style="display:block;font-size:38px;font-weight:800;margin-top:2px">'+n+'</span>';
+  }
   (function next(){
     if(bStop) return;
     if(i>=steps.length){ runBreathe(round+1,total); return; }
     var s=steps[i++];
-    cue.textContent=s.t; circle.textContent=s.c;
+    cue.textContent=s.t;
     if(s.grow) circle.classList.add('grow'); else circle.classList.remove('grow');
-    bTimers.push(setTimeout(next,s.ms));
+    var left=s.secs;
+    paint(s.c,left);
+    (function tick(){
+      bTimers.push(setTimeout(function(){
+        if(bStop) return;
+        left--;
+        if(left<=0){ next(); return; }
+        paint(s.c,left);
+        tick();
+      },1000));
+    })();
   })();
 }
 function stopBreathe(){ bStop=true; bTimers.forEach(clearTimeout); bTimers=[]; stopSound();
