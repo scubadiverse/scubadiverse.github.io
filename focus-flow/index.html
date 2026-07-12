@@ -104,17 +104,17 @@
   .resp .mot{margin-top:10px;font-weight:600;color:var(--good)}
   .resp .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
   .resp .acts button{padding:10px 14px;border-radius:10px;font-size:14px}
-  .overlay{position:fixed;inset:0;z-index:50;background:rgba(8,14,20,.94);
+  .overlay{position:fixed;inset:0;z-index:50;background:#0b1119;
     display:none;flex-direction:column;align-items:center;justify-content:center;
-    gap:22px;padding:28px;text-align:center}
+    gap:18px;padding:28px;text-align:center;overflow-y:auto}
   .overlay.show{display:flex}
   .overlay .otxt{font-size:20px;font-weight:600;max-width:22em;text-wrap:balance}
   .overlay .ohint{color:var(--muted);font-size:14px;max-width:24em}
-  .bcircle{width:180px;height:180px;border-radius:50%;display:flex;align-items:center;
+  .bcircle{flex:none;width:170px;height:170px;border-radius:50%;display:flex;align-items:center;
     justify-content:center;font-size:22px;font-weight:600;color:#04212b;
     background:radial-gradient(circle at 50% 40%,#6ee7ff,#2ea6ff);
-    transform:scale(.7);transition:transform 4s ease-in-out}
-  .bcircle.grow{transform:scale(1.25)}
+    transform:scale(.72);transition:transform 4s ease-in-out}
+  .bcircle.grow{transform:scale(1.12)}
   @media (prefers-reduced-motion: reduce){ .bcircle{transition:none} }
   .overlay button{padding:12px 22px}
 </style>
@@ -128,11 +128,14 @@
 
 <h1>ProjectSavvy</h1>
 <p class="sub">Your focus, breaks and calm – paced to how you actually work. Learns as you go.</p>
-<div style="text-align:center;margin:-4px 0 16px">
+<div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:-4px 0 16px">
   <a href="guide.html" style="display:inline-flex;align-items:center;gap:4px;color:var(--ink);font-size:13px;
     font-weight:600;text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:6px 15px">
     <span style="display:inline-block;width:17px;height:17px;line-height:17px;text-align:center;border-radius:50%;
       background:var(--accent);color:#04212b;font-size:11px;font-weight:700">?</span>How it works</a>
+  <button onclick="obShow()" style="display:inline-flex;align-items:center;gap:5px;color:var(--ink);font-size:13px;
+    font-weight:600;background:transparent;border:1px solid var(--line);border-radius:999px;padding:6px 15px;cursor:pointer">
+    👋 Intro</button>
 </div>
 
 <div id="warnBanner" class="banner warn">⏳ 1 minute left – start wrapping up. Take a breath and finish gently.</div>
@@ -758,6 +761,7 @@ var OB=[
   {i:'📁', t:'Add your projects', b:'Tap Edit to add projects and give each its own colour. Up to 7, as many or as few as you like.'},
   {i:'▶️', t:'Focus in blocks', b:'Pick a project and start a focus block. One kind, steady block at a time, no need to do everything at once.'},
   {i:'💙', t:'Breaks that look after you', b:'ProjectSavvy reminds you to drink water, rest and step away. Tell it how you feel and it helps you breathe and reset.'},
+  {i:'⏸️', t:'The whole-screen time-out', b:'After too long online, ProjectSavvy can lock your whole phone for a real 2-minute break. To let it cover everything, allow "Display over other apps" when it asks.'},
   {i:'✅', t:"You're all set", b:'Tap "How it works" any time for the full guide. Take it gently, slow progress is still progress.'}
 ];
 var obIdx=0;
@@ -1629,7 +1633,7 @@ if(inNativeApp){
   pushEmergencyToNative();
   // Android draws the app under the navigation bar; lift content above it so
   // nothing (like the footer) is ever hidden. Works without a new app bundle.
-  document.body.style.paddingBottom = 'calc(52px + env(safe-area-inset-bottom, 0px))';
+  document.body.style.paddingBottom = 'calc(80px + env(safe-area-inset-bottom, 0px))';
   document.getElementById('guardRow').style.display='flex';
   var gb=document.getElementById('guardBtn');
   if(S.guard && window.AndroidBridge.hasOverlay && window.AndroidBridge.hasOverlay()){
