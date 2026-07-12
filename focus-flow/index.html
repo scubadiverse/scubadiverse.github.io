@@ -1129,11 +1129,18 @@ function renderWins(){
   var cEl=document.getElementById('winsCount');
   if(cEl) cEl.textContent = n ? (n+' small win'+(n>1?'s':'')+' today – that all counts 🎉') : '';
   if(!n){ el.innerHTML='Every tiny thing counts. Tap one below the moment you do it.'; return; }
-  el.innerHTML=S.wins.slice().reverse().map(function(w){
+  el.innerHTML=S.wins.map(function(w,i){
     var d=new Date(w.ts), t=two(d.getHours())+':'+two(d.getMinutes());
-    return '<div style="padding:5px 0;border-bottom:1px dashed var(--line);color:var(--ink)">✅ '+esc(w.t)+
-      ' <span class="muted" style="font-size:12px">'+t+'</span></div>';
-  }).join('');
+    return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line);color:var(--ink)">'+
+      '<span style="flex:1">✅ '+esc(w.t)+' <span class="muted" style="font-size:12px">'+t+'</span></span>'+
+      '<button onclick="removeWinAt('+i+')" aria-label="Remove" title="Remove" style="background:transparent;border:0;color:var(--muted);font-size:17px;line-height:1;padding:2px 8px;cursor:pointer">✕</button>'+
+      '</div>';
+  }).reverse().join('');
+}
+// delete one activity-log entry (e.g. a water tap added by mistake)
+function removeWinAt(i){
+  if(!S.wins || i<0 || i>=S.wins.length) return;
+  S.wins.splice(i,1); save(); renderWins(); renderProgress();
 }
 function renderMoodLog(){
   var el=document.getElementById('moodLog'); if(!el) return;
