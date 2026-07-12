@@ -690,8 +690,12 @@ function animate(){ requestAnimationFrame(animate); const dt=Math.min(clock.getD
   // background / fog per environment
   if(V.underwater){ renderer.setClearColor(0x062138); if(!scene.fog)scene.fog=new THREE.FogExp2(0x062138,0.016); }
   else { renderer.setClearColor(0x46b5cb); scene.fog=null; }   // light turquoise at the surface so the divers (dark legs) stay visible
-  // instructor idle bob + optional hold + signal arm
-  if(instructor){ instructor.position.y=-.6+Math.sin(t*.9)*.1; const u=instructor.userData;
+  // instructor stays GLUED beside the diver (there must always be two divers, never one)
+  if(instructor){ const u=instructor.userData;
+    if(V.diver && V.pd && (V.swimActive||V.diveActive)){
+      const p=V.pd, rx=Math.cos(V.hd), rz=-Math.sin(V.hd);
+      instructor.position.set(p.x+rx*2.3, p.y+0.15+Math.sin(t*.9)*.1, p.z+rz*2.3);   // right beside the player
+    } else { instructor.position.set(2.6,-.6+Math.sin(t*.9)*.1,-7.6); }
     if(u.finL)u.finL.rotation.x=Math.sin(t*3)*.4; if(u.finR)u.finR.rotation.x=-Math.sin(t*3)*.4;
     instructor.visible = V.underwater;
   }
