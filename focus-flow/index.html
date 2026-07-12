@@ -343,10 +343,12 @@
 feelings are frequent or heavy, talking to someone you trust helps.
 <br><a href="privacy.html">Privacy policy</a></p>
 
-<!-- Firebase SDK (compat build) for optional account sign-in + cloud sync -->
+<!-- Firebase SDK: sign-in is HIDDEN for now (planned for the paid tier).
+     To re-enable, uncomment these three lines - everything else is already wired.
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+-->
 
 <script>
 "use strict";
@@ -1600,6 +1602,9 @@ function afterCurfew(){ var h=new Date().getHours(); return h>=23 || h<6; }
 function showCurfew(){ show('curfew'); }
 
 // ---- optional cloud account (Firebase) ----
+// Sign-in / cloud sync is a FUTURE PREMIUM feature. Kept fully built but HIDDEN
+// for now – flip ACCOUNTS_ENABLED to true (behind a premium check) to switch it on.
+var ACCOUNTS_ENABLED = false;
 // Paste your Firebase web config here after creating the project. Empty = cloud off.
 var firebaseConfig = {
   apiKey:"AIzaSyDmmju7xZzKIVo9B1ijjfypPYjFrOe6Zlw",
@@ -1611,7 +1616,7 @@ var firebaseConfig = {
 };
 var fbReady=false, fbUser=null, fbDb=null, cloudTimer=null, cloudLoaded=false;
 function initFirebase(){
-  if(!firebaseConfig.apiKey || !window.firebase){ return; }
+  if(!ACCOUNTS_ENABLED || !firebaseConfig.apiKey || !window.firebase){ return; } // hidden until premium
   try{
     firebase.initializeApp(firebaseConfig);
     fbDb=firebase.firestore();
