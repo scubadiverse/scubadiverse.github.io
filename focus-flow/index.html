@@ -719,6 +719,20 @@ function endTimeout(){
 }
 setInterval(checkOnline,20000); // check online time every 20s
 
+// Re-draw the width-based charts/bars the instant the window rotates or resizes,
+// so the landscape layout snaps in immediately instead of lagging behind.
+var _rzRAF=null;
+function _redrawOnResize(){
+  if(_rzRAF) cancelAnimationFrame(_rzRAF);
+  _rzRAF=requestAnimationFrame(function(){
+    try{ paintStats(); }catch(e){}
+    try{ renderProgress(); }catch(e){}
+    try{ renderProjLines(); }catch(e){}
+  });
+}
+window.addEventListener('resize', _redrawOnResize);
+window.addEventListener('orientationchange', _redrawOnResize);
+
 // If you leave for 5+ minutes, that counts as a break – restart the online clock.
 document.addEventListener('visibilitychange',function(){
   if(document.hidden){ S._hiddenAt=Date.now(); stopSound(); }
