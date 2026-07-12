@@ -172,7 +172,7 @@
   </div>
   <div class="row" style="margin-top:8px;justify-content:center">
     <span class="muted" style="font-size:13px">💧 Water reminder every:</span>
-    <input type="number" id="waterEvery" min="15" max="180" value="120" onchange="setWater()">
+    <input type="number" id="waterEvery" min="15" max="180" value="45" onchange="setWater()">
     <span class="muted" style="font-size:13px">min</span>
   </div>
   <div class="row" style="margin-top:8px;justify-content:center">
@@ -355,7 +355,7 @@ function load(){
     tiredPoints:[],          // minutes-into-block when user tapped tired
     hourMins:{},             // learned: focused minutes per hour-of-day
     block:50, lastProj:null,
-    waterEvery:120,          // wall-clock minutes between water reminders (~2h)
+    waterEvery:45,           // wall-clock minutes between water reminders
     lastWaterTs:0,           // timestamp of last water reminder
     onlineLimit:60,          // continuous minutes online before a forced time-out
     contStart:0,             // timestamp continuous online session began
@@ -670,7 +670,7 @@ function adaptBlock(){
 
 // ---- reminders ----
 function setWater(){
-  var v=parseInt(document.getElementById('waterEvery').value,10)||120;
+  var v=parseInt(document.getElementById('waterEvery').value,10)||45;
   v=Math.max(15,Math.min(180,v)); S.waterEvery=v; document.getElementById('waterEvery').value=v;
   S.lastWaterTs=Date.now(); // restart the countdown from now
   if(inNativeApp) nRepeat('water', v, "💧 Water break", "Take a sip and rest your eyes.");
