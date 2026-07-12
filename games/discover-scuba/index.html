@@ -60,6 +60,7 @@
   #signal .cap{font-weight:900;font-size:13px;background:rgba(4,20,30,.7);border-radius:20px;padding:4px 12px;display:inline-block;margin-top:2px}
   #diversign{position:absolute;left:50%;top:42%;transform:translateX(-50%);display:none;z-index:7;text-align:center;pointer-events:none}
   #diversign.lside{left:38%;top:6px}                /* floating above the player's (left diver) head */
+  #bubble.understudent{left:38%;top:84%}            /* the "well done" sits under the student (left) diver */
   #diversign.lside canvas{width:74px!important;height:74px!important}
   #diversign.lside .ic{transform:scaleX(-1)}        /* mirror so the left diver signs with the other hand */
   #diversign.on{display:block}
@@ -209,7 +210,7 @@ addEventListener('keydown',e=>{ const k=e.code; if(k==='KeyW'||k==='ArrowUp')IN.
 addEventListener('keyup',e=>{ const k=e.code; if(k==='KeyW'||k==='ArrowUp')IN.fwd=0; else if(k==='KeyS'||k==='ArrowDown')IN.back=0; else if(k==='KeyA'||k==='ArrowLeft')IN.left=0; else if(k==='KeyD'||k==='ArrowRight')IN.right=0; else if(k==='KeyQ'||k==='PageUp')IN.up=0; else if(k==='KeyE'||k==='PageDown')IN.down=0; else if(k==='ShiftLeft'||k==='ShiftRight')IN.fast=0; });
 
 /* ---------- world ---------- */
-let instructor=null, fishG=null, propMask=null, propReg=null, propHand=null, bubbleP=null, signFish=null, fpArms=null, stopSign=null, turtleActor=null;
+let instructor=null, fishG=null, propMask=null, propReg=null, propHand=null, bubbleP=null, signFish=null, fpArms=null, stopSign=null, turtleActor=null, noseBub=null;
 
 // A recognizable human scuba diver in horizontal trim (head +Z, fins -Z):
 // wetsuit body, head with two-lens mask + regulator, tank, arms reaching
@@ -533,6 +534,8 @@ function buildWorld(){
   instructor=makeDiverSprite(DIVER_INSTR,3.4); instructor.position.set(2.6,-.5,-7.6); scene.add(instructor); // cartoon instructor, same size as the student
   // rising bubbles from your own reg
   bubbleP=particles(120,4,0xbfefff,.16,0); bubbleP.position.set(-.3,-1,-1.2); scene.add(bubbleP); bubbleP.visible=false;
+  // nose bubbles for mask-clearing: a burst that rises from the diver's nose when he looks up and blows
+  noseBub=particles(54,.16,0xdff6ff,.15,0); scene.add(noseBub); noseBub.visible=false;
   // first-person props attached to the camera
   propMask=makeMaskProp(); camera.add(propMask); propMask.visible=false;
   propReg=makeRegProp(); camera.add(propReg); propReg.visible=false;
@@ -617,8 +620,8 @@ function hold(label,secs,opt){ opt=opt||{}; return new Promise(res=>{ clearActio
 }); }
 function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 /* speech bubble that floats above the diver's head */
-function hideBubble(){ bubbleEl.classList.remove('on'); bubbleEl.innerHTML=''; }
-function flashBubble(html,ms){ bubbleEl.innerHTML=html; bubbleEl.classList.add('on'); const cur=html; setTimeout(()=>{ if(bubbleEl.innerHTML===cur)hideBubble(); }, ms||1700); }
+function hideBubble(){ bubbleEl.classList.remove('on','understudent'); bubbleEl.innerHTML=''; }
+function flashBubble(html,ms,cls){ bubbleEl.innerHTML=html; bubbleEl.classList.toggle('understudent',cls==='understudent'); bubbleEl.classList.add('on'); const cur=html; setTimeout(()=>{ if(bubbleEl.innerHTML===cur)hideBubble(); }, ms||1700); }
 function bubbleChoice(prompt,opts){ return new Promise(res=>{
   bubbleEl.innerHTML=prompt+'<div class="bwrap"></div>'; const wrap=bubbleEl.querySelector('.bwrap');
   opts.forEach(o=>{ const b=document.createElement('button'); b.className=o.cls||''; b.innerHTML=o.label; b.onclick=()=>{ hideBubble(); res(o.key!==undefined?o.key:o.label); }; wrap.appendChild(b); });
@@ -707,6 +710,14 @@ function animate(){ requestAnimationFrame(animate); const dt=Math.min(clock.getD
   }
   // bubbles from your reg
   if(bubbleP){ bubbleP.visible=V.bubbles; if(V.bubbles){ const pa=bubbleP.geometry.attributes.position; for(let i=0;i<pa.count;i++){ let y=pa.getY(i)+dt*3; if(y>8)y=-2; pa.setY(i,y);} pa.needsUpdate=true; } }
+  // mask-clear: the diver looks up and blows a burst of bubbles from his nose
+  if(noseBub){
+    if(V.noseBlow>0 && V.diver && V.pd){ V.noseBlow-=dt; noseBub.visible=true;
+      noseBub.position.set(V.pd.x, V.pd.y+.5, V.pd.z);                          // at the nose/head
+      const pa=noseBub.geometry.attributes.position; for(let i=0;i<pa.count;i++){ let y=pa.getY(i)+dt*1.8; if(y>1.7)y=R(-.05,.15); pa.setY(i,y);} pa.needsUpdate=true;
+      V.diver.material.rotation=Math.min(.22,(V.diver.material.rotation||0)+dt*1.2);   // tilt back = looking up
+    } else { noseBub.visible=false; if(V.diver&&V.diver.material.rotation) V.diver.material.rotation=Math.max(0,V.diver.material.rotation-dt*1.4); }
+  }
   // reef in trim stage
   if(fishG){ fishG.visible=V.reef; if(V.reef){ fishG.children.forEach(c=>{ if(c.userData.list) c.userData.list.forEach(f=>{ f.a+=dt*f.sp; f.m.position.set(Math.cos(f.a)*f.rad,f.yo+Math.sin(t*.8+f.ph)*.6,Math.sin(f.a)*f.rad); }); }); } }
   // the sign fish turns to face the diver when chased
@@ -840,8 +851,8 @@ function chapter2(){
       say(s.teach);
       await button('<span class="emo">🙋</span> Signal it back','signal');
       diverSign(s.kind,'You: '+s.name); sChime(true);
-      flashBubble('👍 Clear and steady – well done.');
-      await wait(2200);
+      flashBubble('👍 Clear and steady – well done.',3200,'understudent');
+      await wait(3400);
     }
     setDiverHand(beachDiver,null); diverSign(null); showSignal(null);
     say("Great – you can copy every signal. Next, the instructor asks and you answer on your own.");
@@ -1001,6 +1012,7 @@ function interactiveDive(){
       } else {
         setMask(true); let w=0; const id=setInterval(()=>{ w+=.06; setWater(Math.min(1,w)); },40); await wait(700); clearInterval(id); setWater(1);
         await bubbleChoice('A little water got in your mask. Put your fingers on the TOP, look up, and blow through your nose to clear it.', [{label:'😤 Blow through your nose',key:'blow',cls:'good'}]); if(done)break;
+        V.noseBlow=2.6;   // the diver looks up and blows bubbles from his nose
         await new Promise(r=>{ let w2=1; const id2=setInterval(()=>{ w2-=.08; setWater(Math.max(0,w2)); if(w2<=0){clearInterval(id2);r();} },35); });
         sChime(true); flashBubble('👍 Mask cleared &ndash; nice and calm.'); if(!fp)setMask(false);
       }
