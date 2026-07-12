@@ -316,6 +316,19 @@
   <button class="primary" onclick="hide('curfew')">Okay, I'll rest 💙</button>
 </div>
 
+<div class="overlay" id="onboard" style="z-index:70">
+  <div style="background:var(--card);border:1px solid var(--line);border-radius:18px;max-width:20em;width:100%;padding:24px;text-align:center">
+    <div id="obIcon" style="font-size:42px;margin-bottom:6px">👋</div>
+    <div id="obTitle" style="font-size:19px;font-weight:700;margin-bottom:8px"></div>
+    <div id="obBody" class="muted" style="font-size:14px;line-height:1.55;min-height:4.4em"></div>
+    <div id="obDots" style="display:flex;gap:6px;justify-content:center;margin:18px 0 16px"></div>
+    <div class="row" style="justify-content:center;gap:10px">
+      <button id="obSkip" onclick="obSkip()" style="font-size:13px">Skip</button>
+      <button id="obNext" class="primary" onclick="obNext()">Next</button>
+    </div>
+  </div>
+</div>
+
 <p class="foot">Runs fully on your device – your data never leaves your phone. Not medical advice – if hard
 feelings are frequent or heavy, talking to someone you trust helps.
 <br><a href="privacy.html">Privacy policy</a></p>
@@ -738,6 +751,31 @@ function _redrawOnResize(){
 }
 window.addEventListener('resize', _redrawOnResize);
 window.addEventListener('orientationchange', _redrawOnResize);
+
+// ---- first-open onboarding walkthrough ----
+var OB=[
+  {i:'👋', t:'Welcome to ProjectSavvy', b:'A calm way to manage your projects, your time, and yourself. Made with ADHD and neurodivergent minds in mind.'},
+  {i:'📁', t:'Add your projects', b:'Tap Edit to add projects and give each its own colour. Up to 7, as many or as few as you like.'},
+  {i:'▶️', t:'Focus in blocks', b:'Pick a project and start a focus block. One kind, steady block at a time, no need to do everything at once.'},
+  {i:'💙', t:'Breaks that look after you', b:'ProjectSavvy reminds you to drink water, rest and step away. Tell it how you feel and it helps you breathe and reset.'},
+  {i:'✅', t:"You're all set", b:'Tap "How it works" any time for the full guide. Take it gently, slow progress is still progress.'}
+];
+var obIdx=0;
+function obShow(){ obIdx=0; obRender(); document.getElementById('onboard').classList.add('show'); }
+function obRender(){
+  var s=OB[obIdx];
+  document.getElementById('obIcon').textContent=s.i;
+  document.getElementById('obTitle').textContent=s.t;
+  document.getElementById('obBody').textContent=s.b;
+  document.getElementById('obDots').innerHTML=OB.map(function(_,i){
+    return '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+(i===obIdx?'var(--accent)':'var(--line)')+'"></span>';
+  }).join('');
+  document.getElementById('obNext').textContent=(obIdx===OB.length-1)?'Get started':'Next';
+  document.getElementById('obSkip').style.visibility=(obIdx===OB.length-1)?'hidden':'visible';
+}
+function obNext(){ if(obIdx<OB.length-1){ obIdx++; obRender(); } else { obDone(); } }
+function obSkip(){ obDone(); }
+function obDone(){ S.onboarded=true; save(); document.getElementById('onboard').classList.remove('show'); }
 
 // If you leave for 5+ minutes, that counts as a break – restart the online clock.
 document.addEventListener('visibilitychange',function(){
@@ -1584,9 +1622,14 @@ paint(); paintStats();
 refreshAlertBtn();
 resumeTimer();
 initFirebase();
+// Show the short walkthrough the first time the app is opened.
+if(!S.onboarded){ obShow(); }
 // whole-screen lock is a native-app feature – show and restore its state
 if(inNativeApp){
   pushEmergencyToNative();
+  // Android draws the app under the navigation bar; lift content above it so
+  // nothing (like the footer) is ever hidden. Works without a new app bundle.
+  document.body.style.paddingBottom = 'calc(52px + env(safe-area-inset-bottom, 0px))';
   document.getElementById('guardRow').style.display='flex';
   var gb=document.getElementById('guardBtn');
   if(S.guard && window.AndroidBridge.hasOverlay && window.AndroidBridge.hasOverlay()){

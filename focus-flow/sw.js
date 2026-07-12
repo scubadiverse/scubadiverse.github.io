@@ -1,7 +1,8 @@
-// Focus & Flow – service worker.
-// Network-first for the page so you always get the newest version when online,
-// cache as offline fallback. Bump CACHE to force old caches out.
-var CACHE = "focusflow-v48";
+// ProjectSavvy – service worker.
+// Stale-while-revalidate for the page: serve the cached app INSTANTLY, then refresh
+// from the network in the background so the next open has the latest. Bump CACHE to
+// force old caches out.
+var CACHE = "focusflow-v49";
 var ASSETS = [
   "./",
   "./index.html",
@@ -37,14 +38,17 @@ self.addEventListener("fetch", function (e) {
     (e.request.destination === "document") ||
     e.request.url.indexOf("index.html") !== -1;
   if (isPage) {
-    // network-first: newest page when online, cache when offline
+    // stale-while-revalidate: serve cache instantly, refresh in the background
     e.respondWith(
-      fetch(e.request).then(function (res) {
-        var copy = res.clone();
-        caches.open(CACHE).then(function (c) { try { c.put(e.request, copy); } catch (x) {} });
-        return res;
-      }).catch(function () {
-        return caches.match(e.request).then(function (h) { return h || caches.match("./index.html"); });
+      caches.open(CACHE).then(function (c) {
+        return c.match(e.request).then(function (cached) {
+          var net = fetch(e.request).then(function (res) {
+            try { c.put(e.request, res.clone()); } catch (x) {}
+            return res;
+          }).catch(function () { return cached || c.match("./index.html"); });
+          // instant from cache if we have it; otherwise wait for the network
+          return cached || c.match("./index.html").then(function (h) { return h || net; });
+        });
       })
     );
   } else {
