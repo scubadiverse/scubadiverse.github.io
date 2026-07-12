@@ -1634,9 +1634,6 @@ if(!S.onboarded){ obShow(); }
 // whole-screen lock is a native-app feature – show and restore its state
 if(inNativeApp){
   pushEmergencyToNative();
-  // Android draws the app under the navigation bar; lift content above it so
-  // nothing (like the footer) is ever hidden. Works without a new app bundle.
-  document.body.style.paddingBottom = '96px';
   document.getElementById('guardRow').style.display='flex';
   var gb=document.getElementById('guardBtn');
   if(S.guard && window.AndroidBridge.hasOverlay && window.AndroidBridge.hasOverlay()){
