@@ -63,8 +63,11 @@
   #bubble.understudent{left:38%;top:84%}            /* the "well done" sits under the student (left) diver */
   #diversign.lside canvas{width:74px!important;height:74px!important}
   #diversign.lside .ic{transform:scaleX(-1)}        /* mirror so the left diver signs with the other hand */
-  #diversign.quizans{left:50%;top:98px;transform:translateX(-50%)}   /* quiz answer sits BELOW the top instruction, never hiding it */
-  #diversign.quizans canvas{width:150px!important;height:150px!important}   /* bigger so the answered sign is clear */
+  #diversign.quizans{left:50%;top:auto;bottom:30px;transform:translateX(-50%);display:flex;align-items:center;gap:12px;
+    background:rgba(4,20,30,.85);border:1px solid rgba(159,233,255,.4);border-radius:18px;padding:8px 18px 10px;z-index:8}   /* tidy card at the bottom (buttons are gone once answered) - clear of the top instruction and the divers */
+  #diversign.quizans .ic{font-size:0;filter:none}
+  #diversign.quizans canvas{width:84px!important;height:84px!important;display:block}
+  #diversign.quizans .cap{margin-top:0;font-size:16px}
   #diversign.on{display:block}
   #diversign .ic{font-size:96px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.55))}
   #diversign .cap{font-weight:900;font-size:14px;color:#04202e;background:#ffd23c;border-radius:20px;padding:5px 16px;display:inline-block;margin-top:2px;box-shadow:0 3px 0 #a8701c}
