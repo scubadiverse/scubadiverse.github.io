@@ -851,6 +851,7 @@ function chapter2(){
       say(s.teach);
       await button('<span class="emo">🙋</span> Signal it back','signal');
       diverSign(s.kind,'You: '+s.name); sChime(true);
+      hush();   // clear the teaching text so the "well done" doesn't cover it
       flashBubble('👍 Clear and steady – well done.',3200,'understudent');
       await wait(3400);
     }
