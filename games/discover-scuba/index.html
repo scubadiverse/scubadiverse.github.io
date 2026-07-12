@@ -424,6 +424,7 @@ const SGN_SK='#f7c63e', SGN_SKE='#e0a52a', SGN_SKH='#ffdd72', SGN_SUIT='#20262e'
 const _problemImg=new Image(); _problemImg.src='problem-sign.png';   // 3D rigged hand, 20 frames (5x4, 200px cells)
 const _teeImg=new Image(); _teeImg.src='tee-sign.png';               // 3D two-hand T = 100 bar
 const _airImg=new Image(); _airImg.src='air-sign.png';               // 3D two-hand "how much air" tap (24 frames, 6x4)
+const _slowImg=new Image(); _slowImg.src='slow-sign.png';            // 3D flat hand pressing down = slow down (24 frames, 6x4)
 function _sr(x,a,b,c,d,r){ x.beginPath(); if(x.roundRect)x.roundRect(a,b,c,d,r); else x.rect(a,b,c,d); x.fill(); }
 // a flat cartoon hand (palm/back up), fingers pointing LEFT, centred at (cx,cy) with a wetsuit cuff
 function _flat(x,cx,cy){ x.save(); x.translate(cx,cy);
@@ -474,6 +475,11 @@ const SIGNDRAW={
     x.save(); x.translate(6-tap,6); _fistBase(x,44,0);
     x.fillStyle=SGN_SKE; _sr(x,-46,-18,66,16,8); x.fillStyle=SGN_SK; _sr(x,-46,-16,62,12,6);
     x.fillStyle=SGN_SKE; _sr(x,-46,6,66,16,8);  x.fillStyle=SGN_SK; _sr(x,-46,8,62,12,6); x.restore(); x.restore(); },
+  slow(x,t){ // slow down = flat hand, palm down, pressing down (3D, 24 frames 6x4)
+    if(_slowImg.complete && _slowImg.naturalWidth){ const N=24,COLS=6,CELL=200,P=2.4;
+      const i=Math.floor(((t%P)/P)*N)%N, sx=(i%COLS)*CELL, sy=Math.floor(i/COLS)*CELL;
+      x.drawImage(_slowImg,sx,sy,CELL,CELL,0,0,300,300); return; }
+    _flat(x,150,150+Math.abs(Math.sin(t*2))*30); },
   n1:_fingers(1), n2:_fingers(2), n3:_fingers(3), n4:_fingers(4),
   fist(x){ x.save(); x.translate(150,150); _fistBase(x,0,0); x.restore(); },
   T(x){ // 100 bar = two hands forming a T (one vertical, one flat on top), rendered from the 3D model
@@ -737,7 +743,8 @@ function animate(){ requestAnimationFrame(animate); const dt=Math.min(clock.getD
       else if(V.moving) m = Math.floor(t*7)%2 ? u.texA : u.texB;
       d.material.map=m; d.material.needsUpdate=true; }
     // real-time coaching
-    if(IN.fast && warnCd<=0){ warnCd=3.5; warnMsg('You are swimming too fast &ndash; using too much air and tiring out. Slow down and enjoy the dive.'); }
+    if(IN.fast && warnCd<=0){ warnCd=3.5; warnMsg('You are swimming too fast &ndash; using too much air and tiring out. Slow down and enjoy the dive.');
+      showSignal('slow','Instructor: Slow down'); clearTimeout(V.slowT); V.slowT=setTimeout(()=>showSignal(null),3200); }
     if(V.moving && warnCd<=0){ for(const c of schoolCenters){ if(Math.hypot(p.x-c.x,p.z-c.z) < (c.r||5)+3){ warnCd=4.5;
       warnMsg("Don't chase or touch the fish &ndash; protect the marine life.");
       signFish.position.set(p.x+fx*4, p.y+.6, p.z+fz*4); signFish.visible=true; signHideT=4.5; break; } } }
