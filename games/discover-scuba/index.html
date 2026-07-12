@@ -739,10 +739,12 @@ function animate(){ requestAnimationFrame(animate); const dt=Math.min(clock.getD
   // real-time controllable swim: you PILOT the diver; the diver stays HORIZONTAL
   warnCd-=dt;
   if(V.swimActive && V.diver){ const d=V.diver, p=V.pd;
-    const turn=1.5*dt; if(IN.left)V.hd+=turn; if(IN.right)V.hd-=turn;
+    if(V.noFast>0) V.noFast-=dt;                                   // forced slow-down window after swimming too fast
+    const fastNow = IN.fast && !(V.noFast>0);
+    const turn=(V.noFast>0?0.55:1.5)*dt; if(IN.left)V.hd+=turn; if(IN.right)V.hd-=turn;   // no wild swirling while calming down
     const fx=Math.sin(V.hd), fz=Math.cos(V.hd), rx=Math.cos(V.hd), rz=-Math.sin(V.hd);
-    V.moving=!!(IN.fwd||IN.back||IN.fast);
-    const spd=(IN.fast?7:3)*dt; if(IN.fwd||IN.fast){ p.x+=fx*spd; p.z+=fz*spd; } if(IN.back){ p.x-=fx*spd*.7; p.z-=fz*spd*.7; }
+    V.moving=!!(IN.fwd||IN.back||fastNow);
+    const spd=(fastNow?7:3)*dt; if(IN.fwd||fastNow){ p.x+=fx*spd; p.z+=fz*spd; } if(IN.back){ p.x-=fx*spd*.7; p.z-=fz*spd*.7; }
     if(IN.up)p.y+=2.2*dt; if(IN.down)p.y-=2.2*dt; p.y=Math.max(-2.6,Math.min(2.2,p.y));
     p.x=Math.max(-34,Math.min(34,p.x)); p.z=Math.max(-46,Math.min(34,p.z));
     d.position.set(p.x, p.y+Math.sin(t*1.5)*.05, p.z);
@@ -754,7 +756,8 @@ function animate(){ requestAnimationFrame(animate); const dt=Math.min(clock.getD
       else if(V.moving) m = Math.floor(t*7)%2 ? u.texA : u.texB;
       d.material.map=m; d.material.needsUpdate=true; }
     // real-time coaching
-    if(IN.fast && warnCd<=0){ warnCd=3.5; warnMsg('You are swimming too fast &ndash; using too much air and tiring out. Slow down and enjoy the dive.');
+    if(IN.fast && warnCd<=0){ warnCd=3.5; V.shake=0.7; V.noFast=1.8;
+      warnMsg('You are swimming too fast &ndash; <b>relax, breathe slowly, and slow down</b>. Enjoy the dive.');
       showSignal('slow','Instructor: Slow down'); clearTimeout(V.slowT); V.slowT=setTimeout(()=>showSignal(null),3200); }
     if(V.moving && warnCd<=0){ for(const c of schoolCenters){ if(Math.hypot(p.x-c.x,p.z-c.z) < (c.r||5)+3){ warnCd=4.5;
       warnMsg("Don't chase or touch the fish &ndash; protect the marine life.");
@@ -769,6 +772,7 @@ function animate(){ requestAnimationFrame(animate); const dt=Math.min(clock.getD
       default:      cx=p.x-fx*7; cy=p.y+2.4; cz=p.z-fz*7; break; // behind
     }
     d.visible=(V.camMode!=='eyes'); camera.position.set(cx,cy,cz); camera.lookAt(lx,ly,lz);
+    if(V.shake>0){ V.shake-=dt; const s=V.shake*0.5; camera.position.x+=R(-s,s); camera.position.y+=R(-s,s); camera.position.z+=R(-s,s); }   // whole-game shake when swimming too fast
   }
   // keep the speech bubble pinned above the diver's head
   if(bubbleEl.classList.contains('on') && V.diver){ const v=new THREE.Vector3(V.pd.x, V.pd.y+2.1, V.pd.z); v.project(camera);
