@@ -819,7 +819,8 @@ const SIGN_STEPS=[
   {kind:'ok', name:'OK', teach:"The most important signal. Thumb and finger make a circle. It means <b>“I’m OK”</b> and also asks <b>“are you OK?”</b>"},
   {kind:'problem', name:'Something is wrong', teach:"A flat hand <b>sliding side to side</b> (left, right, left), then <b>point at the problem</b>. It means <b>“something’s not right”</b>. (A raised palm is STOP, not this.)"},
   {kind:'up', name:'Go up', teach:"Thumb <b>up</b> means <b>“let’s go up”</b> – it is NOT the OK sign."},
-  {kind:'down', name:'Go down', teach:"Thumb <b>down</b> means <b>“let’s go down”</b>."}
+  {kind:'down', name:'Go down', teach:"Thumb <b>down</b> means <b>“let’s go down”</b>."},
+  {kind:'slow', name:'Slow down', teach:"Hold a flat hand out, <b>palm down</b>, and gently <b>press it down</b> twice. It means <b>“slow down”</b> – relax and take it easy."}
 ];
 function chapter2(){
   V.underwater=false; setMask(false); clearActions(); showSignal(null); hideBubble(); diverSign(null);
@@ -850,13 +851,14 @@ function chapter2(){
 
 /* CHAPTER THREE — signals quiz: read the instruction, pick the right sign */
 const SIGN_INFO={ ok:{kind:'ok',name:'OK'}, problem:{kind:'problem',name:'Something is wrong'},
-  ears:{kind:'ears',name:'Ear problem'}, up:{kind:'up',name:'Go up'}, down:{kind:'down',name:'Go down'} };
+  ears:{kind:'ears',name:'Ear problem'}, up:{kind:'up',name:'Go up'}, down:{kind:'down',name:'Go down'}, slow:{kind:'slow',name:'Slow down'} };
 const QUIZ=[
   {q:'Show the sign that you are <b>OK</b>.', a:'ok'},
   {q:'Show the sign that you <b>have a problem</b>.', a:'problem'},
   {q:'Show the sign that you have a <b>problem with your ears</b>.', a:'ears'},
   {q:'Show the sign that you want to <b>go up</b>.', a:'up'},
-  {q:'Show the sign that you want to <b>go down</b>.', a:'down'}
+  {q:'Show the sign that you want to <b>go down</b>.', a:'down'},
+  {q:'Show the sign to tell your buddy to <b>slow down</b>.', a:'slow'}
 ];
 function chapter3(){
   clearActions(); showSignal(null); hideBubble(); diverSign(null);
