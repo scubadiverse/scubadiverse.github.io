@@ -1004,7 +1004,7 @@ function interactiveDive(){
     await wait(3500);
     // draw events from a shuffled bag so the SAME one never repeats back-to-back
     let bag=[];
-    const nextKind=()=>{ if(!bag.length){ bag=['swim','turtle','equalise','flood'];
+    const nextKind=()=>{ if(!bag.length){ bag=['swim','turtle','equalise','flood','buoy'];
         for(let i=bag.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [bag[i],bag[j]]=[bag[j],bag[i]]; } }
       return bag.shift(); };
     while(!done){
@@ -1026,6 +1026,17 @@ function interactiveDive(){
       } else if(kind==='equalise'){
         showSignal('ears','Ears'); const c=await bubbleChoice('Your ears feel the pressure.', [{label:'🤏 Pinch nose &amp; blow',key:'ok',cls:'good'}]); if(done)break;
         showSignal(null); sChime(true); flashBubble('👍 Ears equalised &ndash; do it early and often.');
+      } else if(kind==='buoy'){
+        // BUOYANCY: a coral head is right below and you are slowly sinking toward it
+        const fx=Math.sin(V.hd),fz=Math.cos(V.hd);
+        coralHead.position.set(V.pd.x+fx*4.5, -2.4, V.pd.z+fz*4.5); coralHead.visible=true;
+        V.sinking=true;
+        const c=await bubbleChoice('You are slowly sinking toward the <b>coral</b> &ndash; control your buoyancy!', [{label:'🫁 Breathe in – rise & hover',key:'in',cls:'good'},{label:'✋ Grab the coral to stop',key:'grab',cls:'warn'}]);
+        V.sinking=false;
+        if(done){ coralHead.visible=false; break; }
+        if(c==='grab'){ warnMsg("Never touch the coral &ndash; it is alive and fragile. Hover with your <b>breathing</b>, not your hands.",4400); await wait(1200); }
+        else { V.pd.y=Math.min(1.2,V.pd.y+1.9); sChime(true); flashBubble('👍 Neutral buoyancy &ndash; breathe in to rise, out to sink, and just hover over the reef.',3600); await wait(1200); }
+        coralHead.visible=false;
       } else {
         setMask(true); let w=0; const id=setInterval(()=>{ w+=.06; setWater(Math.min(1,w)); },40); await wait(700); clearInterval(id); setWater(1);
         await bubbleChoice('A little water got in your mask. Put your fingers on the TOP, look up, and blow through your nose to clear it.', [{label:'😤 Blow through your nose',key:'blow',cls:'good'}]); if(done)break;
