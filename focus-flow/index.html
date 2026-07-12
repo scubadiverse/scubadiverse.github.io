@@ -1452,8 +1452,9 @@ function runBreathe(round,total){
   var i=0;
   function paint(word,n){
     // phase word + a big per-second number so you know how long to hold
-    circle.innerHTML='<span style="display:block;font-size:19px">'+word+
-      '</span><span style="display:block;font-size:38px;font-weight:800;margin-top:2px">'+n+'</span>';
+    circle.innerHTML='<div style="text-align:center;line-height:1.15">'+
+      '<div style="font-size:18px">'+word+'</div>'+
+      '<div style="font-size:38px;font-weight:800">'+n+'</div></div>';
   }
   (function next(){
     if(bStop) return;
