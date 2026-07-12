@@ -172,7 +172,7 @@
   </div>
   <div class="row" style="margin-top:8px;justify-content:center">
     <span class="muted" style="font-size:13px">💧 Water reminder every:</span>
-    <input type="number" id="waterEvery" min="15" max="180" value="45" onchange="setWater()">
+    <input type="number" id="waterEvery" min="15" max="180" value="120" onchange="setWater()">
     <span class="muted" style="font-size:13px">min</span>
   </div>
   <div class="row" style="margin-top:8px;justify-content:center">
@@ -355,7 +355,7 @@ function load(){
     tiredPoints:[],          // minutes-into-block when user tapped tired
     hourMins:{},             // learned: focused minutes per hour-of-day
     block:50, lastProj:null,
-    waterEvery:45,           // wall-clock minutes between water reminders
+    waterEvery:120,          // wall-clock minutes between water reminders (~2h)
     lastWaterTs:0,           // timestamp of last water reminder
     onlineLimit:60,          // continuous minutes online before a forced time-out
     contStart:0,             // timestamp continuous online session began
@@ -670,7 +670,7 @@ function adaptBlock(){
 
 // ---- reminders ----
 function setWater(){
-  var v=parseInt(document.getElementById('waterEvery').value,10)||45;
+  var v=parseInt(document.getElementById('waterEvery').value,10)||120;
   v=Math.max(15,Math.min(180,v)); S.waterEvery=v; document.getElementById('waterEvery').value=v;
   S.lastWaterTs=Date.now(); // restart the countdown from now
   if(inNativeApp) nRepeat('water', v, "💧 Water break", "Take a sip and rest your eyes.");
@@ -683,6 +683,7 @@ function checkWater(){
   if(Date.now()-S.lastWaterTs >= S.waterEvery*60*1000){
     S.lastWaterTs=Date.now(); save();
     show('waterBanner'); beep(); showTimed('waterBanner',30000);
+    paintWaterBtn(); // reset the tick so it clearly prompts to drink again
   }
 }
 setInterval(checkWater,20000); // check the clock every 20s
@@ -1070,11 +1071,11 @@ function drankWater(){
   var wb=document.getElementById('waterBtn'); if(wb){ wb.textContent='✅ Water logged'; wb.classList.add('sel'); }
   addWin("You drank water"); renderMoodLog();
 }
-// show the water button as already-logged today (ring + tick), like the feelings/wins
+// water button shows the tick + ring from when you log until the NEXT reminder fires
 function paintWaterBtn(){
   var wb=document.getElementById('waterBtn'); if(!wb) return;
-  var t=S.lastDrankTs, today=t && new Date(t).toDateString()===new Date().toDateString();
-  if(today){ wb.textContent='✅ Water logged'; wb.classList.add('sel'); }
+  var logged = S.lastDrankTs && S.lastWaterTs && S.lastDrankTs >= S.lastWaterTs;
+  if(logged){ wb.textContent='✅ Water logged'; wb.classList.add('sel'); }
   else { wb.textContent='💧 I drank water'; wb.classList.remove('sel'); }
 }
 
