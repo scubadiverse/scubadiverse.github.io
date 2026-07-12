@@ -176,7 +176,7 @@
     <span class="muted" style="font-size:13px">min</span>
   </div>
   <div class="row" style="margin-top:8px;justify-content:center">
-    <button id="waterBtn" class="brk" onclick="drankWater()">💧 I drank water</button>
+    <button id="waterBtn" onclick="toggleWater()">💧 Drank water: No</button>
     <button id="eyeBtn" onclick="toggleEye()">👀 Eye-rest: On</button>
     <button id="standBtn" onclick="toggleStand()">🧍 Stand: On</button>
   </div>
@@ -1068,15 +1068,25 @@ function drankWater(){
   S.lastDrankTs=Date.now(); S.lastWaterTs=Date.now(); save();
   hide('waterBanner');
   document.getElementById('phase').textContent="Water logged 💧 well done.";
-  var wb=document.getElementById('waterBtn'); if(wb){ wb.textContent='✅ Water logged'; wb.classList.add('sel'); }
-  addWin("You drank water"); renderMoodLog();
+  addWin("You drank water"); paintWaterBtn(); renderMoodLog();
 }
 // water button shows the tick + ring from when you log until the NEXT reminder fires
 function paintWaterBtn(){
   var wb=document.getElementById('waterBtn'); if(!wb) return;
   var logged = S.lastDrankTs && S.lastWaterTs && S.lastDrankTs >= S.lastWaterTs;
-  if(logged){ wb.textContent='✅ Water logged'; wb.classList.add('sel'); }
-  else { wb.textContent='💧 I drank water'; wb.classList.remove('sel'); }
+  wb.textContent='💧 Drank water: '+(logged?'Yes':'No'); wb.classList.remove('sel');
+}
+// tap on = log water (Yes); tap again = remove it (No), to undo a mistake
+function toggleWater(){
+  var logged = S.lastDrankTs && S.lastWaterTs && S.lastDrankTs >= S.lastWaterTs;
+  if(logged){
+    removeWin("You drank water");
+    S.lastDrankTs=0; save();
+    document.getElementById('phase').textContent="Water removed.";
+    paintWaterBtn(); renderMoodLog();
+  } else {
+    drankWater();
+  }
 }
 
 // ---- small wins (positive reinforcement) ----
