@@ -78,6 +78,7 @@
     font-size:18px;font-weight:800;line-height:1.35;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9);z-index:6;opacity:0;transition:opacity .4s;
     background:rgba(4,20,30,.78);border:1px solid rgba(159,233,255,.35);border-radius:14px;padding:10px 16px}
   #narr.on{opacity:1}
+  #narr.top{top:14px;bottom:auto}          /* quiz question sits at the top, above the divers */
   /* bottom-left instructions */
   #help{position:absolute;left:14px;bottom:14px;max-width:264px;display:none;z-index:6;pointer-events:none;
     background:rgba(4,20,30,.74);border:1px solid rgba(159,233,255,.32);border-radius:12px;padding:9px 12px;
@@ -210,7 +211,7 @@ addEventListener('keydown',e=>{ const k=e.code; if(k==='KeyW'||k==='ArrowUp')IN.
 addEventListener('keyup',e=>{ const k=e.code; if(k==='KeyW'||k==='ArrowUp')IN.fwd=0; else if(k==='KeyS'||k==='ArrowDown')IN.back=0; else if(k==='KeyA'||k==='ArrowLeft')IN.left=0; else if(k==='KeyD'||k==='ArrowRight')IN.right=0; else if(k==='KeyQ'||k==='PageUp')IN.up=0; else if(k==='KeyE'||k==='PageDown')IN.down=0; else if(k==='ShiftLeft'||k==='ShiftRight')IN.fast=0; });
 
 /* ---------- world ---------- */
-let instructor=null, fishG=null, propMask=null, propReg=null, propHand=null, bubbleP=null, signFish=null, fpArms=null, stopSign=null, turtleActor=null, noseBub=null;
+let instructor=null, fishG=null, propMask=null, propReg=null, propHand=null, bubbleP=null, signFish=null, fpArms=null, stopSign=null, turtleActor=null, noseBub=null, coralHead=null;
 
 // A recognizable human scuba diver in horizontal trim (head +Z, fins -Z):
 // wetsuit body, head with two-lens mask + regulator, tank, arms reaching
@@ -456,6 +457,7 @@ function _emoji(x,ch,dx,dy,scale,rot){ x.save(); x.translate(150+(dx||0),150+(dy
   x.textAlign='center'; x.textBaseline='middle'; x.fillText(ch,0,0); x.restore(); }
 const SIGNDRAW={
   ok(x,t){ const s=1+Math.sin(t*2*Math.PI/1.3)*0.06; _emoji(x,'👌',0,0,s,0); },   // gentle pulse
+  stop(x,t){ const dx=Math.sin(t*2*Math.PI/1.1)*6; _emoji(x,'✋',dx,0,1,0); },     // STOP = flat raised hand, palm out
   problem(x,t){ // real rigged hand rocking side to side (so-so), rendered frames
     if(_problemImg.complete && _problemImg.naturalWidth){ const N=20,COLS=5,CELL=200,P=1.4;
       const i=Math.floor(((t%P)/P)*N)%N, sx=(i%COLS)*CELL, sy=Math.floor(i/COLS)*CELL;
@@ -525,6 +527,12 @@ function buildWorld(){
   for(const s of schools){ fishG.add(fishSchool(7,new THREE.Vector3(s[0],s[1],s[2]),s[3],s[4])); schoolCenters.push({x:s[0],z:s[2],r:s[3]}); }
   const turtle=makeTurtle(); turtle.position.set(6,1,-14); fishG.add(turtle);
   fishG.visible=false;
+  // a big coral head used for the buoyancy lesson (hover over it, never touch it)
+  coralHead=new THREE.Group();
+  coralHead.add(makeEmojiSprite('🪸',5.2));
+  const cr2=makeEmojiSprite('🪸',3.4); cr2.position.set(-2.2,-.6,.2); coralHead.add(cr2);
+  const cr3=makeEmojiSprite('🐠',1.8); cr3.position.set(1.8,1.4,.3); coralHead.add(cr3);
+  coralHead.visible=false; scene.add(coralHead);
   // the fish that holds up a "protect the marine life" sign (emoji fish + billboard sign)
   signFish=new THREE.Group();
   const sf=makeEmojiSprite('🐟',3.2); signFish.add(sf);
@@ -745,7 +753,9 @@ function animate(){ requestAnimationFrame(animate); const dt=Math.min(clock.getD
     const fx=Math.sin(V.hd), fz=Math.cos(V.hd), rx=Math.cos(V.hd), rz=-Math.sin(V.hd);
     V.moving=!!(IN.fwd||IN.back||fastNow);
     const spd=(fastNow?7:3)*dt; if(IN.fwd||fastNow){ p.x+=fx*spd; p.z+=fz*spd; } if(IN.back){ p.x-=fx*spd*.7; p.z-=fz*spd*.7; }
-    if(IN.up)p.y+=2.2*dt; if(IN.down)p.y-=2.2*dt; p.y=Math.max(-2.6,Math.min(2.2,p.y));
+    if(IN.up)p.y+=2.2*dt; if(IN.down)p.y-=2.2*dt;
+    if(V.sinking) p.y-=0.6*dt;                       // buoyancy lesson: you slowly drift down toward the coral
+    p.y=Math.max(-2.6,Math.min(2.2,p.y));
     p.x=Math.max(-34,Math.min(34,p.x)); p.z=Math.max(-46,Math.min(34,p.z));
     d.position.set(p.x, p.y+Math.sin(t*1.5)*.05, p.z);
     // cartoon animation: arm-paddle (wrong) > leg-kick (swimming) > neutral
@@ -834,7 +844,8 @@ const SIGN_STEPS=[
   {kind:'problem', name:'Something is wrong', teach:"A flat hand <b>sliding side to side</b> (left, right, left), then <b>point at the problem</b>. It means <b>“something’s not right”</b>. (A raised palm is STOP, not this.)"},
   {kind:'up', name:'Go up', teach:"Thumb <b>up</b> means <b>“let’s go up”</b> – it is NOT the OK sign."},
   {kind:'down', name:'Go down', teach:"Thumb <b>down</b> means <b>“let’s go down”</b>."},
-  {kind:'slow', name:'Slow down', teach:"Hold a flat hand out, <b>palm down</b>, and gently <b>press it down</b> twice. It means <b>“slow down”</b> – relax and take it easy."}
+  {kind:'slow', name:'Slow down', teach:"Hold a flat hand out, <b>palm down</b>, and gently <b>press it down</b> twice. It means <b>“slow down”</b> – relax and take it easy."},
+  {kind:'stop', name:'Stop', teach:"Hold a flat hand up, <b>palm facing your buddy</b> (like a raised hand). It means <b>“stop”</b> – hold still right where you are."}
 ];
 function chapter2(){
   V.underwater=false; setMask(false); clearActions(); showSignal(null); hideBubble(); diverSign(null);
@@ -866,14 +877,15 @@ function chapter2(){
 
 /* CHAPTER THREE — signals quiz: read the instruction, pick the right sign */
 const SIGN_INFO={ ok:{kind:'ok',name:'OK'}, problem:{kind:'problem',name:'Something is wrong'},
-  ears:{kind:'ears',name:'Ear problem'}, up:{kind:'up',name:'Go up'}, down:{kind:'down',name:'Go down'}, slow:{kind:'slow',name:'Slow down'} };
+  ears:{kind:'ears',name:'Ear problem'}, up:{kind:'up',name:'Go up'}, down:{kind:'down',name:'Go down'}, slow:{kind:'slow',name:'Slow down'}, stop:{kind:'stop',name:'Stop'} };
 const QUIZ=[
   {q:'Show the sign that you are <b>OK</b>.', a:'ok'},
   {q:'Show the sign that you <b>have a problem</b>.', a:'problem'},
   {q:'Show the sign that you have a <b>problem with your ears</b>.', a:'ears'},
   {q:'Show the sign that you want to <b>go up</b>.', a:'up'},
   {q:'Show the sign that you want to <b>go down</b>.', a:'down'},
-  {q:'Show the sign to tell your buddy to <b>slow down</b>.', a:'slow'}
+  {q:'Show the sign to tell your buddy to <b>slow down</b>.', a:'slow'},
+  {q:'Show the sign to tell your buddy to <b>stop</b>.', a:'stop'}
 ];
 function chapter3(){
   clearActions(); showSignal(null); hideBubble(); diverSign(null);
@@ -884,6 +896,7 @@ function chapter3(){
   $('help').innerHTML='<b>Signals quiz</b><br>Read the instruction, then choose the correct hand sign from the buttons below.';
   $('help').classList.add('on');
   const mkOpts=()=>Object.keys(SIGN_INFO).map(k=>({node:makeSignCanvas(SIGN_INFO[k].kind,84),key:k,cls:'signopt'}));
+  narrEl.classList.add('top');   // quiz question shows above the divers, clear of the answer buttons
   (async function(){
     say("Now it’s your turn. Read each instruction and choose the right sign below.");
     await wait(1600);
@@ -897,7 +910,7 @@ function chapter3(){
         else { warnMsg('That’s the “'+SIGN_INFO[k].name+'” sign – try again.'); }
       }
     }
-    diverSign(null);
+    diverSign(null); narrEl.classList.remove('top');
     say("Perfect signalling! You can ask and answer underwater now.");
     setControls([ mkbtn('Next: how much air? ▶','good',()=>{ hush(); chapter4(); }) ]);
   })();
