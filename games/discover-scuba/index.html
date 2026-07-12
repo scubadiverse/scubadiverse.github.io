@@ -108,6 +108,7 @@
   .abtn.signal{background:linear-gradient(180deg,#12507f,#0b3355);box-shadow:0 6px 0 #06233a,0 10px 20px rgba(0,0,0,.4);color:#fff;font-size:24px;padding:16px 30px}
   .abtn.signal .emo{font-size:34px;vertical-align:-4px}
   .abtn.warn{background:linear-gradient(180deg,#ffd0da,#ff5470);box-shadow:0 6px 0 #a81f3c,0 10px 20px rgba(0,0,0,.35);color:#2a0a12}
+  .abtn.signopt{background:linear-gradient(180deg,#155f92,#08263c);box-shadow:0 6px 0 #051726,0 10px 20px rgba(0,0,0,.45);padding:8px 10px}  /* dark blue so the yellow sign stands out */
   .abtn.hold{background:linear-gradient(180deg,#ffe58f,#ffb63f);box-shadow:0 6px 0 #a8701c,0 10px 20px rgba(0,0,0,.35);color:#2a1a04}
 
   /* corner buttons */
@@ -854,7 +855,7 @@ function chapter3(){
   showChapterTitle('Chapter Three','Signals quiz');
   $('help').innerHTML='<b>Signals quiz</b><br>Read the instruction, then choose the correct hand sign from the buttons below.';
   $('help').classList.add('on');
-  const mkOpts=()=>Object.keys(SIGN_INFO).map(k=>({node:makeSignCanvas(SIGN_INFO[k].kind,58),key:k}));
+  const mkOpts=()=>Object.keys(SIGN_INFO).map(k=>({node:makeSignCanvas(SIGN_INFO[k].kind,84),key:k,cls:'signopt'}));
   (async function(){
     say("Now it’s your turn. Read each instruction and choose the right sign below.");
     await wait(1600);
@@ -891,7 +892,7 @@ function chapter4(){
   showChapterTitle('Chapter Four','How much air?');
   $('help').innerHTML='<b>Air signals</b><br>1 finger = 10 bar &bull; 2 = 20 &bull; 3 = 30 &bull; 4 = 40<br>fist = 50 &bull; a T (one hand up, one flat on top) = 100';
   $('help').classList.add('on');
-  const mkOpts=()=>AIR_STEPS.map(s=>({node:makeSignCanvas(s.kind,58),key:String(s.bar)}));   // answers show the SIGN only, no numbers
+  const mkOpts=()=>AIR_STEPS.map(s=>({node:makeSignCanvas(s.kind,84),key:String(s.bar),cls:'signopt'}));   // answers show the SIGN only, no numbers
   (async function(){
     // 1) the "how much air?" question sign (two fingers tapping the open palm)
     showSignal('air','Instructor: How much air?');
