@@ -97,6 +97,7 @@
   .moods{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
   .mood{border-radius:999px;padding:9px 14px;font-size:14px;background:var(--card2)}
   .mood.sel{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
+  .brk.sel{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
   .resp{margin-top:14px;padding:14px;border-radius:12px;background:var(--card2);
     border:1px solid var(--line);display:none}
   .resp.show{display:block}
@@ -175,9 +176,9 @@
     <span class="muted" style="font-size:13px">min</span>
   </div>
   <div class="row" style="margin-top:8px;justify-content:center">
-    <button onclick="drankWater()">💧 I drank water</button>
-    <button id="eyeBtn" onclick="toggleEye()">👀 Eye-rest: On</button>
-    <button id="standBtn" onclick="toggleStand()">🧍 Stand: On</button>
+    <button id="waterBtn" class="brk" onclick="drankWater()">💧 I drank water</button>
+    <button id="eyeBtn" class="brk" onclick="toggleEye()">👀 Eye-rest: On</button>
+    <button id="standBtn" class="brk" onclick="toggleStand()">🧍 Stand: On</button>
   </div>
   <div class="row" style="margin-top:8px;justify-content:center">
     <span class="muted" style="font-size:13px">⏸️ Force a 2-min time-out after:</span>
@@ -483,7 +484,7 @@ function renderProjects(){
     var isDefault = /^project\s*(one|two|three|four|five|six|seven|\d+)?$/i.test((p.name||'').trim());
     b.innerHTML='<div class="nm"><span class="dot" style="background:'+c+'"></span>'+esc(p.name)+'</div>'+
       '<div class="mn">'+mn+'</div>'+
-      (isDefault ? '<div class="mn" style="color:var(--accent);margin-top:3px">✏️ Tap Edit to change project name</div>' : '');
+      (isDefault ? '<div class="mn" style="color:#7c5cff;font-weight:700;margin-top:3px">✏️ Tap Edit to change project name</div>' : '');
     b.onclick=function(){ pick(p.id); };
     el.appendChild(b);
   });
@@ -1066,7 +1067,15 @@ function drankWater(){
   S.lastDrankTs=Date.now(); S.lastWaterTs=Date.now(); save();
   hide('waterBanner');
   document.getElementById('phase').textContent="Water logged 💧 well done.";
+  var wb=document.getElementById('waterBtn'); if(wb){ wb.textContent='✅ Water logged'; wb.classList.add('sel'); }
   addWin("You drank water"); renderMoodLog();
+}
+// show the water button as already-logged today (ring + tick), like the feelings/wins
+function paintWaterBtn(){
+  var wb=document.getElementById('waterBtn'); if(!wb) return;
+  var t=S.lastDrankTs, today=t && new Date(t).toDateString()===new Date().toDateString();
+  if(today){ wb.textContent='✅ Water logged'; wb.classList.add('sel'); }
+  else { wb.textContent='💧 I drank water'; wb.classList.remove('sel'); }
 }
 
 // ---- small wins (positive reinforcement) ----
@@ -1262,7 +1271,7 @@ function overwhelmed(){
 }
 function toggleEye(){
   S.eyeRest=!S.eyeRest; S.lastEyeTs=Date.now(); save();
-  document.getElementById('eyeBtn').textContent='👀 Eye-rest: '+(S.eyeRest?'On':'Off');
+  var eb=document.getElementById('eyeBtn'); eb.textContent='👀 Eye-rest: '+(S.eyeRest?'On':'Off'); eb.classList.toggle('sel',S.eyeRest);
   if(inNativeApp){ if(S.eyeRest) nRepeat('eye',20,"👀 Eye rest","Look ~6 m away for 20 seconds and blink."); else nCancel('eye'); }
 }
 // 20-20-20: every 20 min, look ~6 m away for 20 s.
@@ -1277,7 +1286,7 @@ function checkEye(){
 setInterval(checkEye,20000);
 function toggleStand(){
   S.stand=!S.stand; S.lastStandTs=Date.now(); save();
-  document.getElementById('standBtn').textContent='🧍 Stand: '+(S.stand?'On':'Off');
+  var sb=document.getElementById('standBtn'); sb.textContent='🧍 Stand: '+(S.stand?'On':'Off'); sb.classList.toggle('sel',S.stand);
   if(inNativeApp){ if(S.stand) nRepeat('stand',30,"🧍 Stand & stretch","Stand up and move for a moment."); else nCancel('stand'); }
 }
 // Every 30 min: stand up and stretch (for sitting too long).
@@ -1616,8 +1625,9 @@ function renderAll(){
   document.getElementById('blockLen').value=S.block;
   document.getElementById('waterEvery').value=S.waterEvery;
   document.getElementById('onlineLimit').value=S.onlineLimit;
-  document.getElementById('eyeBtn').textContent='👀 Eye-rest: '+(S.eyeRest?'On':'Off');
-  document.getElementById('standBtn').textContent='🧍 Stand: '+(S.stand?'On':'Off');
+  var eb2=document.getElementById('eyeBtn'); eb2.textContent='👀 Eye-rest: '+(S.eyeRest?'On':'Off'); eb2.classList.toggle('sel',S.eyeRest);
+  var sb2=document.getElementById('standBtn'); sb2.textContent='🧍 Stand: '+(S.stand?'On':'Off'); sb2.classList.toggle('sel',S.stand);
+  paintWaterBtn();
   buildMoods(); buildWinChips(); renderProjects(); renderWins(); renderMoodLog(); renderProgress(); paintStats();
 }
 
@@ -1636,8 +1646,8 @@ if(!S.lastWaterTs){ S.lastWaterTs=Date.now(); save(); }
 if(!S.contStart){ S.contStart=Date.now(); save(); }
 if(!S.lastEyeTs){ S.lastEyeTs=Date.now(); save(); }
 if(!S.lastStandTs){ S.lastStandTs=Date.now(); save(); }
-document.getElementById('eyeBtn').textContent='👀 Eye-rest: '+(S.eyeRest?'On':'Off');
-document.getElementById('standBtn').textContent='🧍 Stand: '+(S.stand?'On':'Off');
+(function(){var eb=document.getElementById('eyeBtn'); eb.textContent='👀 Eye-rest: '+(S.eyeRest?'On':'Off'); eb.classList.toggle('sel',S.eyeRest);
+var sb=document.getElementById('standBtn'); sb.textContent='🧍 Stand: '+(S.stand?'On':'Off'); sb.classList.toggle('sel',S.stand); paintWaterBtn();})();
 renderProgress();
 remain=S.block*60;
 adaptBlock();
