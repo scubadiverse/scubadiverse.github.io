@@ -268,7 +268,13 @@
 </div>
 </div>
 
-<!-- Optional cloud sign-in is disabled for launch (fully on-device). Re-enable later. -->
+<!-- Optional cloud account: sign in to sync progress across devices -->
+<div class="card" id="acctCard" style="display:none">
+  <b>Your account</b>
+  <div class="foot" style="text-align:left;margin:4px 0 12px">Sign in to back up your progress and see it on every device.</div>
+  <div id="acctBody"></div>
+  <div class="foot" id="acctMsg" style="text-align:left;color:var(--warn);margin-top:8px"></div>
+</div>
 
 <div class="overlay" id="breathe">
   <div class="otxt" id="bcue">Let's slow it down together</div>
@@ -337,6 +343,11 @@
 feelings are frequent or heavy, talking to someone you trust helps.
 <br><a href="privacy.html">Privacy policy</a></p>
 
+<!-- Firebase SDK (compat build) for optional account sign-in + cloud sync -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+
 <script>
 "use strict";
 // ---- storage ----
@@ -360,6 +371,7 @@ function load(){
     onlineLimit:60,          // continuous minutes online before a forced time-out
     contStart:0,             // timestamp continuous online session began
     timer:null,              // running block {proj,endAt,block} – survives refresh
+    projRemain:{},           // each project's own paused countdown (its own timer)
     guard:false,             // whole-screen break lock enabled (native app)
     lastDrankTs:0,           // when water was actually drunk (logged by you)
     eyeRest:true,            // 20-20-20 eye-rest reminders on
@@ -380,12 +392,13 @@ function load(){
       s.history.push({day:s.day, min:tot, blocks:s.blocks||0, wins:(s.wins?s.wins.length:0), mins:(s.mins||{})});
       if(s.history.length>180) s.history=s.history.slice(-180);
     }
-    s.day=todayKey(); s.mins={}; s.blocks=0; s.lastProj=null; s.wins=[]; s.targetNotified={};
+    s.day=todayKey(); s.mins={}; s.blocks=0; s.lastProj=null; s.wins=[]; s.targetNotified={}; s.projRemain={};
   }
   for(var k in base) if(!(k in s)) s[k]=base[k];
   if(!s.projects || !s.projects.length) s.projects=base.projects;
   s.projects.forEach(function(p){ if(typeof p.target!=='number') p.target=0; });
   if(!s.mins) s.mins={};
+  if(!s.projRemain) s.projRemain={};
   if(!s.targetNotified) s.targetNotified={};
   if(!s.emergency) s.emergency={official:'112', contacts:[]};
   return s;
@@ -548,12 +561,21 @@ function setProjTarget(id,v){
 }
 function deleteProject(id){
   S.projects=S.projects.filter(function(p){return p.id!==id;});
-  delete S.mins[id];
+  delete S.mins[id]; delete S.projRemain[id];
   if(proj===id) proj=null;
   save(); renderProjects(); renderProjEdit(); paintStats();
 }
 function pick(p){
-  proj=p;
+  if(p!==proj){
+    // leaving the current project: remember its own timer position, load the new one's
+    if(proj!==null){
+      if(running){ stopBlock(); }          // pause + save current project's remaining
+      else { S.projRemain[proj]=remain; }
+    }
+    proj=p;
+    remain=(S.projRemain[p]!=null)?S.projRemain[p]:S.block*60; // this project's own timer
+    paint(); save();
+  }
   renderProjects();
   if(!running){ document.getElementById('phase').textContent="Ready on "+projName(p)+" – press Start."; }
   hide('switchBanner');
@@ -561,7 +583,7 @@ function pick(p){
 function setBlock(){
   var v=parseInt(document.getElementById('blockLen').value,10)||50;
   v=Math.max(10,Math.min(120,v)); S.block=v; document.getElementById('blockLen').value=v;
-  if(!running){ remain=v*60; paint(); } save();
+  if(!running){ remain=v*60; if(proj!==null) S.projRemain[proj]=v*60; paint(); } save();
 }
 function startStop(){
   if(!proj){ document.getElementById('phase').textContent="Pick a project first."; return; }
@@ -608,7 +630,7 @@ function blockDone(){
   if(restNow){ show('restBanner'); }
   else { suggestSwitch(); }
   addWin("You finished a focus block");
-  remain=S.block*60; paint(); paintStats(); renderProgress();
+  if(proj!==null) S.projRemain[proj]=S.block*60; remain=S.block*60; paint(); paintStats(); renderProgress();
 }
 // Real-world reset ideas – get away from the screen.
 var REST_IDEAS=[
@@ -623,7 +645,9 @@ var REST_IDEAS=[
 ];
 function restIdea(){ return REST_IDEAS[(S.blocks+ (S.moods?S.moods.length:0)) % REST_IDEAS.length]; }
 function stopBlock(){
-  clearInterval(tickH); running=false; S.timer=null; save();
+  clearInterval(tickH); running=false; S.timer=null;
+  if(proj!==null) S.projRemain[proj]=remain; // remember this project's paused time
+  save();
   nCancel('warn'); nCancel('end');
   document.getElementById('startBtn').textContent="Start";
   document.getElementById('phase').textContent="Paused. Press Start to continue.";
@@ -1577,7 +1601,14 @@ function showCurfew(){ show('curfew'); }
 
 // ---- optional cloud account (Firebase) ----
 // Paste your Firebase web config here after creating the project. Empty = cloud off.
-var firebaseConfig = { apiKey:"", authDomain:"", projectId:"", appId:"" };
+var firebaseConfig = {
+  apiKey:"AIzaSyDmmju7xZzKIVo9B1ijjfypPYjFrOe6Zlw",
+  authDomain:"project-savvy-914a1.firebaseapp.com",
+  projectId:"project-savvy-914a1",
+  storageBucket:"project-savvy-914a1.firebasestorage.app",
+  messagingSenderId:"692487500416",
+  appId:"1:692487500416:web:80bafb6fe1ae9da4cfac65"
+};
 var fbReady=false, fbUser=null, fbDb=null, cloudTimer=null, cloudLoaded=false;
 function initFirebase(){
   if(!firebaseConfig.apiKey || !window.firebase){ return; }
@@ -1597,13 +1628,30 @@ function renderAcct(){
       '<div class="foot" style="text-align:left;color:var(--good);margin:6px 0">Progress is backing up automatically ✓</div>'+
       '<button onclick="fbSignOut()">Sign out</button>';
   } else {
-    el.innerHTML='<input type="email" id="acctEmail" placeholder="your email" autocomplete="username" '+
+    var gicon='<svg width="18" height="18" viewBox="0 0 48 48" style="vertical-align:middle">'+
+      '<path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>'+
+      '<path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>'+
+      '<path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>'+
+      '<path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>';
+    el.innerHTML='<button onclick="fbGoogle()" '+
+        'style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#1f1f1f;border:1px solid var(--line);font-weight:600">'+
+        gicon+' Continue with Google</button>'+
+      '<div style="display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;margin:12px 0">'+
+        '<span style="flex:1;height:1px;background:var(--line)"></span>or use email'+
+        '<span style="flex:1;height:1px;background:var(--line)"></span></div>'+
+      '<input type="email" id="acctEmail" placeholder="your email" autocomplete="username" '+
       'style="width:100%;margin:4px 0;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px">'+
       '<input type="password" id="acctPass" placeholder="password (6+ characters)" autocomplete="current-password" '+
       'style="width:100%;margin:4px 0;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px">'+
       '<div class="row" style="margin-top:6px"><button class="primary grow" onclick="fbSignIn()">Sign in</button>'+
       '<button class="grow" onclick="fbSignUp()">Create account</button></div>';
   }
+}
+function fbGoogle(){
+  acctMsg('Opening Google…');
+  var provider=new firebase.auth.GoogleAuthProvider();
+  firebase.auth().signInWithPopup(provider)
+    .then(function(){ acctMsg(''); }).catch(function(err){ acctMsg(err.message); });
 }
 function fbSignUp(){
   var e=document.getElementById('acctEmail').value.trim(), p=document.getElementById('acctPass').value;
