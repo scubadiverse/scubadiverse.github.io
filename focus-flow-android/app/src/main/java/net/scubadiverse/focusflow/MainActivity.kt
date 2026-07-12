@@ -8,6 +8,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.Color
@@ -35,6 +36,11 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Phones stay in portrait; tablets (>= 600dp wide) may rotate to use the wide layout.
+        requestedOrientation = if (resources.configuration.smallestScreenWidthDp >= 600)
+            ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        else
+            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         createChannel()
         askNotifPermission()
         web = WebView(this)
