@@ -524,7 +524,7 @@ function buildWorld(){
   const sign=makeSignSprite("Don't touch us! We are not pets. Protect the marine life."); sign.position.set(0,2.6,0); signFish.add(sign);
   signFish.visible=false; scene.add(signFish);
   // instructor, in front of you the whole time, facing you (head toward camera)
-  instructor=makeDiverSprite(DIVER_INSTR,2.8); instructor.position.set(2.6,-.5,-7.6); scene.add(instructor); // cartoon instructor
+  instructor=makeDiverSprite(DIVER_INSTR,3.4); instructor.position.set(2.6,-.5,-7.6); scene.add(instructor); // cartoon instructor, same size as the student
   // rising bubbles from your own reg
   bubbleP=particles(120,4,0xbfefff,.16,0); bubbleP.position.set(-.3,-1,-1.2); scene.add(bubbleP); bubbleP.visible=false;
   // first-person props attached to the camera
