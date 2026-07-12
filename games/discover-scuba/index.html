@@ -824,7 +824,6 @@ function chapter1(){
   beachInstr =makeStandingDiver(DIVER_INSTR,7,-1);    beachInstr.position.set(2.3,-.4,-6.4);  scene.add(beachInstr);
   setSurface(.46); // water up to the chest
   showChapterTitle('Chapter One','In the water');
-  showSignal('ok','OK?');
   say("You're in the water up to your chest &ndash; mask on, fins on, regulator in. Your instructor is right beside you. Take a few easy breaths, then we go under.");
   setControls([ mkbtn('Learn the hand signals ▶','good',()=>{ hush(); showSignal(null); chapter2(); }) ]);
 }
