@@ -1,0 +1,69 @@
+name: Build Personal Android APK (sign-in)
+
+# A private, personal build for the owner only. Same app, but it loads the
+# sign-in / cloud-sync version and installs alongside the public app (its own
+# applicationId + name). The public app and the Play Store build are NOT touched.
+# Run it by hand from the Actions tab (workflow_dispatch).
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Point this build at the sign-in version + make it a separate app
+        working-directory: focus-flow-android
+        run: |
+          set -e
+          sed -i 's#https://scubadiverse.github.io/focus-flow/#https://project-savvy-914a1.web.app#' \
+            app/src/main/java/net/scubadiverse/focusflow/MainActivity.kt
+          sed -i 's#applicationId "app.ainative.focusflow"#applicationId "app.ainative.focusflow.signin"#' \
+            app/build.gradle
+          sed -i 's#android:label="ProjectSavvy"#android:label="ProjectSavvy Sign-in"#' \
+            app/src/main/AndroidManifest.xml
+          echo "URL, applicationId and label patched for the personal sign-in build."
+          grep -n "loadUrl(" app/src/main/java/net/scubadiverse/focusflow/MainActivity.kt
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Build debug APK (personal sign-in build)
+        working-directory: focus-flow-android
+        run: gradle assembleDebug --no-daemon --stacktrace
+
+      - name: Upload APK as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: projectsavvy-signin-apk
+          path: focus-flow-android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Publish personal APK to its own Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-personal
+          name: "ProjectSavvy – Personal (sign-in)"
+          body: |
+            Private personal build for testing sign-in + cloud sync.
+            Installs alongside the public app (its own name "ProjectSavvy Sign-in").
+            • app-debug.apk - open on your phone to install (allow install from unknown sources).
+            Note: use EMAIL sign-in inside the app - Google's own rule blocks the
+            "Continue with Google" button inside an installed app's web view.
+          files: |
+            focus-flow-android/app/build/outputs/apk/debug/app-debug.apk
