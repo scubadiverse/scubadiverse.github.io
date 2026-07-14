@@ -818,7 +818,9 @@ function toggleGuard(){
 // ---- forced 2-minute time-out after too long online ----
 var inTimeout=false, toH=null;
 function checkOnline(){
-  if(inNativeApp) return; // native screen-guard handles this over the whole phone
+  // Whole-screen lock (native) covers the WHOLE phone. If it is OFF, still run the
+  // in-app time-out so setting a limit always does something while you're in the app.
+  if(inNativeApp && S.guard) return;
   if(inTimeout) return;
   if(!S.contStart){ S.contStart=Date.now(); save(); return; }
   if(Date.now()-S.contStart >= S.onlineLimit*60*1000){ startTimeout(); }
