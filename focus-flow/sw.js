@@ -2,7 +2,7 @@
 // Stale-while-revalidate for the page: serve the cached app INSTANTLY, then refresh
 // from the network in the background so the next open has the latest. Bump CACHE to
 // force old caches out.
-var CACHE = "focusflow-v68";
+var CACHE = "focusflow-v69";
 var ASSETS = [
   "./",
   "./index.html",
@@ -14,7 +14,8 @@ var ASSETS = [
   "./sounds/water.wav",
   "./sounds/eye.wav",
   "./sounds/stand.mp3",
-  "./sounds/end.wav"
+  "./sounds/end.wav",
+  "./sounds/timeout.wav"
 ];
 
 self.addEventListener("install", function (e) {

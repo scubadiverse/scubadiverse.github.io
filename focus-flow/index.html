@@ -793,7 +793,7 @@ function startTimeout(){
   inTimeout=true;
   document.getElementById('sosBtn').style.display='block'; // emergency icon only during time-out
   if(running){ stopBlock(); } // pause any focus block
-  notify("Time out","You've been online a long time. 2-minute break – step away now.");
+  notify("Time out","You've been online a long time. 2-minute break – step away now.",'timeout');
   show('timeout');
   var left=2*60;
   var tc=document.getElementById('toClock');
@@ -1283,7 +1283,7 @@ function tinyStep(){
 var actx=null, curSound=null;
 function audioCtx(){ if(!actx){ try{ actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return actx; }
 // distinct notification sounds per trigger (real files, with a beep fallback)
-var SOUND_FILES={ water:'sounds/water.wav', eye:'sounds/eye.wav', stand:'sounds/stand.mp3', end:'sounds/end.wav' };
+var SOUND_FILES={ water:'sounds/water.wav', eye:'sounds/eye.wav', stand:'sounds/stand.mp3', end:'sounds/end.wav', timeout:'sounds/timeout.wav' };
 var soundBuf={};
 function loadCue(kind){
   var a=audioCtx(); if(!a||!SOUND_FILES[kind]||soundBuf[kind]) return;
