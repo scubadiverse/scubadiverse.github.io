@@ -105,6 +105,13 @@ class ScreenGuardService : Service() {
     private fun showOverlay() {
         if (!Settings.canDrawOverlays(this)) return
         overlayShown = true
+        // Play the gong so the time-out is unmistakable even if you're not looking.
+        try {
+            android.media.MediaPlayer.create(this, R.raw.timeout)?.apply {
+                setOnCompletionListener { it.release() }
+                start()
+            }
+        } catch (e: Exception) {}
         wm = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY

@@ -12,6 +12,7 @@ import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.Color
+import android.media.AudioAttributes
 import android.net.Uri
 import android.provider.Settings
 import android.os.Build
@@ -80,11 +81,34 @@ class MainActivity : AppCompatActivity() {
 
     private fun createChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val ch = NotificationChannel(channelId, "Focus & Flow", NotificationManager.IMPORTANCE_HIGH)
-            ch.description = "Break, water and calm reminders"
-            (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
-                .createNotificationChannel(ch)
+            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val gen = NotificationChannel(channelId, "Reminders", NotificationManager.IMPORTANCE_HIGH)
+            gen.description = "General reminders"
+            nm.createNotificationChannel(gen)
+            // One channel per trigger, each with its OWN sound, so a minimised app
+            // still plays a distinct sound you can recognise by ear.
+            val attrs = AudioAttributes.Builder()
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION).build()
+            fun soundCh(cid: String, name: String, raw: Int) {
+                val ch = NotificationChannel(cid, name, NotificationManager.IMPORTANCE_HIGH)
+                ch.setSound(Uri.parse("android.resource://$packageName/$raw"), attrs)
+                nm.createNotificationChannel(ch)
+            }
+            soundCh("wx_water", "Water reminder", R.raw.water)
+            soundCh("wx_eye",   "Eye-rest reminder", R.raw.eye)
+            soundCh("wx_stand", "Stand reminder", R.raw.stand)
+            soundCh("wx_end",   "End of sprint", R.raw.end)
         }
+    }
+
+    // Map a reminder id to its sound channel (falls back to the generic channel).
+    private fun channelFor(id: String): String = when (id) {
+        "water" -> "wx_water"
+        "eye"   -> "wx_eye"
+        "stand" -> "wx_stand"
+        "end"   -> "wx_end"
+        else    -> channelId
     }
 
     private fun askNotifPermission() {
@@ -101,6 +125,7 @@ class MainActivity : AppCompatActivity() {
             putExtra("title", title)
             putExtra("body", body)
             putExtra("nid", id.hashCode())
+            putExtra("channel", channelFor(id))
         }
         var flags = PendingIntent.FLAG_UPDATE_CURRENT
         if (Build.VERSION.SDK_INT >= 23) flags = flags or PendingIntent.FLAG_IMMUTABLE
