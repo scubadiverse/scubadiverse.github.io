@@ -402,7 +402,7 @@ function load(){
       s.history.push({day:s.day, min:tot, blocks:s.blocks||0, wins:(s.wins?s.wins.length:0), mins:(s.mins||{})});
       if(s.history.length>180) s.history=s.history.slice(-180);
     }
-    s.day=todayKey(); s.mins={}; s.blocks=0; s.lastProj=null; s.wins=[]; s.targetNotified={}; s.projRemain={};
+    s.day=todayKey(); s.mins={}; s.blocks=0; s.lastProj=null; s.wins=[]; s.targetNotified={}; s.projRemain={}; s.timer=null;
   }
   for(var k in base) if(!(k in s)) s[k]=base[k];
   if(!s.projects || !s.projects.length) s.projects=base.projects;
@@ -677,6 +677,28 @@ function resumeTimer(){
   scheduleBlockAlarms();
   tickH=setInterval(tick,250); tick();
 }
+// If the calendar day changed while the app was backgrounded, roll over to a
+// fresh day: archive yesterday, zero today's totals, and reset the active timer.
+function rollDayIfNeeded(){
+  if(S.day===todayKey()) return false;
+  var tot=0; for(var mk in (S.mins||{})) tot+=S.mins[mk];
+  if(tot>0 || (S.blocks||0)>0 || (S.wins&&S.wins.length)){
+    if(!S.history) S.history=[];
+    S.history.push({day:S.day, min:tot, blocks:S.blocks||0, wins:(S.wins?S.wins.length:0), mins:(S.mins||{})});
+    if(S.history.length>180) S.history=S.history.slice(-180);
+  }
+  S.day=todayKey(); S.mins={}; S.blocks=0; S.lastProj=null; S.wins=[]; S.targetNotified={}; S.projRemain={}; S.timer=null;
+  if(running){ clearInterval(tickH); running=false; }
+  remain=S.block*60; warned=false; elapsedThisBlock=0;
+  save();
+  renderProjects(); renderWins(); renderMoodLog(); renderProgress(); paintStats(); paint();
+  document.getElementById('startBtn').textContent="Start";
+  document.getElementById('phase').textContent="New day – today's totals and timer are reset. Pick a project and Start.";
+  return true;
+}
+document.addEventListener('visibilitychange', function(){ if(!document.hidden) rollDayIfNeeded(); });
+window.addEventListener('focus', function(){ rollDayIfNeeded(); });
+setInterval(rollDayIfNeeded, 60000); // also catch midnight while the app stays open
 function markTired(){
   if(running){
     var into=Math.round((S.block*60-remain)/60);
