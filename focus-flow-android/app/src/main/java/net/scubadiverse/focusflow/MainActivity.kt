@@ -218,6 +218,8 @@ class MainActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun stopGuard() {
+            // Clear the saved counter so turning the lock off then on starts fresh.
+            getSharedPreferences("focusflow", Context.MODE_PRIVATE).edit().remove("guardStart").apply()
             stopService(Intent(this@MainActivity, ScreenGuardService::class.java))
         }
     }

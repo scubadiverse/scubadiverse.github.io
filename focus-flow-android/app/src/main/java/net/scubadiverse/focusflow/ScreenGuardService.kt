@@ -48,7 +48,7 @@ class ScreenGuardService : Service() {
                 Intent.ACTION_SCREEN_OFF -> offAt = System.currentTimeMillis()
                 Intent.ACTION_SCREEN_ON -> {
                     val now = System.currentTimeMillis()
-                    if (offAt > 0 && now - offAt >= breakMs) onStart = now
+                    if (offAt > 0 && now - offAt >= breakMs) { onStart = now; saveStart(now) }
                 }
             }
         }
@@ -62,6 +62,9 @@ class ScreenGuardService : Service() {
         }
     }
 
+    private fun prefs() = getSharedPreferences("focusflow", Context.MODE_PRIVATE)
+    private fun saveStart(t: Long) { prefs().edit().putLong("guardStart", t).apply() }
+
     override fun onCreate() {
         super.onCreate()
         val f = IntentFilter().apply {
@@ -69,6 +72,12 @@ class ScreenGuardService : Service() {
             addAction(Intent.ACTION_SCREEN_OFF)
         }
         ContextCompat.registerReceiver(this, screenReceiver, f, ContextCompat.RECEIVER_NOT_EXPORTED)
+        // Resume the running count across a kill/restart or a swiped notification –
+        // the elapsed screen time is stored, not held only in memory.
+        val p = prefs()
+        limitMs = p.getLong("guardLimitMs", limitMs)
+        val saved = p.getLong("guardStart", 0L)
+        onStart = if (saved > 0L) saved else System.currentTimeMillis().also { saveStart(it) }
         if (Build.VERSION.SDK_INT >= 34) {
             startForeground(9, buildNote(), ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
         } else {
@@ -78,9 +87,11 @@ class ScreenGuardService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val lim = intent?.getLongExtra("limitMin", 60L) ?: 60L
-        if (lim > 0) limitMs = lim * 60 * 1000
-        onStart = System.currentTimeMillis()
+        val lim = intent?.getLongExtra("limitMin", 0L) ?: 0L
+        if (lim > 0) { limitMs = lim * 60 * 1000; prefs().edit().putLong("guardLimitMs", limitMs).apply() }
+        // Do NOT reset the counter on every start – reopening the app used to wipe
+        // the elapsed time. Only set it the first time the guard is armed.
+        if (prefs().getLong("guardStart", 0L) <= 0L) { onStart = System.currentTimeMillis(); saveStart(onStart) }
         return START_STICKY
     }
 
@@ -96,9 +107,10 @@ class ScreenGuardService : Service() {
         }
         return NotificationCompat.Builder(this, "guard")
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-            .setContentTitle("Focus & Flow")
+            .setContentTitle("ProjectSavvy")
             .setContentText("Watching your screen time to give you breaks.")
             .setOngoing(true)
+            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .build()
     }
 
@@ -216,6 +228,7 @@ class ScreenGuardService : Service() {
         overlay = null
         overlayShown = false
         onStart = System.currentTimeMillis()
+        saveStart(onStart)
     }
 
     override fun onDestroy() {
