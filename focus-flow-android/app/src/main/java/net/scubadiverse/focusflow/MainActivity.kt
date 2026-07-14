@@ -216,6 +216,45 @@ class MainActivity : AppCompatActivity() {
             if (Build.VERSION.SDK_INT >= 26) startForegroundService(i) else startService(i)
         }
 
+        // Single source of truth for the always-on background service: reminders
+        // (fired by the service itself, spaced out, surviving swipe) + the lock.
+        @JavascriptInterface
+        fun syncAlerts(json: String) {
+            try {
+                val o = org.json.JSONObject(json)
+                val p = getSharedPreferences("focusflow", Context.MODE_PRIVATE)
+                val alertsOn = o.optBoolean("alertsOn", false)
+                val guardOn = o.optBoolean("guardOn", false)
+                val e = p.edit()
+                e.putBoolean("alertsOn", alertsOn)
+                e.putBoolean("guardOn", guardOn)
+                e.putLong("guardLimitMs", (o.optDouble("limitMin", 60.0) * 60000).toLong())
+                o.optJSONObject("water")?.let { e.putInt("waterEvery", it.optInt("every", 45)) }
+                o.optJSONObject("eye")?.let { e.putBoolean("eyeOn", it.optBoolean("on", true)); e.putInt("eyeEvery", it.optInt("every", 20)) }
+                o.optJSONObject("stand")?.let { e.putBoolean("standOn", it.optBoolean("on", true)); e.putInt("standEvery", it.optInt("every", 30)) }
+                val now = System.currentTimeMillis()
+                if (alertsOn) {
+                    if (p.getLong("waterLast", 0L) <= 0L) e.putLong("waterLast", now)
+                    if (p.getLong("eyeLast", 0L) <= 0L) e.putLong("eyeLast", now)
+                    if (p.getLong("standLast", 0L) <= 0L) e.putLong("standLast", now)
+                } else {
+                    e.putLong("waterLast", 0L); e.putLong("eyeLast", 0L); e.putLong("standLast", 0L)
+                }
+                if (guardOn) {
+                    if (p.getLong("guardStart", 0L) <= 0L) e.putLong("guardStart", now)
+                } else {
+                    e.remove("guardStart")
+                }
+                e.apply()
+                val svc = Intent(this@MainActivity, ScreenGuardService::class.java)
+                if (alertsOn || guardOn) {
+                    if (Build.VERSION.SDK_INT >= 26) startForegroundService(svc) else startService(svc)
+                } else {
+                    stopService(svc)
+                }
+            } catch (ex: Exception) {}
+        }
+
         @JavascriptInterface
         fun stopGuard() {
             // Clear the saved counter so turning the lock off then on starts fresh.

@@ -8,8 +8,10 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.SharedPreferences
 import android.content.pm.ServiceInfo
 import android.graphics.Color
+import android.media.AudioAttributes
 import android.graphics.PixelFormat
 import android.net.Uri
 import android.os.Build
@@ -54,16 +56,79 @@ class ScreenGuardService : Service() {
         }
     }
 
+    private val gapMs = 90_000L    // minimum gap between two reminders so they never clump
+
     private val ticker = object : Runnable {
         override fun run() {
             val now = System.currentTimeMillis()
-            if (!overlayShown && isScreenOn() && now - onStart >= limitMs) showOverlay()
+            val p = prefs()
+            val alertsOn = p.getBoolean("alertsOn", false)
+            val guardOn = p.getBoolean("guardOn", false)
+            if (!alertsOn && !guardOn) { stopSelf(); return }   // nothing to watch – stop
+            // Reminders: fire at most ONE per tick, spaced by gapMs, so they spread out.
+            if (alertsOn && isScreenOn() && now - p.getLong("lastRem", 0L) >= gapMs) {
+                val due = dueReminder(now, p)
+                if (due != null) {
+                    postReminder(due)
+                    p.edit().putLong(due + "Last", now).putLong("lastRem", now).apply()
+                }
+            }
+            // Whole-screen lock overlay (only if that toggle is on).
+            if (guardOn && !overlayShown && isScreenOn() && now - onStart >= limitMs) showOverlay()
             handler.postDelayed(this, 20000)
         }
     }
 
     private fun prefs() = getSharedPreferences("focusflow", Context.MODE_PRIVATE)
     private fun saveStart(t: Long) { prefs().edit().putLong("guardStart", t).apply() }
+
+    // Which reminder is due right now (most overdue wins). null = none due.
+    private fun dueReminder(now: Long, p: SharedPreferences): String? {
+        val items = listOf(
+            Triple("water", true, Pair(p.getInt("waterEvery", 45), p.getLong("waterLast", 0L))),
+            Triple("eye",   p.getBoolean("eyeOn", true), Pair(p.getInt("eyeEvery", 20), p.getLong("eyeLast", 0L))),
+            Triple("stand", p.getBoolean("standOn", true), Pair(p.getInt("standEvery", 30), p.getLong("standLast", 0L)))
+        )
+        var best: String? = null
+        var bestOver = -1L
+        for ((k, on, cfg) in items) {
+            val (every, last) = cfg
+            if (!on || last <= 0L) continue
+            val over = now - last - every * 60_000L
+            if (over >= 0 && over > bestOver) { bestOver = over; best = k }
+        }
+        return best
+    }
+
+    private fun ensureChannels() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val attrs = AudioAttributes.Builder()
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .setUsage(AudioAttributes.USAGE_NOTIFICATION).build()
+        fun ch(cid: String, name: String, raw: Int) {
+            val c = NotificationChannel(cid, name, NotificationManager.IMPORTANCE_HIGH)
+            c.setSound(Uri.parse("android.resource://$packageName/$raw"), attrs)
+            nm.createNotificationChannel(c)
+        }
+        ch("wx_water", "Water reminder", R.raw.water)
+        ch("wx_eye",   "Eye-rest reminder", R.raw.eye)
+        ch("wx_stand", "Stand reminder", R.raw.stand)
+    }
+
+    private fun postReminder(kind: String) {
+        val ch: String; val title: String; val body: String
+        when (kind) {
+            "water" -> { ch = "wx_water"; title = "💧 Water break"; body = "Take a sip and rest your eyes." }
+            "eye"   -> { ch = "wx_eye";   title = "👀 Eye rest";    body = "Look ~6 m away for 20 seconds and blink." }
+            else    -> { ch = "wx_stand"; title = "🧍 Stand & stretch"; body = "Stand up and move for a moment." }
+        }
+        val n = NotificationCompat.Builder(this, ch)
+            .setSmallIcon(android.R.drawable.ic_popup_reminder)
+            .setContentTitle(title).setContentText(body)
+            .setPriority(NotificationCompat.PRIORITY_HIGH).setAutoCancel(true).build()
+        (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).notify(("rem_" + kind).hashCode(), n)
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -72,12 +137,12 @@ class ScreenGuardService : Service() {
             addAction(Intent.ACTION_SCREEN_OFF)
         }
         ContextCompat.registerReceiver(this, screenReceiver, f, ContextCompat.RECEIVER_NOT_EXPORTED)
+        ensureChannels()
         // Resume the running count across a kill/restart or a swiped notification –
         // the elapsed screen time is stored, not held only in memory.
         val p = prefs()
         limitMs = p.getLong("guardLimitMs", limitMs)
-        val saved = p.getLong("guardStart", 0L)
-        onStart = if (saved > 0L) saved else System.currentTimeMillis().also { saveStart(it) }
+        onStart = p.getLong("guardStart", System.currentTimeMillis())
         if (Build.VERSION.SDK_INT >= 34) {
             startForeground(9, buildNote(), ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
         } else {
@@ -87,11 +152,14 @@ class ScreenGuardService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val lim = intent?.getLongExtra("limitMin", 0L) ?: 0L
-        if (lim > 0) { limitMs = lim * 60 * 1000; prefs().edit().putLong("guardLimitMs", limitMs).apply() }
-        // Do NOT reset the counter on every start – reopening the app used to wipe
-        // the elapsed time. Only set it the first time the guard is armed.
-        if (prefs().getLong("guardStart", 0L) <= 0L) { onStart = System.currentTimeMillis(); saveStart(onStart) }
+        val p = prefs()
+        limitMs = p.getLong("guardLimitMs", limitMs)
+        // If the lock is on but has no start time yet, start counting from now.
+        if (p.getBoolean("guardOn", false) && p.getLong("guardStart", 0L) <= 0L) {
+            onStart = System.currentTimeMillis(); saveStart(onStart)
+        } else {
+            onStart = p.getLong("guardStart", onStart)
+        }
         return START_STICKY
     }
 
