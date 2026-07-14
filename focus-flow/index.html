@@ -448,12 +448,24 @@ function nRepeat(id,min,title,body){
 function nCancel(id){
   if(inNativeApp && window.AndroidBridge.cancelAlert){ try{ window.AndroidBridge.cancelAlert(id); }catch(e){} }
 }
-function reArmReminders(){
+function syncAlerts(){
   if(!inNativeApp) return;
-  nRepeat('water', S.waterEvery, "💧 Water break", "Take a sip and rest your eyes.");
-  if(S.eyeRest) nRepeat('eye', S.eyeEvery, "👀 Eye rest","Look ~6 m away for 20 seconds and blink."); else nCancel('eye');
-  if(S.stand) nRepeat('stand', 30, "🧍 Stand & stretch","Stand up and move for a moment."); else nCancel('stand');
+  if(window.AndroidBridge && window.AndroidBridge.syncAlerts){
+    try{ window.AndroidBridge.syncAlerts(JSON.stringify({
+      alertsOn:!!S.alertsOn, guardOn:!!S.guard, limitMin:S.onlineLimit,
+      water:{every:S.waterEvery}, eye:{on:!!S.eyeRest,every:S.eyeEvery}, stand:{on:!!S.stand,every:30}
+    })); }catch(e){}
+    return;
+  }
+  // Older bundle (no service-based alerts): fall back to alarm-based reminders + lock.
+  if(S.alertsOn){
+    nRepeat('water', S.waterEvery, "💧 Water break", "Take a sip and rest your eyes.");
+    if(S.eyeRest) nRepeat('eye', S.eyeEvery, "👀 Eye rest","Look ~6 m away for 20 seconds and blink."); else nCancel('eye');
+    if(S.stand) nRepeat('stand', 30, "🧍 Stand & stretch","Stand up and move for a moment."); else nCancel('stand');
+  } else { nCancel('water'); nCancel('eye'); nCancel('stand'); }
+  try{ if(S.guard) window.AndroidBridge.startGuard(S.onlineLimit); else window.AndroidBridge.stopGuard(); }catch(e){}
 }
+function reArmReminders(){ syncAlerts(); }
 function scheduleBlockAlarms(){
   nCancel('warn'); nCancel('end');
   if(remain>60) nSchedule('warn', remain-60, "1 minute left", "Start wrapping up – breathe and finish gently.");
@@ -463,7 +475,7 @@ function enableAlerts(){
   var b=document.getElementById('alertBtn');
   if(inNativeApp){
     if(S.alertsOn){                       // tap again = turn OFF
-      S.alertsOn=false; save();
+      S.alertsOn=false; save(); syncAlerts();
       nCancel('water'); nCancel('eye'); nCancel('stand'); nCancel('warn'); nCancel('end');
       b.textContent='🔔 Phone alerts: Off';
       return;
@@ -763,13 +775,13 @@ function setWater(){
   var v=parseInt(document.getElementById('waterEvery').value,10)||45;
   v=Math.max(15,Math.min(180,v)); S.waterEvery=v; document.getElementById('waterEvery').value=v;
   S.lastWaterTs=Date.now(); // restart the countdown from now
-  if(inNativeApp) nRepeat('water', v, "💧 Water break", "Take a sip and rest your eyes.");
+  syncAlerts();
   save();
 }
 function setEye(v){
   S.eyeEvery=(v===45)?45:20;   // free version: choose 20 or 45 (full custom is premium)
   S.lastEyeTs=Date.now(); save(); paintEyeOpts();
-  if(inNativeApp && S.eyeRest){ nRepeat('eye', S.eyeEvery, "👀 Eye rest","Look ~6 m away for 20 seconds and blink."); }
+  syncAlerts();
 }
 function paintEyeOpts(){
   var a=document.getElementById('eye20'), b=document.getElementById('eye45'); if(!a||!b) return;
@@ -792,7 +804,7 @@ function setLimit(){
   var v=parseInt(document.getElementById('onlineLimit').value,10)||60;
   v=Math.max(20,Math.min(240,v)); S.onlineLimit=v; document.getElementById('onlineLimit').value=v;
   S.contStart=Date.now(); save();
-  if(inNativeApp && S.guard){ try{ window.AndroidBridge.startGuard(v); }catch(e){} }
+  syncAlerts();
 }
 
 // ---- whole-screen break lock (native Android only) ----
@@ -805,12 +817,10 @@ function toggleGuard(){
       document.getElementById('phase').textContent="Turn ON 'Display over other apps' for ProjectSavvy, then tap the lock again.";
       return;
     }
-    S.guard=true; save();
-    try{ window.AndroidBridge.startGuard(S.onlineLimit); }catch(e){}
+    S.guard=true; save(); syncAlerts();
     b.textContent='🔒 Whole-screen break lock: On';
   } else {
-    S.guard=false; save();
-    try{ window.AndroidBridge.stopGuard(); }catch(e){}
+    S.guard=false; save(); syncAlerts();
     b.textContent='🔒 Whole-screen break lock: Off';
   }
 }
@@ -1419,7 +1429,7 @@ function overwhelmed(){
 function toggleEye(){
   S.eyeRest=!S.eyeRest; S.lastEyeTs=Date.now(); save();
   document.getElementById('eyeBtn').textContent='👀 Eye-rest: '+(S.eyeRest?'On':'Off');
-  if(inNativeApp){ if(S.eyeRest) nRepeat('eye',S.eyeEvery,"👀 Eye rest","Look ~6 m away for 20 seconds and blink."); else nCancel('eye'); }
+  syncAlerts();
 }
 // 20-20-20: every 20 min, look ~6 m away for 20 s.
 function checkEye(){
@@ -1434,7 +1444,7 @@ setInterval(checkEye,20000);
 function toggleStand(){
   S.stand=!S.stand; S.lastStandTs=Date.now(); save();
   document.getElementById('standBtn').textContent='🧍 Stand: '+(S.stand?'On':'Off');
-  if(inNativeApp){ if(S.stand) nRepeat('stand',30,"🧍 Stand & stretch","Stand up and move for a moment."); else nCancel('stand'); }
+  syncAlerts();
 }
 // Every 30 min: stand up and stretch (for sitting too long).
 function checkStand(){
@@ -1839,12 +1849,13 @@ if(inNativeApp){
   document.getElementById('guardRow').style.display='flex';
   var gb=document.getElementById('guardBtn');
   if(S.guard && window.AndroidBridge.hasOverlay && window.AndroidBridge.hasOverlay()){
-    try{ window.AndroidBridge.startGuard(S.onlineLimit); }catch(e){}
     gb.textContent='🔒 Whole-screen break lock: On';
   } else {
     if(S.guard){ S.guard=false; save(); } // permission was revoked
     gb.textContent='🔒 Whole-screen break lock: Off';
   }
+  nCancel('water'); nCancel('eye'); nCancel('stand'); // legacy alarms off – service handles reminders
+  syncAlerts();
 }
 
 // ---- installable app (PWA) with auto cache-clear + self-update ----
