@@ -350,6 +350,8 @@
 feelings are frequent or heavy, talking to someone you trust helps.
 <br><a href="privacy.html">Privacy policy</a></p>
 
+<div id="toast" style="display:none;position:fixed;left:50%;top:20%;transform:translateX(-50%);z-index:80;width:min(88%,420px);background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:16px;box-shadow:0 16px 40px rgba(0,0,0,.4);padding:18px 20px;text-align:center;font-size:16px;line-height:1.45" onclick="this.style.display='none'"></div>
+
 <!-- Firebase SDK: sign-in is HIDDEN for now (planned for the paid tier).
      To re-enable, uncomment these three lines - everything else is already wired.
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -436,9 +438,11 @@ function notify(title,body,cue){
 }
 // Native background alarms (fire even when the app is fully closed).
 function nSchedule(id,delaySec,title,body){
+  if(inNativeApp && !S.alertsOn) return;
   if(inNativeApp && window.AndroidBridge.scheduleAlert){ try{ window.AndroidBridge.scheduleAlert(id,delaySec,title,body); }catch(e){} }
 }
 function nRepeat(id,min,title,body){
+  if(inNativeApp && !S.alertsOn) return;
   if(inNativeApp && window.AndroidBridge.scheduleRepeat){ try{ window.AndroidBridge.scheduleRepeat(id,min,title,body); }catch(e){} }
 }
 function nCancel(id){
@@ -458,11 +462,17 @@ function scheduleBlockAlarms(){
 function enableAlerts(){
   var b=document.getElementById('alertBtn');
   if(inNativeApp){
+    if(S.alertsOn){                       // tap again = turn OFF
+      S.alertsOn=false; save();
+      nCancel('water'); nCancel('eye'); nCancel('stand'); nCancel('warn'); nCancel('end');
+      b.textContent='🔔 Phone alerts: Off';
+      return;
+    }
     try{
       window.AndroidBridge.requestNotif();
       S.alertsOn=true; save();
       reArmReminders();
-      b.textContent='🔔 Alerts on';
+      b.textContent='🔔 Phone alerts: On';
     }catch(e){ b.textContent='🔕 Not available'; }
     return;
   }
@@ -482,7 +492,7 @@ function enableAlerts(){
 }
 function refreshAlertBtn(){
   var b=document.getElementById('alertBtn'); if(!b) return;
-  if(inNativeApp){ if(S.alertsOn){ b.textContent='🔔 Alerts on'; reArmReminders(); } else { b.textContent='🔔 Enable phone alerts'; } return; }
+  if(inNativeApp){ if(S.alertsOn){ b.textContent='🔔 Phone alerts: On'; reArmReminders(); } else { b.textContent='🔔 Phone alerts: Off'; } return; }
   if(!('Notification' in window)) return;
   if(Notification.permission==='granted') b.textContent='🔔 Alerts on';
   else if(Notification.permission==='denied') b.textContent='🔕 Blocked – allow in settings';
@@ -708,6 +718,19 @@ function rollDayIfNeeded(){
 document.addEventListener('visibilitychange', function(){ if(!document.hidden) rollDayIfNeeded(); });
 window.addEventListener('focus', function(){ rollDayIfNeeded(); });
 setInterval(rollDayIfNeeded, 60000); // also catch midnight while the app stays open
+var _toastH=null;
+function showToast(msg, ms){
+  var t=document.getElementById('toast'); if(!t) return;
+  t.innerHTML=msg; t.style.display='block';
+  if(_toastH) clearTimeout(_toastH);
+  _toastH=setTimeout(function(){ t.style.display='none'; }, ms||5000);
+}
+// On open/resume, restart the reminder clocks so a backlog of missed reminders
+// does NOT all fire at once (drink water + stand + look away together).
+function resetReminderClocks(){
+  var now=Date.now();
+  S.lastWaterTs=now; S.lastEyeTs=now; S.lastStandTs=now; save();
+}
 function markTired(){
   if(running){
     var into=Math.round((S.block*60-remain)/60);
@@ -717,8 +740,10 @@ function markTired(){
       "Noted – tired after "+into+" min. Take a break; I'll adapt your block length.";
     adaptBlock();
     show('restBanner');
+    showToast("😮‍💨 <b>Time to wind down.</b><br>You gave it a real go &ndash; "+into+" min of focus. Now ease off: stand up, look far away and take a few slow breaths. Slowing down is part of doing well. 💙");
   } else {
     show('restBanner');
+    showToast("😮‍💨 <b>Time to wind down.</b><br>You&rsquo;ve done enough for now. Stretch, breathe, and let yourself rest &ndash; small steps still count. 💙");
   }
   paintStats();
 }
@@ -865,7 +890,7 @@ function obDone(){ S.onboarded=true; save(); document.getElementById('onboard').
 // If you leave for 5+ minutes, that counts as a break – restart the online clock.
 document.addEventListener('visibilitychange',function(){
   if(document.hidden){ S._hiddenAt=Date.now(); stopSound(); }
-  else if(S._hiddenAt && Date.now()-S._hiddenAt>=5*60*1000){ S.contStart=Date.now(); save(); }
+  else { resetReminderClocks(); if(S._hiddenAt && Date.now()-S._hiddenAt>=5*60*1000){ S.contStart=Date.now(); save(); } }
 });
 // Extra safety: always stop any sound when the app is backgrounded or closed.
 window.addEventListener('pagehide', function(){ stopSound(); });
@@ -1793,6 +1818,7 @@ if(!S.lastWaterTs){ S.lastWaterTs=Date.now(); save(); }
 if(!S.contStart){ S.contStart=Date.now(); save(); }
 if(!S.lastEyeTs){ S.lastEyeTs=Date.now(); save(); }
 if(!S.lastStandTs){ S.lastStandTs=Date.now(); save(); }
+resetReminderClocks(); // start fresh so no backlog of reminders fires on open
 document.getElementById('eyeBtn').textContent='👀 Eye-rest: '+(S.eyeRest?'On':'Off');
 document.getElementById('standBtn').textContent='🧍 Stand: '+(S.stand?'On':'Off');
 paintWaterBtn();
