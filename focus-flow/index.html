@@ -181,6 +181,11 @@
     <button id="standBtn" onclick="toggleStand()">🧍 Stand: On</button>
   </div>
   <div class="row" style="margin-top:8px;justify-content:center">
+    <span class="muted" style="font-size:13px">👀 Eye rest every:</span>
+    <input type="number" id="eyeEvery" min="5" max="60" value="20" onchange="setEye()">
+    <span class="muted" style="font-size:13px">min</span>
+  </div>
+  <div class="row" style="margin-top:8px;justify-content:center">
     <span class="muted" style="font-size:13px">⏸️ Force a 2-min time-out after:</span>
     <input type="number" id="onlineLimit" min="20" max="240" value="60" onchange="setLimit()">
     <span class="muted" style="font-size:13px">min online</span>
@@ -269,7 +274,7 @@
 </div>
 
 <!-- Optional cloud account: sign in to sync progress across devices -->
-<div class="card" id="acctCard" style="display:none">
+<div class="card" id="acctCard" style="display:none;max-width:380px;margin:0 auto">
   <b>Your account</b>
   <div class="foot" style="text-align:left;margin:4px 0 12px">Sign in to back up your progress and see it on every device.</div>
   <div id="acctBody"></div>
@@ -377,6 +382,7 @@ function load(){
     guard:false,             // whole-screen break lock enabled (native app)
     lastDrankTs:0,           // when water was actually drunk (logged by you)
     eyeRest:true,            // 20-20-20 eye-rest reminders on
+    eyeEvery:20,             // minutes between eye-rest reminders (user-set)
     lastEyeTs:0,             // last eye-rest reminder time
     stand:true,              // stand/stretch reminders on
     lastStandTs:0,           // last stand reminder time
@@ -701,6 +707,12 @@ function setWater(){
   S.lastWaterTs=Date.now(); // restart the countdown from now
   if(inNativeApp) nRepeat('water', v, "💧 Water break", "Take a sip and rest your eyes.");
   save();
+}
+function setEye(){
+  var v=parseInt(document.getElementById('eyeEvery').value,10)||20;
+  v=Math.max(5,Math.min(60,v)); S.eyeEvery=v; document.getElementById('eyeEvery').value=v;
+  S.lastEyeTs=Date.now(); save();
+  if(inNativeApp && S.eyeRest){ nRepeat('eye', v, "👀 Eye rest","Look ~6 m away for 20 seconds and blink."); }
 }
 // Real clock timer: reminds every S.waterEvery minutes whenever the app is open,
 // working or not, so hydration doesn't depend on a focus block running.
@@ -1318,13 +1330,13 @@ function overwhelmed(){
 function toggleEye(){
   S.eyeRest=!S.eyeRest; S.lastEyeTs=Date.now(); save();
   document.getElementById('eyeBtn').textContent='👀 Eye-rest: '+(S.eyeRest?'On':'Off');
-  if(inNativeApp){ if(S.eyeRest) nRepeat('eye',20,"👀 Eye rest","Look ~6 m away for 20 seconds and blink."); else nCancel('eye'); }
+  if(inNativeApp){ if(S.eyeRest) nRepeat('eye',S.eyeEvery,"👀 Eye rest","Look ~6 m away for 20 seconds and blink."); else nCancel('eye'); }
 }
 // 20-20-20: every 20 min, look ~6 m away for 20 s.
 function checkEye(){
   if(!S.eyeRest) return;
   if(!S.lastEyeTs){ S.lastEyeTs=Date.now(); save(); return; }
-  if(Date.now()-S.lastEyeTs >= 20*60*1000){
+  if(Date.now()-S.lastEyeTs >= S.eyeEvery*60*1000){
     S.lastEyeTs=Date.now(); save();
     show('eyeBanner'); notify("👀 Eye rest","Look ~6 m away for 20 seconds and blink."); showTimed('eyeBanner',25000);
   }
@@ -1696,7 +1708,7 @@ function cloudLoad(){
 }
 function renderAll(){
   document.getElementById('blockLen').value=S.block;
-  document.getElementById('waterEvery').value=S.waterEvery;
+  document.getElementById('waterEvery').value=S.waterEvery; document.getElementById('eyeEvery').value=S.eyeEvery;
   document.getElementById('onlineLimit').value=S.onlineLimit;
   document.getElementById('eyeBtn').textContent='👀 Eye-rest: '+(S.eyeRest?'On':'Off');
   document.getElementById('standBtn').textContent='🧍 Stand: '+(S.stand?'On':'Off');
@@ -1713,7 +1725,7 @@ renderMoodLog();
 renderProjects();
 if(afterCurfew()) showCurfew();
 document.getElementById('blockLen').value=S.block;
-document.getElementById('waterEvery').value=S.waterEvery;
+document.getElementById('waterEvery').value=S.waterEvery; document.getElementById('eyeEvery').value=S.eyeEvery;
 document.getElementById('onlineLimit').value=S.onlineLimit;
 if(!S.lastWaterTs){ S.lastWaterTs=Date.now(); save(); }
 if(!S.contStart){ S.contStart=Date.now(); save(); }
