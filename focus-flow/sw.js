@@ -2,7 +2,7 @@
 // Stale-while-revalidate for the page: serve the cached app INSTANTLY, then refresh
 // from the network in the background so the next open has the latest. Bump CACHE to
 // force old caches out.
-var CACHE = "focusflow-v69";
+var CACHE = "focusflow-v70";
 var ASSETS = [
   "./",
   "./index.html",

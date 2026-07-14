@@ -375,6 +375,7 @@ function load(){
     tiredPoints:[],          // minutes-into-block when user tapped tired
     hourMins:{},             // learned: focused minutes per hour-of-day
     block:50, lastProj:null,
+    alertsOn:false,          // phone alerts enabled (native) – remembered across restarts
     waterEvery:45,           // wall-clock minutes between water reminders
     lastWaterTs:0,           // timestamp of last water reminder
     onlineLimit:60,          // continuous minutes online before a forced time-out
@@ -425,8 +426,10 @@ var proj=null, running=false, endAt=0, remain=S.block*60, tickH=null, elapsedThi
 var inNativeApp = !!(window.AndroidBridge && window.AndroidBridge.notify);
 function notify(title,body,cue){
   try{
-    if(inNativeApp){ window.AndroidBridge.notify(title, body||''); }
-    else if('Notification' in window && Notification.permission==='granted'){
+    // Native: while the app is open the in-app banner + sound cover it, and
+    // background reminders come from scheduled alarms – so we do NOT post a
+    // system notification here (that was stacking them up in the shade).
+    if(!inNativeApp && 'Notification' in window && Notification.permission==='granted'){
       new Notification(title,{body:body,icon:'icon-192.png'}); }
   }catch(e){}
   if(cue) playCue(cue); else beep();
@@ -441,6 +444,12 @@ function nRepeat(id,min,title,body){
 function nCancel(id){
   if(inNativeApp && window.AndroidBridge.cancelAlert){ try{ window.AndroidBridge.cancelAlert(id); }catch(e){} }
 }
+function reArmReminders(){
+  if(!inNativeApp) return;
+  nRepeat('water', S.waterEvery, "💧 Water break", "Take a sip and rest your eyes.");
+  if(S.eyeRest) nRepeat('eye', S.eyeEvery, "👀 Eye rest","Look ~6 m away for 20 seconds and blink."); else nCancel('eye');
+  if(S.stand) nRepeat('stand', 30, "🧍 Stand & stretch","Stand up and move for a moment."); else nCancel('stand');
+}
 function scheduleBlockAlarms(){
   nCancel('warn'); nCancel('end');
   if(remain>60) nSchedule('warn', remain-60, "1 minute left", "Start wrapping up – breathe and finish gently.");
@@ -451,8 +460,8 @@ function enableAlerts(){
   if(inNativeApp){
     try{
       window.AndroidBridge.requestNotif();
-      window.AndroidBridge.notify('ProjectSavvy',"Alerts are on. I'll nudge you for breaks and water.");
-      nRepeat('water', S.waterEvery, "💧 Water break", "Take a sip and rest your eyes.");
+      S.alertsOn=true; save();
+      reArmReminders();
       b.textContent='🔔 Alerts on';
     }catch(e){ b.textContent='🔕 Not available'; }
     return;
@@ -473,7 +482,7 @@ function enableAlerts(){
 }
 function refreshAlertBtn(){
   var b=document.getElementById('alertBtn'); if(!b) return;
-  if(inNativeApp){ b.textContent='🔔 Enable phone alerts'; return; }
+  if(inNativeApp){ if(S.alertsOn){ b.textContent='🔔 Alerts on'; reArmReminders(); } else { b.textContent='🔔 Enable phone alerts'; } return; }
   if(!('Notification' in window)) return;
   if(Notification.permission==='granted') b.textContent='🔔 Alerts on';
   else if(Notification.permission==='denied') b.textContent='🔕 Blocked – allow in settings';
