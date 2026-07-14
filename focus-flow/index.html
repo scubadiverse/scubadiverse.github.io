@@ -97,6 +97,8 @@
   .moods{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
   .mood{border-radius:999px;padding:9px 14px;font-size:14px;background:var(--card2)}
   .mood.sel{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
+  .eyeopt{padding:8px 14px;font-size:14px}
+  .eyeopt.sel{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset;font-weight:600}
   .brk.sel{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
   .resp{margin-top:14px;padding:14px;border-radius:12px;background:var(--card2);
     border:1px solid var(--line);display:none}
@@ -180,10 +182,10 @@
     <button id="eyeBtn" onclick="toggleEye()">👀 Eye-rest: On</button>
     <button id="standBtn" onclick="toggleStand()">🧍 Stand: On</button>
   </div>
-  <div class="row" style="margin-top:8px;justify-content:center">
+  <div class="row" style="margin-top:8px;justify-content:center;align-items:center">
     <span class="muted" style="font-size:13px">👀 Eye rest every:</span>
-    <input type="number" id="eyeEvery" min="5" max="60" value="20" onchange="setEye()">
-    <span class="muted" style="font-size:13px">min</span>
+    <button id="eye20" class="eyeopt" onclick="setEye(20)">20 min</button>
+    <button id="eye45" class="eyeopt" onclick="setEye(45)">45 min</button>
   </div>
   <div class="row" style="margin-top:8px;justify-content:center">
     <span class="muted" style="font-size:13px">⏸️ Force a 2-min time-out after:</span>
@@ -708,11 +710,16 @@ function setWater(){
   if(inNativeApp) nRepeat('water', v, "💧 Water break", "Take a sip and rest your eyes.");
   save();
 }
-function setEye(){
-  var v=parseInt(document.getElementById('eyeEvery').value,10)||20;
-  v=Math.max(5,Math.min(60,v)); S.eyeEvery=v; document.getElementById('eyeEvery').value=v;
-  S.lastEyeTs=Date.now(); save();
-  if(inNativeApp && S.eyeRest){ nRepeat('eye', v, "👀 Eye rest","Look ~6 m away for 20 seconds and blink."); }
+function setEye(v){
+  S.eyeEvery=(v===45)?45:20;   // free version: choose 20 or 45 (full custom is premium)
+  S.lastEyeTs=Date.now(); save(); paintEyeOpts();
+  if(inNativeApp && S.eyeRest){ nRepeat('eye', S.eyeEvery, "👀 Eye rest","Look ~6 m away for 20 seconds and blink."); }
+}
+function paintEyeOpts(){
+  var a=document.getElementById('eye20'), b=document.getElementById('eye45'); if(!a||!b) return;
+  if(S.eyeEvery!==20 && S.eyeEvery!==45){ S.eyeEvery=20; }  // coerce to a free option
+  a.classList.toggle('sel', S.eyeEvery===20);
+  b.classList.toggle('sel', S.eyeEvery===45);
 }
 // Real clock timer: reminds every S.waterEvery minutes whenever the app is open,
 // working or not, so hydration doesn't depend on a focus block running.
@@ -1708,7 +1715,7 @@ function cloudLoad(){
 }
 function renderAll(){
   document.getElementById('blockLen').value=S.block;
-  document.getElementById('waterEvery').value=S.waterEvery; document.getElementById('eyeEvery').value=S.eyeEvery;
+  document.getElementById('waterEvery').value=S.waterEvery; paintEyeOpts();
   document.getElementById('onlineLimit').value=S.onlineLimit;
   document.getElementById('eyeBtn').textContent='👀 Eye-rest: '+(S.eyeRest?'On':'Off');
   document.getElementById('standBtn').textContent='🧍 Stand: '+(S.stand?'On':'Off');
@@ -1725,7 +1732,7 @@ renderMoodLog();
 renderProjects();
 if(afterCurfew()) showCurfew();
 document.getElementById('blockLen').value=S.block;
-document.getElementById('waterEvery').value=S.waterEvery; document.getElementById('eyeEvery').value=S.eyeEvery;
+document.getElementById('waterEvery').value=S.waterEvery; paintEyeOpts();
 document.getElementById('onlineLimit').value=S.onlineLimit;
 if(!S.lastWaterTs){ S.lastWaterTs=Date.now(); save(); }
 if(!S.contStart){ S.contStart=Date.now(); save(); }
