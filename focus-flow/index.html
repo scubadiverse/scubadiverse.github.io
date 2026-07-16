@@ -146,7 +146,7 @@
 <div id="eyeBanner" class="banner water">👀 Eye rest – look far away (about 6 m / 20 ft) for 20 seconds, and blink a few times.</div>
 <div id="standBanner" class="banner rest">🧍 Stand up, stretch, and roll your shoulders for a moment. Your body needs it.</div>
 <div id="waterBanner" class="banner water">💧 Time for water. Take a sip and stretch your eyes.</div>
-<div id="restBanner" class="banner rest">🌙 You've done a long day. Wind down soon – rest is part of the work.</div>
+<div id="restBanner" class="banner rest" onclick="hide('restBanner')" style="cursor:pointer" title="Tap to dismiss">🌙 You've done a long day. Wind down soon – rest is part of the work.</div>
 <div id="switchBanner" class="banner switch">🔄 Good block. Switch projects to stay fresh?</div>
 
 <div class="wide">
@@ -672,7 +672,7 @@ function blockDone(){
   document.getElementById('phase').textContent= restNow
     ? "Block done. That's a long day – time to rest. "+motLine()
     : "Block done! 💪 Break idea: "+restIdea();
-  if(restNow){ show('restBanner'); showTimed('restBanner',45000); }
+  if(restNow){ show('restBanner'); showTimed('restBanner',30000); }
   else { suggestSwitch(); }
   addWin("You finished a focus block");
   if(proj!==null) S.projRemain[proj]=S.block*60; remain=S.block*60; paint(); paintStats(); renderProgress();
@@ -756,10 +756,10 @@ function markTired(){
     document.getElementById('phase').textContent=
       "Noted – tired after "+into+" min. Take a break; I'll adapt your block length.";
     adaptBlock();
-    show('restBanner'); showTimed('restBanner',45000);
+    show('restBanner'); showTimed('restBanner',30000);
     showToast("😮‍💨 <b>Time to wind down.</b><br>You gave it a real go &ndash; "+into+" min of focus. Now ease off: stand up, look far away and take a few slow breaths. Slowing down is part of doing well. 💙");
   } else {
-    show('restBanner'); showTimed('restBanner',45000);
+    show('restBanner'); showTimed('restBanner',30000);
     showToast("😮‍💨 <b>Time to wind down.</b><br>You&rsquo;ve done enough for now. Stretch, breathe, and let yourself rest &ndash; small steps still count. 💙");
   }
   paintStats();
