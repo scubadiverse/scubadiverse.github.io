@@ -330,7 +330,10 @@
   <div class="ohint">Your body needs rest more than the projects need another hour. The work will
     be here tomorrow, and you'll do it better after sleep. Close the laptop and be gentle
     with yourself – you've done enough today.</div>
-  <button class="primary" onclick="hide('curfew')">Okay, I'll rest 💙</button>
+  <div class="row" style="justify-content:center;gap:10px;flex-wrap:wrap">
+    <button class="primary" onclick="hide('curfew')">Okay, I'll rest 💙</button>
+    <button onclick="curfewContinue()">Yes, keep going</button>
+  </div>
 </div>
 
 <div class="overlay" id="onboard" style="z-index:70">
@@ -629,7 +632,7 @@ function setBlock(){
 function startStop(){
   if(!proj){ document.getElementById('phase').textContent="Pick a project first."; return; }
   if(running){ stopBlock(false); return; }
-  if(afterCurfew()){ showCurfew(); return; }
+  if(afterCurfew() && !curfewOK){ showCurfew(); return; }
   running=true; elapsedThisBlock=0; warned=false; hide('warnBanner');
   endAt=Date.now()+remain*1000;
   S.timer={proj:proj, endAt:endAt, block:S.block}; save(); // survive a refresh
@@ -1709,8 +1712,13 @@ function removeEmergencyContact(i){ S.emergency.contacts.splice(i,1); save(); pu
 function setOfficial(v){ v=(v||'').trim()||'112'; S.emergency.official=v; save(); pushEmergencyToNative(); }
 
 // ---- 23:00 wind-down lock (within this app) ----
+var curfewOK=false; // user chose to keep working past the wind-down hour (this session)
 function afterCurfew(){ var h=new Date().getHours(); return h>=23 || h<6; }
 function showCurfew(){ show('curfew'); }
+function curfewContinue(){
+  curfewOK=true; hide('curfew');
+  showToast("🌙 Okay &ndash; but please wind down soon. Finish this block and head to bed. You&rsquo;ve earned the rest. 💙");
+}
 
 // ---- optional cloud account (Firebase) ----
 // Sign-in / cloud sync is a FUTURE PREMIUM feature. Kept fully built but HIDDEN
