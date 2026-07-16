@@ -3,6 +3,7 @@ package net.scubadiverse.focusflow
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -116,6 +117,16 @@ class ScreenGuardService : Service() {
         ch("wx_stand", "Stand reminder", R.raw.stand)
     }
 
+    // Tapping any notification opens the full app.
+    private fun openAppIntent(): PendingIntent {
+        val i = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        var flags = PendingIntent.FLAG_UPDATE_CURRENT
+        if (Build.VERSION.SDK_INT >= 23) flags = flags or PendingIntent.FLAG_IMMUTABLE
+        return PendingIntent.getActivity(this, 1, i, flags)
+    }
+
     private fun postReminder(kind: String) {
         val ch: String; val title: String; val body: String
         when (kind) {
@@ -126,6 +137,7 @@ class ScreenGuardService : Service() {
         val n = NotificationCompat.Builder(this, ch)
             .setSmallIcon(android.R.drawable.ic_popup_reminder)
             .setContentTitle(title).setContentText(body)
+            .setContentIntent(openAppIntent())
             .setPriority(NotificationCompat.PRIORITY_HIGH).setAutoCancel(true).build()
         (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).notify(("rem_" + kind).hashCode(), n)
     }
@@ -177,6 +189,7 @@ class ScreenGuardService : Service() {
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setContentTitle("ProjectSavvy")
             .setContentText("Watching your screen time to give you breaks.")
+            .setContentIntent(openAppIntent())
             .setOngoing(true)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .build()

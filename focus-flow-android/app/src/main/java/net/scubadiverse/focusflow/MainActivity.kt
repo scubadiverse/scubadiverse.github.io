@@ -136,10 +136,17 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun notify(title: String, body: String) {
             runOnUiThread {
+                val open = Intent(this@MainActivity, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                }
+                var piFlags = PendingIntent.FLAG_UPDATE_CURRENT
+                if (Build.VERSION.SDK_INT >= 23) piFlags = piFlags or PendingIntent.FLAG_IMMUTABLE
+                val pi = PendingIntent.getActivity(this@MainActivity, 1, open, piFlags)
                 val n = NotificationCompat.Builder(this@MainActivity, channelId)
                     .setSmallIcon(android.R.drawable.ic_popup_reminder)
                     .setContentTitle(title)
                     .setContentText(body)
+                    .setContentIntent(pi)
                     .setPriority(NotificationCompat.PRIORITY_HIGH)
                     .setAutoCancel(true)
                     .build()
