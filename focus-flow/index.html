@@ -672,7 +672,7 @@ function blockDone(){
   document.getElementById('phase').textContent= restNow
     ? "Block done. That's a long day – time to rest. "+motLine()
     : "Block done! 💪 Break idea: "+restIdea();
-  if(restNow){ show('restBanner'); }
+  if(restNow){ show('restBanner'); showTimed('restBanner',45000); }
   else { suggestSwitch(); }
   addWin("You finished a focus block");
   if(proj!==null) S.projRemain[proj]=S.block*60; remain=S.block*60; paint(); paintStats(); renderProgress();
@@ -725,6 +725,7 @@ function rollDayIfNeeded(){
   S.day=todayKey(); S.mins={}; S.blocks=0; S.lastProj=null; S.wins=[]; S.targetNotified={}; S.projRemain={}; S.timer=null;
   if(running){ clearInterval(tickH); running=false; }
   remain=S.block*60; warned=false; elapsedThisBlock=0;
+  hide('restBanner'); hide('switchBanner'); hide('warnBanner'); hide('waterBanner');
   save();
   renderProjects(); renderWins(); renderMoodLog(); renderProgress(); paintStats(); paint();
   document.getElementById('startBtn').textContent="Start";
@@ -755,10 +756,10 @@ function markTired(){
     document.getElementById('phase').textContent=
       "Noted – tired after "+into+" min. Take a break; I'll adapt your block length.";
     adaptBlock();
-    show('restBanner');
+    show('restBanner'); showTimed('restBanner',45000);
     showToast("😮‍💨 <b>Time to wind down.</b><br>You gave it a real go &ndash; "+into+" min of focus. Now ease off: stand up, look far away and take a few slow breaths. Slowing down is part of doing well. 💙");
   } else {
-    show('restBanner');
+    show('restBanner'); showTimed('restBanner',45000);
     showToast("😮‍💨 <b>Time to wind down.</b><br>You&rsquo;ve done enough for now. Stretch, breathe, and let yourself rest &ndash; small steps still count. 💙");
   }
   paintStats();
