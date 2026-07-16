@@ -992,7 +992,7 @@ function renderSplitHours(){
   var rows=S.projects.map(function(p){
     var h=Math.round(hoursBy[p.id]*10)/10, extra='';
     if(hasTargets && p.target>0){ var left=Math.max(0,p.target-projMins(p.id)); extra=left>0?(' ('+left+' min left)'):' ✓'; }
-    return '<span style="color:'+projColor(p.id)+'">■</span> '+esc(p.name)+' — <b>'+h+'h</b>'+extra;
+    return '<span style="color:'+projColor(p.id)+'">■</span> '+esc(p.name)+' – <b>'+h+'h</b>'+extra;
   });
   el.innerHTML=(hasTargets?'🎯 Your goals today:<br>':'⏱️ Suggested for you (estimated):<br>')+rows.join('<br>');
 }
@@ -1271,7 +1271,7 @@ function renderMoodLog(){
     var d=new Date(m.ts), t=two(d.getHours())+':'+two(d.getMinutes());
     var name=m.e.charAt(0).toUpperCase()+m.e.slice(1);
     var emo=(MOODS[m.e]?MOODS[m.e].emo:'');
-    var act=m.act?esc(m.act):'—';
+    var act=m.act?esc(m.act):'–';
     var w=m.water?'💧 water yes':'✗ no water';
     return '<div style="padding:6px 0;border-bottom:1px dashed var(--line);color:var(--ink)">'+
       '<b>'+t+'</b> &nbsp;'+emo+' '+name+' &nbsp;·&nbsp; '+act+' &nbsp;·&nbsp; <span class="muted">'+w+'</span></div>';
@@ -1507,7 +1507,7 @@ function renderDoneSplit(){
   }).join('');
   txt.innerHTML=S.projects.map(function(p){
     var pct=Math.round((tot[p.id]||0)/sum*100), h=Math.round((tot[p.id]||0)/60*10)/10;
-    return '<span style="color:'+projColor(p.id)+'">■</span> '+esc(p.name)+' — <b>'+h+'h</b> ('+pct+'%)';
+    return '<span style="color:'+projColor(p.id)+'">■</span> '+esc(p.name)+' – <b>'+h+'h</b> ('+pct+'%)';
   }).join('<br>');
 }
 function renderProjProgress(){
