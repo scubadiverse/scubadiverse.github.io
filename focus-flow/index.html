@@ -164,12 +164,20 @@
     <button class="primary" id="startBtn" onclick="startStop()">Start</button>
     <button id="tiredBtn" onclick="markTired()">😮‍💨 Getting tired</button>
   </div>
+  <div class="row" style="margin-top:10px;justify-content:center">
+    <button id="resetBtn" onclick="resetBlock()">↺ Reset timer</button>
+  </div>
   <div class="row" style="margin-top:10px">
     <button class="grow" style="background:#3a1f2a;color:#ffc2d1;border-color:#6a3348" onclick="overwhelmed()">🆘 I'm overwhelmed</button>
     <button id="alertBtn" onclick="enableAlerts()">🔔 Enable phone alerts</button>
   </div>
-  <div class="row" style="margin-top:12px;justify-content:center">
+  <div class="row" style="margin-top:12px;justify-content:center;align-items:center">
     <span class="muted" style="font-size:13px">Focus block:</span>
+    <button class="eyeopt" id="blk25" onclick="setBlock(25)">25 min</button>
+    <button class="eyeopt" id="blk45" onclick="setBlock(45)">45 min</button>
+  </div>
+  <div class="row" style="margin-top:8px;justify-content:center;align-items:center">
+    <span class="muted" style="font-size:13px">Or custom:</span>
     <input type="number" id="blockLen" min="10" max="120" value="50" onchange="setBlock()">
     <span class="muted" style="font-size:13px">min</span>
   </div>
@@ -625,10 +633,30 @@ function pick(p){
   if(!running){ document.getElementById('phase').textContent="Ready on "+projName(p)+" – press Start."; }
   hide('switchBanner');
 }
-function setBlock(){
-  var v=parseInt(document.getElementById('blockLen').value,10)||50;
+function setBlock(val){
+  var v = (val!=null) ? val : (parseInt(document.getElementById('blockLen').value,10)||50);
   v=Math.max(10,Math.min(120,v)); S.block=v; document.getElementById('blockLen').value=v;
-  if(!running){ remain=v*60; if(proj!==null) S.projRemain[proj]=v*60; paint(); } save();
+  // Changing the length resets the clock to the new length – works any time, even mid-session.
+  remain=v*60; if(proj!==null) S.projRemain[proj]=v*60;
+  if(running){
+    endAt=Date.now()+remain*1000; elapsedThisBlock=0; warned=false; hide('warnBanner');
+    if(S.timer){ S.timer.endAt=endAt; S.timer.block=v; }
+    scheduleBlockAlarms();
+  }
+  paintBlockOpts(); paint(); save();
+}
+function resetBlock(){
+  if(running){ clearInterval(tickH); running=false; nCancel('warn'); nCancel('end'); }
+  S.timer=null; warned=false; hide('warnBanner'); elapsedThisBlock=0;
+  remain=S.block*60; if(proj!==null) S.projRemain[proj]=S.block*60;
+  document.getElementById('startBtn').textContent="Start";
+  document.getElementById('phase').textContent = (proj!=null) ? ("Ready on "+projName(proj)+" – press Start.") : "Pick a project, then Start a focus block.";
+  paint(); save();
+}
+function paintBlockOpts(){
+  var b25=document.getElementById('blk25'), b45=document.getElementById('blk45');
+  if(b25) b25.classList.toggle('sel', S.block===25);
+  if(b45) b45.classList.toggle('sel', S.block===45);
 }
 function startStop(){
   if(!proj){ document.getElementById('phase').textContent="Pick a project first."; return; }
@@ -1817,7 +1845,7 @@ function cloudLoad(){
 }
 function renderAll(){
   document.getElementById('blockLen').value=S.block;
-  document.getElementById('waterEvery').value=S.waterEvery; paintEyeOpts();
+  document.getElementById('waterEvery').value=S.waterEvery; paintEyeOpts(); paintBlockOpts();
   document.getElementById('onlineLimit').value=S.onlineLimit;
   document.getElementById('eyeBtn').textContent='👀 Eye-rest: '+(S.eyeRest?'On':'Off');
   document.getElementById('standBtn').textContent='🧍 Stand: '+(S.stand?'On':'Off');
@@ -1834,7 +1862,7 @@ renderMoodLog();
 renderProjects();
 if(afterCurfew()) showCurfew();
 document.getElementById('blockLen').value=S.block;
-document.getElementById('waterEvery').value=S.waterEvery; paintEyeOpts();
+document.getElementById('waterEvery').value=S.waterEvery; paintEyeOpts(); paintBlockOpts();
 document.getElementById('onlineLimit').value=S.onlineLimit;
 if(!S.lastWaterTs){ S.lastWaterTs=Date.now(); save(); }
 if(!S.contStart){ S.contStart=Date.now(); save(); }
