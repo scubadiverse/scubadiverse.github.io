@@ -1,0 +1,71 @@
+name: Build Premium Android AAB (closed testing)
+
+# A PREMIUM release build for Google Play CLOSED TESTING only.
+# Same app (same applicationId app.ainative.focusflow) so it can go on the
+# closed-testing track of the existing Play listing, but:
+#   - it loads the private premium page (Focus + Unplanned tabs)
+#   - it has a HIGHER versionCode than production, so testers on closed testing
+#     get the premium build while the public production build stays free.
+# Never promote this AAB to production. Run it by hand from the Actions tab.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Point this build at the premium page + bump the version
+        working-directory: focus-flow-android
+        run: |
+          set -e
+          sed -i 's#https://scubadiverse.github.io/focus-flow/#https://scubadiverse.github.io/focus-flow-premium/#' \
+            app/src/main/java/net/scubadiverse/focusflow/MainActivity.kt
+          # Premium versionCode = production + 1000, so it always sits above the free build.
+          sed -i 's#versionCode 24#versionCode 1024#' app/build.gradle
+          echo "Patched premium URL + versionCode. Check:"
+          grep -n "loadUrl(" app/src/main/java/net/scubadiverse/focusflow/MainActivity.kt
+          grep -n "versionCode" app/build.gradle
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Build release AAB (premium, for closed testing upload)
+        working-directory: focus-flow-android
+        run: gradle bundleRelease --no-daemon --stacktrace
+
+      - name: Upload Premium AAB as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: projectsavvy-premium-aab
+          path: focus-flow-android/app/build/outputs/bundle/release/app-release.aab
+
+      - name: Publish Premium AAB to its own Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-premium
+          name: "ProjectSavvy – Premium (closed testing)"
+          body: |
+            PREMIUM build for Google Play CLOSED TESTING only.
+            • app-release.aab – upload this to the Closed testing track in Play Console.
+            It loads the premium page (Focus + Unplanned tabs) and has a higher version
+            code than production, so testers get premium while the public app stays free.
+            Do NOT promote this release to production.
+          files: |
+            focus-flow-android/app/build/outputs/bundle/release/app-release.aab
