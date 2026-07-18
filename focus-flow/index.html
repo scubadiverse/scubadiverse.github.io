@@ -562,12 +562,26 @@ function toggleEditProj(){
   document.getElementById('editProjBtn').textContent=open?'✏️ Edit':'Done';
   if(!open) renderProjEdit();
 }
+function moveProject(id,dir){
+  var i=-1; for(var k=0;k<S.projects.length;k++){ if(S.projects[k].id===id){ i=k; break; } }
+  if(i<0) return; var j=i+dir; if(j<0||j>=S.projects.length) return;
+  var t=S.projects[i]; S.projects[i]=S.projects[j]; S.projects[j]=t;
+  save(); renderProjects(); renderProjEdit(); paintStats();
+}
 function renderProjEdit(){
   var el=document.getElementById('projEdit'); el.innerHTML="";
-  S.projects.forEach(function(p){
+  var last=S.projects.length-1;
+  if(S.projects.length>1){
+    var hint=document.createElement('div'); hint.className='foot'; hint.style.cssText='text-align:left;margin:0 0 8px';
+    hint.innerHTML='↕ Reorder using the ▲ ▼ arrows';
+    el.appendChild(hint);
+  }
+  S.projects.forEach(function(p,idx){
     var wrap=document.createElement('div'); wrap.style.cssText='padding:8px 0;border-bottom:1px dashed var(--line)';
     var row=document.createElement('div'); row.className='qrow'; row.style.borderBottom='0'; row.style.padding='0';
-    row.innerHTML='<input type="text" value="'+esc(p.name)+'" style="flex:1;min-width:120px;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px" '+
+    row.innerHTML='<button class="pill" title="Move up" onclick="moveProject(\''+p.id+'\',-1)"'+(idx===0?' disabled style="opacity:.3"':'')+'>▲</button>'+
+      '<button class="pill" title="Move down" onclick="moveProject(\''+p.id+'\',1)"'+(idx===last?' disabled style="opacity:.3"':'')+'>▼</button>'+
+      '<input type="text" value="'+esc(p.name)+'" style="flex:1;min-width:120px;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px" '+
       'onchange="renameProject(\''+p.id+'\',this.value)">'+
       '<input type="number" min="0" max="720" value="'+(p.target||0)+'" title="daily target minutes" '+
       'style="width:70px;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px" '+
