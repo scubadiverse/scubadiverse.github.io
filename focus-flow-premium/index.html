@@ -151,7 +151,7 @@
   align-items:center;justify-content:center;line-height:1;padding:0;
   box-shadow:0 3px 12px rgba(0,0,0,.35);opacity:.92"><svg width="23" height="23" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></button>
 
-<h1>ProjectSavvy</h1>
+<h1>ProjectSavvy <span style="display:inline-block;vertical-align:middle;font-size:12px;font-weight:700;color:#04212b;background:var(--accent);border-radius:999px;padding:3px 11px;margin-left:6px">✨ PREMIUM</span></h1>
 <p class="sub">Your focus, breaks and calm – paced to how you actually work. Learns as you go.</p>
 <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:-4px 0 16px">
   <a href="guide.html" style="display:inline-flex;align-items:center;gap:4px;color:var(--ink);font-size:13px;
@@ -161,6 +161,10 @@
   <button onclick="obShow()" style="display:inline-flex;align-items:center;gap:5px;color:var(--ink);font-size:13px;
     font-weight:600;background:transparent;border:1px solid var(--line);border-radius:999px;padding:6px 15px;cursor:pointer">
     👋 Intro</button>
+</div>
+
+<div class="card" id="premiumCard" style="border:1px solid var(--accent)">
+  <div id="premiumBody"></div>
 </div>
 
 <div id="warnBanner" class="banner warn">⏳ 1 minute left – start wrapping up. Take a breath and finish gently.</div>
@@ -484,6 +488,27 @@ function projMins(id){ return S.mins[id]||0; }
 function save(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} scheduleCloudSave(); }
 
 // ---- premium: Unplanned tasks ----
+function isPremium(){ return !!(typeof fbUser!=='undefined' && fbUser); }
+function goSignIn(){ var c=document.getElementById('acctCard'); if(c){ c.style.display='block'; c.scrollIntoView({behavior:'smooth'}); } }
+function applyPremiumGate(){
+  var pro=isPremium();
+  var tab=document.getElementById('tabUnplanned'); if(tab) tab.style.display = pro ? '' : 'none';
+  if(!pro){ var pu=document.getElementById('paneUnplanned'); if(pu && pu.style.display!=='none'){ switchTab('focus'); } }
+  var body=document.getElementById('premiumBody');
+  if(body){
+    if(pro){
+      body.innerHTML='<div class="row"><b class="grow">✨ Premium active</b>'+
+        '<button class="primary" disabled style="opacity:.5;cursor:not-allowed">Buy Premium</button></div>'+
+        '<div class="foot" style="text-align:left;margin-top:6px">You have Unplanned tasks, resting zone and cloud sync. Payment is off during testing – free for now.</div>';
+    } else {
+      body.innerHTML='<div class="row"><b class="grow">🔒 Premium</b>'+
+        '<button class="primary" onclick="goSignIn()">Sign in to unlock</button></div>'+
+        '<div class="foot" style="text-align:left;margin-top:6px">Sign in or sign up to unlock Premium: Unplanned tasks, resting zone and cloud sync across your devices. Free during testing.</div>';
+    }
+  }
+  if(typeof renderProjEdit==='function'){ var pe=document.getElementById('projEdit'); if(pe && pe.style.display!=='none') renderProjEdit(); }
+  if(typeof renderRestingZone==='function') renderRestingZone();
+}
 function switchTab(name){
   var f = (name==='focus');
   var pf=document.getElementById('paneFocus'), pu=document.getElementById('paneUnplanned');
@@ -706,7 +731,7 @@ function renderProjEdit(){
       '<input type="number" min="0" max="720" value="'+(p.target||0)+'" title="daily target minutes" '+
       'style="width:70px;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px" '+
       'onchange="setProjTarget(\''+p.id+'\',this.value)"><span class="muted" style="font-size:12px">min/day</span>'+
-      '<button class="pill" title="Rest this project" onclick="restProject(\''+p.id+'\')">💤</button>'+
+      (isPremium()?'<button class="pill" title="Rest this project" onclick="restProject(\''+p.id+'\')">💤</button>':'')+
       '<button class="pill" onclick="deleteProject(\''+p.id+'\')">🗑</button>';
     wrap.appendChild(row);
     var sw=document.createElement('div'); sw.style.cssText='display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:8px';
@@ -1936,7 +1961,7 @@ function initFirebase(){
     fbDb=firebase.firestore();
     fbReady=true;
     document.getElementById('acctCard').style.display='block';
-    firebase.auth().onAuthStateChanged(function(u){ fbUser=u; cloudLoaded=false; renderAcct(); if(u) cloudLoad(); });
+    firebase.auth().onAuthStateChanged(function(u){ fbUser=u; cloudLoaded=false; renderAcct(); applyPremiumGate(); if(u) cloudLoad(); });
   }catch(e){}
 }
 function acctMsg(t){ var m=document.getElementById('acctMsg'); if(m) m.textContent=t||''; }
@@ -2044,6 +2069,7 @@ paint(); paintStats();
 refreshAlertBtn();
 resumeTimer();
 initFirebase();
+applyPremiumGate();
 // Show the short walkthrough the first time the app is opened.
 if(!S.onboarded){ obShow(); }
 // whole-screen lock is a native-app feature – show and restore its state
