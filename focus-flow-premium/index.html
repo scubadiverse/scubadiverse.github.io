@@ -148,7 +148,7 @@
 <button id="sosBtn" onclick="openEmergency()" aria-label="Emergency contacts" title="Emergency contacts"
   style="display:none;position:fixed;z-index:60;bottom:calc(16px + env(safe-area-inset-bottom));right:16px;
   width:48px;height:48px;border-radius:50%;background:#2ea6ff;color:#fff;border:0;font-size:21px;
-  display:flex;align-items:center;justify-content:center;line-height:1;padding:0;
+  align-items:center;justify-content:center;line-height:1;padding:0;
   box-shadow:0 3px 12px rgba(0,0,0,.35);opacity:.92"><svg width="23" height="23" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></button>
 
 <h1>ProjectSavvy</h1>
@@ -1035,7 +1035,7 @@ function checkOnline(){
 }
 function startTimeout(){
   inTimeout=true;
-  document.getElementById('sosBtn').style.display='block'; // emergency icon only during time-out
+  document.getElementById('sosBtn').style.display='flex'; // emergency icon only during time-out
   if(running){ stopBlock(); } // pause any focus block
   notify("Time out","You've been online a long time. 2-minute break – step away now.",'timeout');
   show('timeout');
