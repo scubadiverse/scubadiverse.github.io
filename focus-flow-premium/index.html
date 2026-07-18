@@ -182,6 +182,12 @@
   <div id="projEdit" style="display:none;margin-top:12px"></div>
 </div>
 
+<div class="card" id="restZoneCard" style="display:none">
+  <b>💤 Resting zone</b>
+  <div class="foot" style="text-align:left;margin:4px 0 8px">Projects you've parked. Their time and history stay safe. Bring one back any time.</div>
+  <div id="restList"></div>
+</div>
+
 <div class="card">
   <div id="clock">50:00</div>
   <div id="phase">Pick a project, then Start a focus block.</div>
@@ -642,10 +648,12 @@ function setProjColor(id,c){
   save(); renderProjects(); paintStats(); renderProgress(); renderProjEdit();
 }
 function newId(){ var n=0; for(var i=0;i<S.projects.length;i++){ var m=/^p(\d+)$/.exec(S.projects[i].id); if(m) n=Math.max(n,+m[1]); } return 'p'+(n+1); }
+function activeProjects(){ return S.projects.filter(function(p){ return !p.resting; }); }
 function renderProjects(){
   var el=document.getElementById('projList'); el.innerHTML="";
-  if(!S.projects.length){ el.innerHTML='<span class="muted" style="font-size:13px">No projects yet – tap Edit to add one.</span>'; }
-  S.projects.forEach(function(p){
+  var act=activeProjects();
+  if(!act.length){ el.innerHTML='<span class="muted" style="font-size:13px">No active projects – tap Edit to add one.</span>'; }
+  act.forEach(function(p){
     var c=projColor(p.id), active=(proj===p.id);
     var b=document.createElement('button'); b.className='proj';
     b.style.cssText='flex:1;min-width:130px;text-align:left;border-radius:14px;padding:14px'+
@@ -659,6 +667,7 @@ function renderProjects(){
     b.onclick=function(){ pick(p.id); };
     el.appendChild(b);
   });
+  renderRestingZone();
 }
 function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 function toggleEditProj(){
@@ -668,23 +677,26 @@ function toggleEditProj(){
   if(!open) renderProjEdit();
 }
 function moveProject(id,dir){
-  var i=-1; for(var k=0;k<S.projects.length;k++){ if(S.projects[k].id===id){ i=k; break; } }
-  if(i<0) return; var j=i+dir; if(j<0||j>=S.projects.length) return;
-  var t=S.projects[i]; S.projects[i]=S.projects[j]; S.projects[j]=t;
+  var act=activeProjects(); var ai=-1;
+  for(var k=0;k<act.length;k++){ if(act[k].id===id){ ai=k; break; } }
+  if(ai<0) return; var aj=ai+dir; if(aj<0||aj>=act.length) return;
+  var iA=-1,iB=-1; for(var m=0;m<S.projects.length;m++){ if(S.projects[m].id===act[ai].id) iA=m; if(S.projects[m].id===act[aj].id) iB=m; }
+  var t=S.projects[iA]; S.projects[iA]=S.projects[iB]; S.projects[iB]=t;
   save(); renderProjects(); renderProjEdit(); paintStats();
 }
 function renderProjEdit(){
   var el=document.getElementById('projEdit'); el.innerHTML="";
-  var last=S.projects.length-1;
+  var act=activeProjects();
+  var last=act.length-1;
   var hd=document.createElement('div'); hd.style.cssText='font-weight:700;margin:0 0 6px';
   hd.textContent='Editing projects';
   el.appendChild(hd);
-  if(S.projects.length>1){
+  if(act.length>1){
     var hint=document.createElement('div'); hint.className='foot'; hint.style.cssText='text-align:left;margin:0 0 8px';
     hint.innerHTML='↕ Reorder using the ▲ ▼ arrows';
     el.appendChild(hint);
   }
-  S.projects.forEach(function(p,idx){
+  act.forEach(function(p,idx){
     var wrap=document.createElement('div'); wrap.style.cssText='padding:8px 0;border-bottom:1px dashed var(--line)';
     var row=document.createElement('div'); row.className='qrow'; row.style.borderBottom='0'; row.style.padding='0';
     row.innerHTML='<button class="pill" title="Move up" onclick="moveProject(\''+p.id+'\',-1)"'+(idx===0?' disabled style="opacity:.3"':'')+'>▲</button>'+
@@ -694,6 +706,7 @@ function renderProjEdit(){
       '<input type="number" min="0" max="720" value="'+(p.target||0)+'" title="daily target minutes" '+
       'style="width:70px;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px" '+
       'onchange="setProjTarget(\''+p.id+'\',this.value)"><span class="muted" style="font-size:12px">min/day</span>'+
+      '<button class="pill" title="Rest this project" onclick="restProject(\''+p.id+'\')">💤</button>'+
       '<button class="pill" onclick="deleteProject(\''+p.id+'\')">🗑</button>';
     wrap.appendChild(row);
     var sw=document.createElement('div'); sw.style.cssText='display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:8px';
@@ -746,6 +759,29 @@ function deleteProject(id){
   delete S.mins[id]; delete S.projRemain[id];
   if(proj===id) proj=null;
   save(); renderProjects(); renderProjEdit(); paintStats();
+}
+function restProject(id){
+  for(var i=0;i<S.projects.length;i++) if(S.projects[i].id===id) S.projects[i].resting=true;
+  if(proj===id) proj=null;
+  save(); renderProjects(); renderProjEdit(); paintStats();
+}
+function wakeProject(id){
+  for(var i=0;i<S.projects.length;i++) if(S.projects[i].id===id) S.projects[i].resting=false;
+  save(); renderProjects(); renderProjEdit(); paintStats();
+}
+function renderRestingZone(){
+  var card=document.getElementById('restZoneCard'), list=document.getElementById('restList');
+  if(!card||!list) return;
+  var rested=S.projects.filter(function(p){ return p.resting; });
+  if(!rested.length){ card.style.display='none'; return; }
+  card.style.display='';
+  list.innerHTML=rested.map(function(p){
+    return '<div class="task">'+
+      '<span style="width:12px;height:12px;border-radius:50%;flex:none;background:'+projColor(p.id)+'"></span>'+
+      '<div class="nm">'+esc(p.name)+'<div class="mn">Parked &middot; time &amp; history kept safe</div></div>'+
+      '<button class="pill" onclick="wakeProject(\''+p.id+'\')">↩ Bring back</button>'+
+    '</div>';
+  }).join('');
 }
 function pick(p){
   if(p!==proj){
@@ -1882,7 +1918,7 @@ function curfewContinue(){
 // ---- optional cloud account (Firebase) ----
 // Sign-in / cloud sync is a FUTURE PREMIUM feature. Kept fully built but HIDDEN
 // for now – flip ACCOUNTS_ENABLED to true (behind a premium check) to switch it on.
-var ACCOUNTS_ENABLED = false;
+var ACCOUNTS_ENABLED = true;
 // Paste your Firebase web config here after creating the project. Empty = cloud off.
 var firebaseConfig = {
   apiKey:"AIzaSyDmmju7xZzKIVo9B1ijjfypPYjFrOe6Zlw",
