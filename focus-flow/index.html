@@ -571,6 +571,9 @@ function moveProject(id,dir){
 function renderProjEdit(){
   var el=document.getElementById('projEdit'); el.innerHTML="";
   var last=S.projects.length-1;
+  var hd=document.createElement('div'); hd.style.cssText='font-weight:700;margin:0 0 6px';
+  hd.textContent='Editing projects';
+  el.appendChild(hd);
   if(S.projects.length>1){
     var hint=document.createElement('div'); hint.className='foot'; hint.style.cssText='text-align:left;margin:0 0 8px';
     hint.innerHTML='↕ Reorder using the ▲ ▼ arrows';
@@ -600,13 +603,20 @@ function renderProjEdit(){
   if(S.projects.length>=7){
     var note=document.createElement('div'); note.className='foot'; note.style.textAlign='left';
     note.textContent='Maximum of 7 projects reached. Delete one to add another.';
-    el.appendChild(note); return;
+    el.appendChild(note); el.appendChild(doneBtnEl()); return;
   }
   var add=document.createElement('div'); add.className='row'; add.style.marginTop='10px';
   add.innerHTML='<input type="text" id="newProjName" placeholder="New project name…" '+
     'style="flex:1;min-width:140px;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px">'+
     '<button class="primary" onclick="addProject()">＋ Add</button>';
   el.appendChild(add);
+  el.appendChild(doneBtnEl());
+}
+function doneBtnEl(){
+  var d=document.createElement('button'); d.className='primary';
+  d.style.cssText='width:100%;margin-top:14px'; d.textContent='✓ Done';
+  d.onclick=toggleEditProj;
+  return d;
 }
 function addProject(){
   var inp=document.getElementById('newProjName'); var name=(inp.value||'').trim();
