@@ -2080,18 +2080,69 @@ function cloudSave(){
   if(!fbReady || !fbUser) return;
   try{ fbDb.collection('users').doc(fbUser.uid).set({data:S, updatedAt:Date.now()}, {merge:true}); }catch(e){}
 }
+// ---- safe cloud merge: signing in NEVER deletes local projects or history ----
+function backupLocal(reason){
+  try{ localStorage.setItem(KEY+'.bak', JSON.stringify({at:Date.now(), why:reason, data:S})); }catch(e){}
+}
+function mergeById(a,b,pick){
+  var out=[], at={};
+  (a||[]).forEach(function(x){ if(x&&x.id!=null){ at[x.id]=out.length; out.push(x); } });
+  (b||[]).forEach(function(x){ if(!x||x.id==null) return;
+    if(x.id in at){ if(pick) out[at[x.id]]=pick(out[at[x.id]],x); }
+    else { at[x.id]=out.length; out.push(x); } });
+  return out;
+}
+function mergeMax(a,b){ var o={}; a=a||{}; b=b||{};
+  for(var k in a) o[k]=a[k];
+  for(var k in b) o[k]=(k in o)?Math.max(o[k],b[k]):b[k];
+  return o; }
+function unionTs(a,b){ var o=[], seen={};
+  (a||[]).concat(b||[]).forEach(function(x){ var k=(x&&x.ts!=null)?x.ts:JSON.stringify(x);
+    if(!(k in seen)){ seen[k]=1; o.push(x); } });
+  return o; }
+function isDefaultName(n){ return !n || /^Project \d+$/.test(n); }
+// Merge local + cloud so NOTHING is lost: union projects by id, union per-day
+// history, take the larger of every counter, and keep any real (renamed) name.
+function mergeState(local, cloud){
+  var m={}; for(var k in local) m[k]=local[k];
+  ['block','waterEvery','onlineLimit','eyeEvery','alertsOn','paused','guard','eyeRest','stand','emergency']
+    .forEach(function(k){ if(k in cloud) m[k]=cloud[k]; });
+  m.projects = mergeById(local.projects, cloud.projects, function(x,y){
+    var name = !isDefaultName(x.name) ? x.name : (!isDefaultName(y.name) ? y.name : (x.name||y.name));
+    return { id:x.id, name:name, target:Math.max(x.target||0, y.target||0) };
+  });
+  if(!m.projects || !m.projects.length) m.projects = (local.projects&&local.projects.length)?local.projects:cloud.projects;
+  var hist = mergeById(
+    (local.history||[]).map(function(h){return {id:h.day, h:h};}),
+    (cloud.history||[]).map(function(h){return {id:h.day, h:h};}),
+    function(x,y){ return (x.h.min||0)>=(y.h.min||0)?x:y; }
+  );
+  m.history = hist.map(function(w){return w.h;});
+  m.mins = mergeMax(local.mins, cloud.mins);
+  m.hourMins = mergeMax(local.hourMins, cloud.hourMins);
+  m.blocks = Math.max(local.blocks||0, cloud.blocks||0);
+  m.wins = unionTs(local.wins, cloud.wins);
+  m.moods = unionTs(local.moods, cloud.moods);
+  m.tiredPoints = (local.tiredPoints||[]).concat(cloud.tiredPoints||[]);
+  m.unplanned = mergeById(local.unplanned, cloud.unplanned);
+  return m;
+}
 function cloudLoad(){
   if(!fbReady || !fbUser) return;
   fbDb.collection('users').doc(fbUser.uid).get().then(function(doc){
     if(doc.exists && doc.data() && doc.data().data){
+      backupLocal('before-cloud-merge');
       var cloud=doc.data().data;
-      for(var k in cloud) S[k]=cloud[k];   // cloud is the source of truth once signed in
+      var merged=mergeState(S, cloud);   // MERGE – never delete local projects/history
+      for(var k in merged) S[k]=merged[k];
       try{ localStorage.setItem(KEY,JSON.stringify(S)); }catch(e){}
+      cloudLoaded=true;
+      cloudSave();                        // push the merged union back up
       renderAll();
     } else {
+      cloudLoaded=true;
       cloudSave(); // first sign-in on this account – push what's here
     }
-    cloudLoaded=true;
   }).catch(function(){ cloudLoaded=true; });
 }
 function renderAll(){
