@@ -145,12 +145,6 @@
 </head>
 <body>
 
-<button id="pauseBtn" onclick="togglePause()" aria-label="Pause all reminders" title="Pause all reminders"
-  style="position:fixed;z-index:60;top:calc(10px + env(safe-area-inset-top));right:14px;
-  height:38px;padding:0 14px;border-radius:999px;background:var(--card2);color:var(--ink);
-  border:1px solid var(--line);font-size:13px;font-weight:600;display:inline-flex;align-items:center;
-  gap:5px;line-height:1;box-shadow:0 2px 8px rgba(0,0,0,.3);cursor:pointer">⏸️ Pause</button>
-
 <button id="sosBtn" onclick="openEmergency()" aria-label="Emergency contacts" title="Emergency contacts"
   style="display:none;position:fixed;z-index:60;bottom:calc(16px + env(safe-area-inset-bottom));right:16px;
   width:48px;height:48px;border-radius:50%;background:#2ea6ff;color:#fff;border:0;font-size:21px;
@@ -448,7 +442,6 @@ function load(){
     hourMins:{},             // learned: focused minutes per hour-of-day
     block:50, lastProj:null,
     alertsOn:false,          // phone alerts enabled (native) – remembered across restarts
-    paused:false,            // master pause: one tap silences ALL reminders & the lock
     waterEvery:45,           // wall-clock minutes between water reminders
     lastWaterTs:0,           // timestamp of last water reminder
     onlineLimit:60,          // continuous minutes online before a forced time-out
@@ -603,42 +596,22 @@ function nCancel(id){
 }
 function syncAlerts(){
   if(!inNativeApp) return;
-  // Master pause: while paused, tell native everything is OFF (no reminders, no lock).
-  var aOn = !!S.alertsOn && !S.paused;
-  var gOn = !!S.guard && !S.paused;
   if(window.AndroidBridge && window.AndroidBridge.syncAlerts){
     try{ window.AndroidBridge.syncAlerts(JSON.stringify({
-      alertsOn:aOn, guardOn:gOn, limitMin:S.onlineLimit,
-      water:{every:S.waterEvery}, eye:{on:aOn&&!!S.eyeRest,every:S.eyeEvery}, stand:{on:aOn&&!!S.stand,every:30}
+      alertsOn:!!S.alertsOn, guardOn:!!S.guard, limitMin:S.onlineLimit,
+      water:{every:S.waterEvery}, eye:{on:!!S.eyeRest,every:S.eyeEvery}, stand:{on:!!S.stand,every:30}
     })); }catch(e){}
     return;
   }
   // Older bundle (no service-based alerts): fall back to alarm-based reminders + lock.
-  if(aOn){
+  if(S.alertsOn){
     nRepeat('water', S.waterEvery, "💧 Water break", "Take a sip and rest your eyes.");
     if(S.eyeRest) nRepeat('eye', S.eyeEvery, "👀 Eye rest","Look ~6 m away for 20 seconds and blink."); else nCancel('eye');
     if(S.stand) nRepeat('stand', 30, "🧍 Stand & stretch","Stand up and move for a moment."); else nCancel('stand');
   } else { nCancel('water'); nCancel('eye'); nCancel('stand'); }
-  try{ if(gOn) window.AndroidBridge.startGuard(S.onlineLimit); else window.AndroidBridge.stopGuard(); }catch(e){}
+  try{ if(S.guard) window.AndroidBridge.startGuard(S.onlineLimit); else window.AndroidBridge.stopGuard(); }catch(e){}
 }
 function reArmReminders(){ syncAlerts(); }
-// Master pause: one tap silences ALL reminders and the phone lock. Tap again to resume.
-function togglePause(){
-  S.paused=!S.paused; save();
-  if(S.paused){ inTimeout=false; hide('warnBanner'); hide('eyeBanner'); hide('standBanner'); hide('waterBanner'); }
-  refreshPauseBtn();
-  syncAlerts();
-}
-function refreshPauseBtn(){
-  var b=document.getElementById('pauseBtn'); if(!b) return;
-  if(S.paused){
-    b.textContent='▶️ Resume';
-    b.style.background='var(--accent)'; b.style.color='#04212b'; b.style.borderColor='var(--accent)';
-  } else {
-    b.textContent='⏸️ Pause';
-    b.style.background='var(--card2)'; b.style.color='var(--ink)'; b.style.borderColor='var(--line)';
-  }
-}
 function scheduleBlockAlarms(){
   nCancel('warn'); nCancel('end');
   if(remain>60) nSchedule('warn', remain-60, "1 minute left", "Start wrapping up – breathe and finish gently.");
@@ -1040,7 +1013,6 @@ function paintEyeOpts(){
 // Real clock timer: reminds every S.waterEvery minutes whenever the app is open,
 // working or not, so hydration doesn't depend on a focus block running.
 function checkWater(){
-  if(S.paused) return;
   if(!S.lastWaterTs){ S.lastWaterTs=Date.now(); save(); return; }
   if(Date.now()-S.lastWaterTs >= S.waterEvery*60*1000){
     S.lastWaterTs=Date.now(); save();
@@ -1077,7 +1049,6 @@ function toggleGuard(){
 // ---- forced 2-minute time-out after too long online ----
 var inTimeout=false, toH=null;
 function checkOnline(){
-  if(S.paused) return;
   // Whole-screen lock (native) covers the WHOLE phone. If it is OFF, still run the
   // in-app time-out so setting a limit always does something while you're in the app.
   if(inNativeApp && S.guard) return;
@@ -1683,7 +1654,6 @@ function toggleEye(){
 }
 // 20-20-20: every 20 min, look ~6 m away for 20 s.
 function checkEye(){
-  if(S.paused) return;
   if(!S.eyeRest) return;
   if(!S.lastEyeTs){ S.lastEyeTs=Date.now(); save(); return; }
   if(Date.now()-S.lastEyeTs >= S.eyeEvery*60*1000){
@@ -1699,7 +1669,6 @@ function toggleStand(){
 }
 // Every 30 min: stand up and stretch (for sitting too long).
 function checkStand(){
-  if(S.paused) return;
   if(!S.stand) return;
   if(!S.lastStandTs){ S.lastStandTs=Date.now(); save(); return; }
   if(Date.now()-S.lastStandTs >= 30*60*1000){
@@ -2117,7 +2086,7 @@ function isDefaultName(n){ return !n || /^Project \d+$/.test(n); }
 // history, take the larger of every counter, and keep any real (renamed) name.
 function mergeState(local, cloud){
   var m={}; for(var k in local) m[k]=local[k];
-  ['block','waterEvery','onlineLimit','eyeEvery','alertsOn','paused','guard','eyeRest','stand','emergency']
+  ['block','waterEvery','onlineLimit','eyeEvery','alertsOn','guard','eyeRest','stand','emergency']
     .forEach(function(k){ if(k in cloud) m[k]=cloud[k]; });
   m.projects = mergeById(local.projects, cloud.projects, function(x,y){
     var name = !isDefaultName(x.name) ? x.name : (!isDefaultName(y.name) ? y.name : (x.name||y.name));
@@ -2191,7 +2160,6 @@ remain=S.block*60;
 adaptBlock();
 paint(); paintStats();
 refreshAlertBtn();
-refreshPauseBtn();
 resumeTimer();
 initFirebase();
 applyPremiumGate();
