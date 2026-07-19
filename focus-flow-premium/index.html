@@ -418,12 +418,10 @@ feelings are frequent or heavy, talking to someone you trust helps.
 
 <div id="toast" style="display:none;position:fixed;left:50%;top:20%;transform:translateX(-50%);z-index:80;width:min(88%,420px);background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:16px;box-shadow:0 16px 40px rgba(0,0,0,.4);padding:18px 20px;text-align:center;font-size:16px;line-height:1.45" onclick="this.style.display='none'"></div>
 
-<!-- Firebase SDK: sign-in is HIDDEN for now (planned for the paid tier).
-     To re-enable, uncomment these three lines - everything else is already wired.
+<!-- Firebase SDK (compat build): loaded so sign-in + cloud sync work (premium). -->
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
--->
 
 <script>
 "use strict";
