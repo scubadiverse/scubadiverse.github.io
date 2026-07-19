@@ -1,0 +1,65 @@
+name: Build Google-test APK (sideload)
+
+# A debug APK for testing NATIVE Google sign-in without the Play signing hunt.
+# Keeps the real package (app.ainative.focusflow) so the SHA-1 already added to
+# Firebase matches, and loads the Firebase site where sign-in works. Debug builds
+# are signed with the repo's focusflow.keystore (SHA-1 already registered).
+# Install by sideloading (uninstall the Play version of the app first, since the
+# package is the same). Published to release tag android-google-test.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Point this debug build at the Firebase (sign-in) address
+        working-directory: focus-flow-android
+        run: |
+          set -e
+          sed -i 's#https://scubadiverse.github.io/focus-flow/#https://project-savvy-914a1.web.app#' \
+            app/src/main/java/net/scubadiverse/focusflow/MainActivity.kt
+          grep -n "loadUrl(" app/src/main/java/net/scubadiverse/focusflow/MainActivity.kt
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Build debug APK
+        working-directory: focus-flow-android
+        run: gradle assembleDebug --no-daemon --stacktrace
+
+      - name: Upload APK as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: projectsavvy-google-test-apk
+          path: focus-flow-android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Publish APK to a Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-google-test
+          name: "ProjectSavvy - Google sign-in test (sideload)"
+          body: |
+            Debug APK to test native Google sign-in. Uses package
+            app.ainative.focusflow (matches the SHA-1 added to Firebase) and loads
+            project-savvy-914a1.web.app. Uninstall the Play version of the app
+            first, then install this and tap Continue with Google.
+          files: |
+            focus-flow-android/app/build/outputs/apk/debug/app-debug.apk
