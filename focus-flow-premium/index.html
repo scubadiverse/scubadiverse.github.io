@@ -2076,8 +2076,20 @@ function scheduleCloudSave(){
   if(cloudTimer) clearTimeout(cloudTimer);
   cloudTimer=setTimeout(cloudSave, 1500);
 }
+// True only if this state holds real work – guards against a blank/fresh state
+// overwriting a good cloud copy (never let an empty device wipe the account).
+function hasRealData(s){
+  if(!s) return false;
+  var proj=(s.projects||[]).some(function(p){ return p && !isDefaultName(p.name); });
+  var hist=(s.history||[]).length>0;
+  var mins=s.mins && Object.keys(s.mins).length>0;
+  var wins=(s.wins||[]).length>0;
+  return proj||hist||mins||wins||((s.blocks||0)>0)||((s.unplanned||[]).length>0);
+}
 function cloudSave(){
   if(!fbReady || !fbUser) return;
+  if(!cloudLoaded) return;              // never push before we have safely merged the cloud
+  if(!hasRealData(S)) return;           // never overwrite the cloud with a blank state
   try{ fbDb.collection('users').doc(fbUser.uid).set({data:S, updatedAt:Date.now()}, {merge:true}); }catch(e){}
 }
 // ---- safe cloud merge: signing in NEVER deletes local projects or history ----
@@ -2143,7 +2155,7 @@ function cloudLoad(){
       cloudLoaded=true;
       cloudSave(); // first sign-in on this account – push what's here
     }
-  }).catch(function(){ cloudLoaded=true; });
+  }).catch(function(){ /* read failed: keep cloudLoaded=false so we never push over an unknown cloud */ });
 }
 function renderAll(){
   document.getElementById('blockLen').value=S.block;
