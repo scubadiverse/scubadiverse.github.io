@@ -1,12 +1,10 @@
 name: Build Premium AAB (Firebase address)
 
 # PREMIUM release build for Google Play CLOSED TESTING that loads the Firebase
-# Hosting address (project-savvy-914a1.web.app) where sign-in already works
-# (authorised domain). Same app (applicationId app.ainative.focusflow), higher
-# versionCode than the previous premium build (1024 -> 1025) so it supersedes it
-# on the closed-testing track. Run by hand from the Actions tab.
-# NOTE: the Firebase Hosting site shows the premium agent's build until it is
-# redeployed with the latest focus-app/paid content.
+# Hosting address (project-savvy-914a1.web.app) where sign-in works (authorised
+# domain). Same app (applicationId app.ainative.focusflow), higher versionCode
+# than the previous premium upload (1025 -> 1026) so it supersedes it on the
+# closed-testing track. Run by hand from the Actions tab.
 
 on:
   workflow_dispatch:
@@ -26,7 +24,7 @@ jobs:
           set -e
           sed -i 's#https://scubadiverse.github.io/focus-flow/#https://project-savvy-914a1.web.app#' \
             app/src/main/java/net/scubadiverse/focusflow/MainActivity.kt
-          sed -i 's#versionCode 24#versionCode 1025#' app/build.gradle
+          sed -i 's#versionCode 24#versionCode 1026#' app/build.gradle
           echo "Patched URL + versionCode. Check:"
           grep -n "loadUrl(" app/src/main/java/net/scubadiverse/focusflow/MainActivity.kt
           grep -n "versionCode" app/build.gradle
@@ -59,11 +57,11 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: android-premium-firebase
-          name: "ProjectSavvy – Premium (Firebase address, closed testing)"
+          name: "ProjectSavvy - Premium (Firebase address, closed testing)"
           body: |
             PREMIUM build for Google Play CLOSED TESTING that loads
-            project-savvy-914a1.web.app (sign-in works there). versionCode 1025,
-            supersedes the previous premium build (1024). Upload app-release.aab to
+            project-savvy-914a1.web.app (sign-in works there). versionCode 1026,
+            supersedes the previous premium upload (1025). Upload app-release.aab to
             the Closed testing track. Do NOT promote to production.
           files: |
             focus-flow-android/app/build/outputs/bundle/release/app-release.aab
