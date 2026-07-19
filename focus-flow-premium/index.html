@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>ProjectSavvy â Project Manager</title>
+<title>ProjectSavvy – Project Manager</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0f1720">
 <meta name="mobile-web-app-capable" content="yes">
@@ -151,8 +151,8 @@
   align-items:center;justify-content:center;line-height:1;padding:0;
   box-shadow:0 3px 12px rgba(0,0,0,.35);opacity:.92"><svg width="23" height="23" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></button>
 
-<h1>ProjectSavvy <span style="display:inline-block;vertical-align:middle;font-size:12px;font-weight:700;color:#04212b;background:var(--accent);border-radius:999px;padding:3px 11px;margin-left:6px">â¨ PREMIUM</span></h1>
-<p class="sub">Your focus, breaks and calm â paced to how you actually work. Learns as you go.</p>
+<h1>ProjectSavvy <span style="display:inline-block;vertical-align:middle;font-size:12px;font-weight:700;color:#04212b;background:var(--accent);border-radius:999px;padding:3px 11px;margin-left:6px">✨ PREMIUM</span></h1>
+<p class="sub">Your focus, breaks and calm – paced to how you actually work. Learns as you go.</p>
 <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:-4px 0 16px">
   <a href="guide.html" style="display:inline-flex;align-items:center;gap:4px;color:var(--ink);font-size:13px;
     font-weight:600;text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:6px 15px">
@@ -160,19 +160,19 @@
       background:var(--accent);color:#04212b;font-size:11px;font-weight:700">?</span>How it works</a>
   <button onclick="obShow()" style="display:inline-flex;align-items:center;gap:5px;color:var(--ink);font-size:13px;
     font-weight:600;background:transparent;border:1px solid var(--line);border-radius:999px;padding:6px 15px;cursor:pointer">
-    ð Intro</button>
+    👋 Intro</button>
 </div>
 
 <div class="card" id="premiumCard" style="border:1px solid var(--accent)">
   <div id="premiumBody"></div>
 </div>
 
-<div id="warnBanner" class="banner warn">â³ 1 minute left â start wrapping up. Take a breath and finish gently.</div>
-<div id="eyeBanner" class="banner water">ð Eye rest â look far away (about 6 m / 20 ft) for 20 seconds, and blink a few times.</div>
-<div id="standBanner" class="banner rest">ð§ Stand up, stretch, and roll your shoulders for a moment. Your body needs it.</div>
-<div id="waterBanner" class="banner water">ð§ Time for water. Take a sip and stretch your eyes.</div>
-<div id="restBanner" class="banner rest" onclick="hide('restBanner')" style="cursor:pointer" title="Tap to dismiss">ð You've done a long day. Wind down soon â rest is part of the work.</div>
-<div id="switchBanner" class="banner switch">ð Good block. Switch projects to stay fresh?</div>
+<div id="warnBanner" class="banner warn">⏳ 1 minute left – start wrapping up. Take a breath and finish gently.</div>
+<div id="eyeBanner" class="banner water">👀 Eye rest – look far away (about 6 m / 20 ft) for 20 seconds, and blink a few times.</div>
+<div id="standBanner" class="banner rest">🧍 Stand up, stretch, and roll your shoulders for a moment. Your body needs it.</div>
+<div id="waterBanner" class="banner water">💧 Time for water. Take a sip and stretch your eyes.</div>
+<div id="restBanner" class="banner rest" onclick="hide('restBanner')" style="cursor:pointer" title="Tap to dismiss">🌙 You've done a long day. Wind down soon – rest is part of the work.</div>
+<div id="switchBanner" class="banner switch">🔄 Good block. Switch projects to stay fresh?</div>
 
 <div class="tabs" id="tabbar">
   <button class="tab on" id="tabFocus" onclick="switchTab('focus')">Focus</button>
@@ -181,13 +181,13 @@
 <div class="wide" id="paneFocus">
 <div class="card">
   <div class="row"><b class="grow">Projects</b>
-    <button class="pill" id="editProjBtn" onclick="toggleEditProj()">âï¸ Edit</button></div>
+    <button class="pill" id="editProjBtn" onclick="toggleEditProj()">✏️ Edit</button></div>
   <div class="row" id="projList" style="margin-top:10px"></div>
   <div id="projEdit" style="display:none;margin-top:12px"></div>
 </div>
 
 <div class="card" id="restZoneCard" style="display:none">
-  <b>ð¤ Resting zone</b>
+  <b>💤 Resting zone</b>
   <div class="foot" style="text-align:left;margin:4px 0 8px">Projects you've parked. Their time and history stay safe. Bring one back any time.</div>
   <div id="restList"></div>
 </div>
@@ -197,14 +197,14 @@
   <div id="phase">Pick a project, then Start a focus block.</div>
   <div class="big">
     <button class="primary" id="startBtn" onclick="startStop()">Start</button>
-    <button id="tiredBtn" onclick="markTired()">ð®âð¨ Getting tired</button>
+    <button id="tiredBtn" onclick="markTired()">😮‍💨 Getting tired</button>
   </div>
   <div class="row" style="margin-top:10px;justify-content:center">
-    <button id="resetBtn" onclick="resetBlock()">âº Reset timer</button>
+    <button id="resetBtn" onclick="resetBlock()">↺ Reset timer</button>
   </div>
   <div class="row" style="margin-top:10px">
-    <button class="grow" style="background:#3a1f2a;color:#ffc2d1;border-color:#6a3348" onclick="overwhelmed()">ð I'm overwhelmed</button>
-    <button id="alertBtn" onclick="enableAlerts()">ð Enable phone alerts</button>
+    <button class="grow" style="background:#3a1f2a;color:#ffc2d1;border-color:#6a3348" onclick="overwhelmed()">🆘 I'm overwhelmed</button>
+    <button id="alertBtn" onclick="enableAlerts()">🔔 Enable phone alerts</button>
   </div>
   <div class="row" style="margin-top:12px;justify-content:center;align-items:center">
     <span class="muted" style="font-size:13px">Focus block:</span>
@@ -217,33 +217,33 @@
     <span class="muted" style="font-size:13px">min</span>
   </div>
   <div class="row" style="margin-top:8px;justify-content:center">
-    <span class="muted" style="font-size:13px">ð§ Water reminder every:</span>
+    <span class="muted" style="font-size:13px">💧 Water reminder every:</span>
     <input type="number" id="waterEvery" min="15" max="180" value="45" onchange="setWater()">
     <span class="muted" style="font-size:13px">min</span>
   </div>
   <div class="row" style="margin-top:8px;justify-content:center">
-    <button id="waterBtn" onclick="toggleWater()">ð§ Drank water: No</button>
-    <button id="eyeBtn" onclick="toggleEye()">ð Eye-rest: On</button>
-    <button id="standBtn" onclick="toggleStand()">ð§ Stand: On</button>
+    <button id="waterBtn" onclick="toggleWater()">💧 Drank water: No</button>
+    <button id="eyeBtn" onclick="toggleEye()">👀 Eye-rest: On</button>
+    <button id="standBtn" onclick="toggleStand()">🧍 Stand: On</button>
   </div>
   <div class="row" style="margin-top:8px;justify-content:center;align-items:center">
-    <span class="muted" style="font-size:13px">ð Eye rest every:</span>
+    <span class="muted" style="font-size:13px">👀 Eye rest every:</span>
     <button id="eye20" class="eyeopt" onclick="setEye(20)">20 min</button>
     <button id="eye45" class="eyeopt" onclick="setEye(45)">45 min</button>
   </div>
   <div class="row" style="margin-top:8px;justify-content:center">
-    <span class="muted" style="font-size:13px">â¸ï¸ Force a 2-min time-out after:</span>
+    <span class="muted" style="font-size:13px">⏸️ Force a 2-min time-out after:</span>
     <input type="number" id="onlineLimit" min="20" max="240" value="60" onchange="setLimit()">
     <span class="muted" style="font-size:13px">min online</span>
   </div>
   <div class="row" id="guardRow" style="margin-top:8px;justify-content:center;display:none">
-    <button id="guardBtn" onclick="toggleGuard()">ð Whole-screen break lock: Off</button>
+    <button id="guardBtn" onclick="toggleGuard()">🔒 Whole-screen break lock: Off</button>
   </div>
 </div>
 
 <div class="card">
   <div class="row"><b class="grow">Can't decide which project?</b>
-    <button class="pill" onclick="toggleDecide()" id="decideBtn">ð¤ Help me choose</button></div>
+    <button class="pill" onclick="toggleDecide()" id="decideBtn">🤔 Help me choose</button></div>
   <div id="decideBody" style="display:none">
     <div class="foot" style="text-align:left;margin:8px 0 4px">Tick what's true for each project.
       Scored with the Eisenhower, RICE and WSJF methods.</div>
@@ -254,22 +254,22 @@
 </div>
 
 <div class="card">
-  <div class="row"><b class="grow">ð Small wins today</b>
+  <div class="row"><b class="grow">🌟 Small wins today</b>
     <span class="muted" id="winsCount" style="font-size:12px"></span></div>
   <div class="foot" style="text-align:left;margin:4px 0 6px">Little things count. Tap what you've done:</div>
   <div class="moods" id="winChips"></div>
   <div class="row" style="margin-top:10px">
-    <input type="text" id="winCustom" placeholder="Something else you didâ¦"
+    <input type="text" id="winCustom" placeholder="Something else you did…"
       style="flex:1;min-width:140px;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px"
       onkeydown="if(event.key==='Enter')addCustomWin()">
-    <button onclick="addCustomWin()">ï¼ Add</button>
+    <button onclick="addCustomWin()">＋ Add</button>
   </div>
   <div id="winsList" style="font-size:13px;margin-top:12px"></div>
 </div>
 
 <div class="card" id="moodCard">
-  <b>Take a breath â how do I feel?</b>
-  <div class="foot" style="text-align:left;margin:4px 0 0">Tap what's true right now. No judgement â naming it helps.</div>
+  <b>Take a breath – how do I feel?</b>
+  <div class="foot" style="text-align:left;margin:4px 0 0">Tap what's true right now. No judgement – naming it helps.</div>
   <div class="moods" id="moods"></div>
   <div class="resp" id="moodResp"></div>
 </div>
@@ -286,7 +286,7 @@
   <div class="row"><b class="grow">Today</b><button class="pill" onclick="resetDay()">Reset day</button></div>
   <div class="stat"><span>Total focused</span><b id="sTotal">0 min</b></div>
   <div class="stat"><span>Blocks done</span><b id="sBlocks">0</b></div>
-  <div class="stat"><span>Suggested split now</span><b id="sSplitTxt">â</b></div>
+  <div class="stat"><span>Suggested split now</span><b id="sSplitTxt">–</b></div>
   <div class="split" id="splitBar"></div>
   <div class="foot" style="text-align:left;margin:10px 0 2px">Same split, in hours:</div>
   <div class="split" id="splitBarHours"></div>
@@ -295,25 +295,25 @@
 </div>
 
 <div class="card">
-  <b>ð Productivity</b>
+  <b>📈 Productivity</b>
   <div class="stat"><span>Total focus time</span><b id="pTotal">0 h</b></div>
   <div class="stat"><span>Focus blocks done</span><b id="pBlocks">0</b></div>
   <div class="stat"><span>Small wins logged</span><b id="pWins">0</b></div>
   <div class="stat"><span>Day streak</span><b id="pStreak">0 days</b></div>
-  <div class="foot" style="text-align:left;margin:14px 0 4px">â± Hours already spent on each project</div>
+  <div class="foot" style="text-align:left;margin:14px 0 4px">⏱ Hours already spent on each project</div>
   <div class="split" id="doneSplitBar"></div>
   <div id="doneSplitTxt" style="font-size:13px;margin-top:6px"></div>
-  <div class="foot" style="text-align:left;margin:16px 0 2px">â¡ Your pace</div>
+  <div class="foot" style="text-align:left;margin:16px 0 2px">⚡ Your pace</div>
   <div id="prodProjection" class="foot" style="text-align:left;margin-top:0"></div>
-  <div class="foot" style="text-align:left;margin:16px 0 6px">ã° Daily hours per project â last 14 days</div>
+  <div class="foot" style="text-align:left;margin:16px 0 6px">〰 Daily hours per project – last 14 days</div>
   <div id="projLines"></div>
-  <div class="foot" style="margin-top:10px">It builds up day by day. Slow progress is still progress â keep going.</div>
+  <div class="foot" style="margin-top:10px">It builds up day by day. Slow progress is still progress – keep going.</div>
 </div>
 
 <div class="card">
   <b>Your learned rhythm</b>
-  <div class="stat"><span>Your average tired-point</span><b id="sTired">learningâ¦</b></div>
-  <div class="stat"><span>Strongest hours (from your sessions)</span><b id="sPeak">learningâ¦</b></div>
+  <div class="stat"><span>Your average tired-point</span><b id="sTired">learning…</b></div>
+  <div class="stat"><span>Strongest hours (from your sessions)</span><b id="sPeak">learning…</b></div>
   <div class="bars" id="bars"></div>
   <div class="foot">Learns your strongest hours from your own focus sessions.</div>
 </div>
@@ -352,10 +352,10 @@
   <div class="ohint" id="bround">Follow the circle. In as it grows, out as it shrinks.</div>
   <div class="ohint" id="breatheReframe" style="color:var(--good);font-weight:600"></div>
   <div class="row" style="justify-content:center;gap:10px">
-    <button id="sndRain" onclick="playSound('rain')">ð§ï¸ Rain</button>
-    <button id="sndDry" onclick="playSound('dryer')">ð¨ Hairdryer</button>
+    <button id="sndRain" onclick="playSound('rain')">🌧️ Rain</button>
+    <button id="sndDry" onclick="playSound('dryer')">💨 Hairdryer</button>
   </div>
-  <button onclick="stopBreathe()">I'm calmer â done</button>
+  <button onclick="stopBreathe()">I'm calmer – done</button>
 </div>
 
 <div class="overlay" id="ground">
@@ -366,14 +366,14 @@
 </div>
 
 <div class="overlay" id="timeout" style="background:#0b1119">
-  <div class="otxt" style="font-size:30px;letter-spacing:1px">â¸ï¸ TIME OUT</div>
+  <div class="otxt" style="font-size:30px;letter-spacing:1px">⏸️ TIME OUT</div>
   <div id="toClock" style="font-size:76px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--accent)">2:00</div>
   <div class="ohint" style="font-size:16px;max-width:20em">You've been at the screen a long time. Stand up, look away from the screen,
-    stretch and breathe. The app is paused until the timer ends â rest is not optional right now. ð</div>
+    stretch and breathe. The app is paused until the timer ends – rest is not optional right now. 💙</div>
 </div>
 
 <div class="overlay" id="emergency">
-  <div class="otxt">ð Emergency contacts</div>
+  <div class="otxt">📞 Emergency contacts</div>
   <div id="emergList" style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:20em"></div>
   <div class="ohint">If you or someone is in danger, call your local emergency number now.</div>
   <div class="row" style="justify-content:center;gap:8px;width:100%;max-width:22em">
@@ -389,19 +389,19 @@
 </div>
 
 <div class="overlay" id="curfew">
-  <div class="otxt">ð It's after 23:00 â time to stop</div>
+  <div class="otxt">🌙 It's after 23:00 – time to stop</div>
   <div class="ohint">Your body needs rest more than the projects need another hour. The work will
     be here tomorrow, and you'll do it better after sleep. Close the laptop and be gentle
-    with yourself â you've done enough today.</div>
+    with yourself – you've done enough today.</div>
   <div class="row" style="justify-content:center;gap:10px;flex-wrap:wrap">
-    <button class="primary" onclick="hide('curfew')">Okay, I'll rest ð</button>
+    <button class="primary" onclick="hide('curfew')">Okay, I'll rest 💙</button>
     <button onclick="curfewContinue()">Yes, keep going</button>
   </div>
 </div>
 
 <div class="overlay" id="onboard" style="z-index:70">
   <div style="background:var(--card);border:1px solid var(--line);border-radius:18px;max-width:20em;width:100%;padding:24px;text-align:center">
-    <div id="obIcon" style="font-size:42px;margin-bottom:6px">ð</div>
+    <div id="obIcon" style="font-size:42px;margin-bottom:6px">👋</div>
     <div id="obTitle" style="font-size:19px;font-weight:700;margin-bottom:8px"></div>
     <div id="obBody" class="muted" style="font-size:14px;line-height:1.55;min-height:4.4em"></div>
     <div id="obDots" style="display:flex;gap:6px;justify-content:center;margin:18px 0 16px"></div>
@@ -412,7 +412,7 @@
   </div>
 </div>
 
-<p class="foot">Runs fully on your device â your data never leaves your phone. Not medical advice â if hard
+<p class="foot">Runs fully on your device – your data never leaves your phone. Not medical advice – if hard
 feelings are frequent or heavy, talking to someone you trust helps.
 <br><a href="privacy.html">Privacy policy</a></p>
 
@@ -428,7 +428,7 @@ feelings are frequent or heavy, talking to someone you trust helps.
 // ---- storage ----
 var KEY="focusflow.v1";
 function todayKey(){var d=new Date();return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();}
-// The app learns each person's own rhythm from their sessions â no preset seed.
+// The app learns each person's own rhythm from their sessions – no preset seed.
 var seed={ hourWeights:{}, peakHours:[] };
 var S=load();
 function load(){
@@ -441,12 +441,12 @@ function load(){
     tiredPoints:[],          // minutes-into-block when user tapped tired
     hourMins:{},             // learned: focused minutes per hour-of-day
     block:50, lastProj:null,
-    alertsOn:false,          // phone alerts enabled (native) â remembered across restarts
+    alertsOn:false,          // phone alerts enabled (native) – remembered across restarts
     waterEvery:45,           // wall-clock minutes between water reminders
     lastWaterTs:0,           // timestamp of last water reminder
     onlineLimit:60,          // continuous minutes online before a forced time-out
     contStart:0,             // timestamp continuous online session began
-    timer:null,              // running block {proj,endAt,block} â survives refresh
+    timer:null,              // running block {proj,endAt,block} – survives refresh
     projRemain:{},           // each project's own paused countdown (its own timer)
     guard:false,             // whole-screen break lock enabled (native app)
     lastDrankTs:0,           // when water was actually drunk (logged by you)
@@ -495,11 +495,11 @@ function applyPremiumGate(){
   var body=document.getElementById('premiumBody');
   if(body){
     if(pro){
-      body.innerHTML='<div class="row"><b class="grow">â¨ Premium active</b>'+
+      body.innerHTML='<div class="row"><b class="grow">✨ Premium active</b>'+
         '<button class="primary" disabled style="opacity:.5;cursor:not-allowed">Buy Premium</button></div>'+
-        '<div class="foot" style="text-align:left;margin-top:6px">You have Unplanned tasks, resting zone and cloud sync. Payment is off during testing â free for now.</div>';
+        '<div class="foot" style="text-align:left;margin-top:6px">You have Unplanned tasks, resting zone and cloud sync. Payment is off during testing – free for now.</div>';
     } else {
-      body.innerHTML='<div class="row"><b class="grow">ð Premium</b>'+
+      body.innerHTML='<div class="row"><b class="grow">🔒 Premium</b>'+
         '<button class="primary" onclick="goSignIn()">Sign in to unlock</button></div>'+
         '<div class="foot" style="text-align:left;margin-top:6px">Sign in or sign up to unlock Premium: Unplanned tasks, resting zone and cloud sync across your devices. Free during testing.</div>';
     }
@@ -575,7 +575,7 @@ var inNativeApp = !!(window.AndroidBridge && window.AndroidBridge.notify);
 function notify(title,body,cue){
   try{
     // Native: while the app is open the in-app banner + sound cover it, and
-    // background reminders come from scheduled alarms â so we do NOT post a
+    // background reminders come from scheduled alarms – so we do NOT post a
     // system notification here (that was stacking them up in the shade).
     if(!inNativeApp && 'Notification' in window && Notification.permission==='granted'){
       new Notification(title,{body:body,icon:'icon-192.png'}); }
@@ -605,16 +605,16 @@ function syncAlerts(){
   }
   // Older bundle (no service-based alerts): fall back to alarm-based reminders + lock.
   if(S.alertsOn){
-    nRepeat('water', S.waterEvery, "ð§ Water break", "Take a sip and rest your eyes.");
-    if(S.eyeRest) nRepeat('eye', S.eyeEvery, "ð Eye rest","Look ~6 m away for 20 seconds and blink."); else nCancel('eye');
-    if(S.stand) nRepeat('stand', 30, "ð§ Stand & stretch","Stand up and move for a moment."); else nCancel('stand');
+    nRepeat('water', S.waterEvery, "💧 Water break", "Take a sip and rest your eyes.");
+    if(S.eyeRest) nRepeat('eye', S.eyeEvery, "👀 Eye rest","Look ~6 m away for 20 seconds and blink."); else nCancel('eye');
+    if(S.stand) nRepeat('stand', 30, "🧍 Stand & stretch","Stand up and move for a moment."); else nCancel('stand');
   } else { nCancel('water'); nCancel('eye'); nCancel('stand'); }
   try{ if(S.guard) window.AndroidBridge.startGuard(S.onlineLimit); else window.AndroidBridge.stopGuard(); }catch(e){}
 }
 function reArmReminders(){ syncAlerts(); }
 function scheduleBlockAlarms(){
   nCancel('warn'); nCancel('end');
-  if(remain>60) nSchedule('warn', remain-60, "1 minute left", "Start wrapping up â breathe and finish gently.");
+  if(remain>60) nSchedule('warn', remain-60, "1 minute left", "Start wrapping up – breathe and finish gently.");
   if(remain>0) nSchedule('end', remain, "Break time", "Your focus block is done. Take a break.");
 }
 function enableAlerts(){
@@ -623,37 +623,37 @@ function enableAlerts(){
     if(S.alertsOn){                       // tap again = turn OFF
       S.alertsOn=false; save(); syncAlerts();
       nCancel('water'); nCancel('eye'); nCancel('stand'); nCancel('warn'); nCancel('end');
-      b.textContent='ð Phone alerts: Off';
+      b.textContent='🔔 Phone alerts: Off';
       return;
     }
     try{
       window.AndroidBridge.requestNotif();
       S.alertsOn=true; save();
       reArmReminders();
-      b.textContent='ð Phone alerts: On';
-    }catch(e){ b.textContent='ð Not available'; }
+      b.textContent='🔔 Phone alerts: On';
+    }catch(e){ b.textContent='🔕 Not available'; }
     return;
   }
-  if(!('Notification' in window)){ b.textContent='ð Not supported here'; return; }
+  if(!('Notification' in window)){ b.textContent='🔕 Not supported here'; return; }
   if(Notification.permission==='denied'){
-    b.textContent='ð Blocked â allow in settings';
-    document.getElementById('phase').textContent="Alerts are blocked. Turn them on: browser menu â Site settings â Notifications â Allow.";
+    b.textContent='🔕 Blocked – allow in settings';
+    document.getElementById('phase').textContent="Alerts are blocked. Turn them on: browser menu → Site settings → Notifications → Allow.";
     return;
   }
   try{
     Notification.requestPermission().then(function(p){
-      if(p==='granted'){ b.textContent='ð Alerts on'; try{ new Notification('ProjectSavvy',{body:"Alerts are on. I'll nudge you for breaks and water."}); }catch(e){} }
-      else if(p==='denied'){ b.textContent='ð Blocked â allow in settings'; }
-      else { b.textContent='ð Enable phone alerts'; }
-    }).catch(function(){ b.textContent='ð Not available'; });
-  }catch(e){ b.textContent='ð Not available'; }
+      if(p==='granted'){ b.textContent='🔔 Alerts on'; try{ new Notification('ProjectSavvy',{body:"Alerts are on. I'll nudge you for breaks and water."}); }catch(e){} }
+      else if(p==='denied'){ b.textContent='🔕 Blocked – allow in settings'; }
+      else { b.textContent='🔔 Enable phone alerts'; }
+    }).catch(function(){ b.textContent='🔕 Not available'; });
+  }catch(e){ b.textContent='🔕 Not available'; }
 }
 function refreshAlertBtn(){
   var b=document.getElementById('alertBtn'); if(!b) return;
-  if(inNativeApp){ if(S.alertsOn){ b.textContent='ð Phone alerts: On'; reArmReminders(); } else { b.textContent='ð Phone alerts: Off'; } return; }
+  if(inNativeApp){ if(S.alertsOn){ b.textContent='🔔 Phone alerts: On'; reArmReminders(); } else { b.textContent='🔔 Phone alerts: Off'; } return; }
   if(!('Notification' in window)) return;
-  if(Notification.permission==='granted') b.textContent='ð Alerts on';
-  else if(Notification.permission==='denied') b.textContent='ð Blocked â allow in settings';
+  if(Notification.permission==='granted') b.textContent='🔔 Alerts on';
+  else if(Notification.permission==='denied') b.textContent='🔕 Blocked – allow in settings';
 }
 
 // ---- projects (add / rename / delete) ----
@@ -675,18 +675,18 @@ function activeProjects(){ return S.projects.filter(function(p){ return !p.resti
 function renderProjects(){
   var el=document.getElementById('projList'); el.innerHTML="";
   var act=activeProjects();
-  if(!act.length){ el.innerHTML='<span class="muted" style="font-size:13px">No active projects â tap Edit to add one.</span>'; }
+  if(!act.length){ el.innerHTML='<span class="muted" style="font-size:13px">No active projects – tap Edit to add one.</span>'; }
   act.forEach(function(p){
     var c=projColor(p.id), active=(proj===p.id);
     var b=document.createElement('button'); b.className='proj';
     b.style.cssText='flex:1;min-width:130px;text-align:left;border-radius:14px;padding:14px'+
       (active?';box-shadow:0 0 0 2px '+c+' inset;border-color:'+c:'');
-    var mn = p.target>0 ? (projMins(p.id)+' / '+p.target+' min'+(projMins(p.id)>=p.target?' â':'')) : (projMins(p.id)+' min today');
+    var mn = p.target>0 ? (projMins(p.id)+' / '+p.target+' min'+(projMins(p.id)>=p.target?' ✓':'')) : (projMins(p.id)+' min today');
     // Nudge users to rename projects that still have a default name.
     var isDefault = /^project\s*(one|two|three|four|five|six|seven|\d+)?$/i.test((p.name||'').trim());
     b.innerHTML='<div class="nm"><span class="dot" style="background:'+c+'"></span>'+esc(p.name)+'</div>'+
       '<div class="mn">'+mn+'</div>'+
-      (isDefault ? '<div class="mn" style="color:#7c5cff;font-weight:700;margin-top:3px">âï¸ Tap Edit to change project name</div>' : '');
+      (isDefault ? '<div class="mn" style="color:#7c5cff;font-weight:700;margin-top:3px">✏️ Tap Edit to change project name</div>' : '');
     b.onclick=function(){ pick(p.id); };
     el.appendChild(b);
   });
@@ -696,7 +696,7 @@ function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp
 function toggleEditProj(){
   var b=document.getElementById('projEdit'), open=b.style.display!=='none';
   b.style.display=open?'none':'block';
-  document.getElementById('editProjBtn').textContent=open?'âï¸ Edit':'Done';
+  document.getElementById('editProjBtn').textContent=open?'✏️ Edit':'Done';
   if(!open) renderProjEdit();
 }
 function moveProject(id,dir){
@@ -716,21 +716,21 @@ function renderProjEdit(){
   el.appendChild(hd);
   if(act.length>1){
     var hint=document.createElement('div'); hint.className='foot'; hint.style.cssText='text-align:left;margin:0 0 8px';
-    hint.innerHTML='â Reorder using the â² â¼ arrows';
+    hint.innerHTML='↕ Reorder using the ▲ ▼ arrows';
     el.appendChild(hint);
   }
   act.forEach(function(p,idx){
     var wrap=document.createElement('div'); wrap.style.cssText='padding:8px 0;border-bottom:1px dashed var(--line)';
     var row=document.createElement('div'); row.className='qrow'; row.style.borderBottom='0'; row.style.padding='0';
-    row.innerHTML='<button class="pill" title="Move up" onclick="moveProject(\''+p.id+'\',-1)"'+(idx===0?' disabled style="opacity:.3"':'')+'>â²</button>'+
-      '<button class="pill" title="Move down" onclick="moveProject(\''+p.id+'\',1)"'+(idx===last?' disabled style="opacity:.3"':'')+'>â¼</button>'+
+    row.innerHTML='<button class="pill" title="Move up" onclick="moveProject(\''+p.id+'\',-1)"'+(idx===0?' disabled style="opacity:.3"':'')+'>▲</button>'+
+      '<button class="pill" title="Move down" onclick="moveProject(\''+p.id+'\',1)"'+(idx===last?' disabled style="opacity:.3"':'')+'>▼</button>'+
       '<input type="text" value="'+esc(p.name)+'" style="flex:1;min-width:120px;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px" '+
       'onchange="renameProject(\''+p.id+'\',this.value)">'+
       '<input type="number" min="0" max="720" value="'+(p.target||0)+'" title="daily target minutes" '+
       'style="width:70px;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px" '+
       'onchange="setProjTarget(\''+p.id+'\',this.value)"><span class="muted" style="font-size:12px">min/day</span>'+
-      (isPremium()?'<button class="pill" title="Rest this project" onclick="restProject(\''+p.id+'\')">ð¤</button>':'')+
-      '<button class="pill" onclick="deleteProject(\''+p.id+'\')">ð</button>';
+      (isPremium()?'<button class="pill" title="Rest this project" onclick="restProject(\''+p.id+'\')">💤</button>':'')+
+      '<button class="pill" onclick="deleteProject(\''+p.id+'\')">🗑</button>';
     wrap.appendChild(row);
     var sw=document.createElement('div'); sw.style.cssText='display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:8px';
     sw.innerHTML='<span class="muted" style="font-size:12px">Colour:</span>'+PALETTE.map(function(c){
@@ -747,15 +747,15 @@ function renderProjEdit(){
     el.appendChild(note); el.appendChild(doneBtnEl()); return;
   }
   var add=document.createElement('div'); add.className='row'; add.style.marginTop='10px';
-  add.innerHTML='<input type="text" id="newProjName" placeholder="New project nameâ¦" '+
+  add.innerHTML='<input type="text" id="newProjName" placeholder="New project name…" '+
     'style="flex:1;min-width:140px;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px">'+
-    '<button class="primary" onclick="addProject()">ï¼ Add</button>';
+    '<button class="primary" onclick="addProject()">＋ Add</button>';
   el.appendChild(add);
   el.appendChild(doneBtnEl());
 }
 function doneBtnEl(){
   var d=document.createElement('button'); d.className='primary';
-  d.style.cssText='width:100%;margin-top:14px'; d.textContent='â Done';
+  d.style.cssText='width:100%;margin-top:14px'; d.textContent='✓ Done';
   d.onclick=toggleEditProj;
   return d;
 }
@@ -802,7 +802,7 @@ function renderRestingZone(){
     return '<div class="task">'+
       '<span style="width:12px;height:12px;border-radius:50%;flex:none;background:'+projColor(p.id)+'"></span>'+
       '<div class="nm">'+esc(p.name)+'<div class="mn">Parked &middot; time &amp; history kept safe</div></div>'+
-      '<button class="pill" onclick="wakeProject(\''+p.id+'\')">â© Bring back</button>'+
+      '<button class="pill" onclick="wakeProject(\''+p.id+'\')">↩ Bring back</button>'+
     '</div>';
   }).join('');
 }
@@ -818,13 +818,13 @@ function pick(p){
     paint(); save();
   }
   renderProjects();
-  if(!running){ document.getElementById('phase').textContent="Ready on "+projName(p)+" â press Start."; }
+  if(!running){ document.getElementById('phase').textContent="Ready on "+projName(p)+" – press Start."; }
   hide('switchBanner');
 }
 function setBlock(val){
   var v = (val!=null) ? val : (parseInt(document.getElementById('blockLen').value,10)||50);
   v=Math.max(10,Math.min(120,v)); S.block=v; document.getElementById('blockLen').value=v;
-  // Changing the length resets the clock to the new length â works any time, even mid-session.
+  // Changing the length resets the clock to the new length – works any time, even mid-session.
   remain=v*60; if(proj!==null) S.projRemain[proj]=v*60;
   if(running){
     endAt=Date.now()+remain*1000; elapsedThisBlock=0; warned=false; hide('warnBanner');
@@ -838,7 +838,7 @@ function resetBlock(){
   S.timer=null; warned=false; hide('warnBanner'); elapsedThisBlock=0;
   remain=S.block*60; if(proj!==null) S.projRemain[proj]=S.block*60;
   document.getElementById('startBtn').textContent="Start";
-  document.getElementById('phase').textContent = (proj!=null) ? ("Ready on "+projName(proj)+" â press Start.") : "Pick a project, then Start a focus block.";
+  document.getElementById('phase').textContent = (proj!=null) ? ("Ready on "+projName(proj)+" – press Start.") : "Pick a project, then Start a focus block.";
   paint(); save();
 }
 function paintBlockOpts(){
@@ -855,7 +855,7 @@ function startStop(){
   S.timer={proj:proj, endAt:endAt, block:S.block}; save(); // survive a refresh
   scheduleBlockAlarms(); // fire break alerts even if the app is closed
   document.getElementById('startBtn').textContent="Pause";
-  document.getElementById('phase').textContent="Focusing on "+projName(proj)+"â¦";
+  document.getElementById('phase').textContent="Focusing on "+projName(proj)+"…";
   tickH=setInterval(tick,250); tick();
 }
 function tick(){
@@ -871,7 +871,7 @@ function tick(){
   }
   if(remain<=60 && remain>0 && !warned){
     warned=true; show('warnBanner'); showTimed('warnBanner',60000);
-    notify("1 minute left","Start wrapping up â breathe and finish gently.");
+    notify("1 minute left","Start wrapping up – breathe and finish gently.");
   }
   paint();
   if(remain<=0) blockDone();
@@ -886,14 +886,14 @@ function blockDone(){
     ? "You've done a long day. Step away and rest now."
     : "Nice block. Take a real break: "+restIdea(), 'end');
   document.getElementById('phase').textContent= restNow
-    ? "Block done. That's a long day â time to rest. "+motLine()
-    : "Block done! ðª Break idea: "+restIdea();
+    ? "Block done. That's a long day – time to rest. "+motLine()
+    : "Block done! 💪 Break idea: "+restIdea();
   if(restNow){ show('restBanner'); showTimed('restBanner',30000); }
   else { suggestSwitch(); }
   addWin("You finished a focus block");
   if(proj!==null) S.projRemain[proj]=S.block*60; remain=S.block*60; paint(); paintStats(); renderProgress();
 }
-// Real-world reset ideas â get away from the screen.
+// Real-world reset ideas – get away from the screen.
 var REST_IDEAS=[
   "go for a short walk outside",
   "message or call a friend",
@@ -924,7 +924,7 @@ function resumeTimer(){
   remain=left; endAt=S.timer.endAt; running=true; warned=(left<=60);
   elapsedThisBlock=S.block*60-remain; // don't re-credit minutes that already passed
   document.getElementById('startBtn').textContent="Pause";
-  document.getElementById('phase').textContent="Focusing on "+projName(proj)+"â¦ (resumed)";
+  document.getElementById('phase').textContent="Focusing on "+projName(proj)+"… (resumed)";
   scheduleBlockAlarms();
   tickH=setInterval(tick,250); tick();
 }
@@ -945,7 +945,7 @@ function rollDayIfNeeded(){
   save();
   renderProjects(); renderWins(); renderMoodLog(); renderProgress(); paintStats(); paint();
   document.getElementById('startBtn').textContent="Start";
-  document.getElementById('phase').textContent="New day â today's totals and timer are reset. Pick a project and Start.";
+  document.getElementById('phase').textContent="New day – today's totals and timer are reset. Pick a project and Start.";
   return true;
 }
 document.addEventListener('visibilitychange', function(){ if(!document.hidden) rollDayIfNeeded(); });
@@ -970,13 +970,13 @@ function markTired(){
     if(into>=1){ S.tiredPoints.push(into); save(); }
     stopBlock();
     document.getElementById('phase').textContent=
-      "Noted â tired after "+into+" min. Take a break; I'll adapt your block length.";
+      "Noted – tired after "+into+" min. Take a break; I'll adapt your block length.";
     adaptBlock();
     show('restBanner'); showTimed('restBanner',30000);
-    showToast("ð®âð¨ <b>Time to wind down.</b><br>You gave it a real go &ndash; "+into+" min of focus. Now ease off: stand up, look far away and take a few slow breaths. Slowing down is part of doing well. ð");
+    showToast("😮‍💨 <b>Time to wind down.</b><br>You gave it a real go &ndash; "+into+" min of focus. Now ease off: stand up, look far away and take a few slow breaths. Slowing down is part of doing well. 💙");
   } else {
     show('restBanner'); showTimed('restBanner',30000);
-    showToast("ð®âð¨ <b>Time to wind down.</b><br>You&rsquo;ve done enough for now. Stretch, breathe, and let yourself rest &ndash; small steps still count. ð");
+    showToast("😮‍💨 <b>Time to wind down.</b><br>You&rsquo;ve done enough for now. Stretch, breathe, and let yourself rest &ndash; small steps still count. 💙");
   }
   paintStats();
 }
@@ -1039,10 +1039,10 @@ function toggleGuard(){
       return;
     }
     S.guard=true; save(); syncAlerts();
-    b.textContent='ð Whole-screen break lock: On';
+    b.textContent='🔒 Whole-screen break lock: On';
   } else {
     S.guard=false; save(); syncAlerts();
-    b.textContent='ð Whole-screen break lock: Off';
+    b.textContent='🔒 Whole-screen break lock: Off';
   }
 }
 
@@ -1060,7 +1060,7 @@ function startTimeout(){
   inTimeout=true;
   document.getElementById('sosBtn').style.display='flex'; // emergency icon only during time-out
   if(running){ stopBlock(); } // pause any focus block
-  notify("Time out","You've been online a long time. 2-minute break â step away now.",'timeout');
+  notify("Time out","You've been online a long time. 2-minute break – step away now.",'timeout');
   show('timeout');
   var left=2*60;
   var tc=document.getElementById('toClock');
@@ -1076,7 +1076,7 @@ function endTimeout(){
   document.getElementById('sosBtn').style.display='none';
   S.contStart=Date.now(); save();  // fresh online session after the rest
   hide('timeout'); beep();
-  document.getElementById('phase').textContent="Welcome back. ð "+motLine();
+  document.getElementById('phase').textContent="Welcome back. 💙 "+motLine();
 }
 setInterval(checkOnline,20000); // check online time every 20s
 
@@ -1096,12 +1096,12 @@ window.addEventListener('orientationchange', _redrawOnResize);
 
 // ---- first-open onboarding walkthrough ----
 var OB=[
-  {i:'ð', t:'Welcome to ProjectSavvy', b:'A calm way to manage your projects, your time, and yourself. Made with ADHD and neurodivergent minds in mind.'},
-  {i:'ð', t:'Add your projects', b:'Tap Edit to add projects and give each its own colour. Up to 7, as many or as few as you like.'},
-  {i:'â¶ï¸', t:'Focus in blocks', b:'Pick a project and start a focus block. One kind, steady block at a time, no need to do everything at once.'},
-  {i:'ð', t:'Breaks that look after you', b:'ProjectSavvy reminds you to drink water, rest and step away. Tell it how you feel and it helps you breathe and reset.'},
-  {i:'â¸ï¸', t:'The whole-screen time-out', b:'After too long online, ProjectSavvy can lock your whole phone for a real 2-minute break. To let it cover everything, allow "Display over other apps" when it asks.'},
-  {i:'â', t:"You're all set", b:'Tap "How it works" any time for the full guide. Take it gently, slow progress is still progress.'}
+  {i:'👋', t:'Welcome to ProjectSavvy', b:'A calm way to manage your projects, your time, and yourself. Made with ADHD and neurodivergent minds in mind.'},
+  {i:'📁', t:'Add your projects', b:'Tap Edit to add projects and give each its own colour. Up to 7, as many or as few as you like.'},
+  {i:'▶️', t:'Focus in blocks', b:'Pick a project and start a focus block. One kind, steady block at a time, no need to do everything at once.'},
+  {i:'💙', t:'Breaks that look after you', b:'ProjectSavvy reminds you to drink water, rest and step away. Tell it how you feel and it helps you breathe and reset.'},
+  {i:'⏸️', t:'The whole-screen time-out', b:'After too long online, ProjectSavvy can lock your whole phone for a real 2-minute break. To let it cover everything, allow "Display over other apps" when it asks.'},
+  {i:'✅', t:"You're all set", b:'Tap "How it works" any time for the full guide. Take it gently, slow progress is still progress.'}
 ];
 var obIdx=0;
 function obShow(){ obIdx=0; obRender(); document.getElementById('onboard').classList.add('show'); }
@@ -1120,7 +1120,7 @@ function obNext(){ if(obIdx<OB.length-1){ obIdx++; obRender(); } else { obDone()
 function obSkip(){ obDone(); }
 function obDone(){ S.onboarded=true; save(); document.getElementById('onboard').classList.remove('show'); }
 
-// If you leave for 5+ minutes, that counts as a break â restart the online clock.
+// If you leave for 5+ minutes, that counts as a break – restart the online clock.
 document.addEventListener('visibilitychange',function(){
   if(document.hidden){ S._hiddenAt=Date.now(); stopSound(); }
   else { resetReminderClocks(); if(S._hiddenAt && Date.now()-S._hiddenAt>=5*60*1000){ S.contStart=Date.now(); save(); } }
@@ -1133,7 +1133,7 @@ function shouldRest(){
   var h=new Date().getHours();
   return totalMin>=8*60 || h>=22 || h<6; // long day, or late (your real churn zone)
 }
-// Nudge when the current project hits its daily time target â time to move on.
+// Nudge when the current project hits its daily time target – time to move on.
 function checkTarget(){
   if(!proj) return;
   var p=null; for(var i=0;i<S.projects.length;i++) if(S.projects[i].id===proj) p=S.projects[i];
@@ -1153,7 +1153,7 @@ function checkTarget(){
     next=others[0];
   }
   var el=document.getElementById('switchBanner');
-  var msg="ð¯ You've hit your target on <b>"+esc(p.name)+"</b> ("+p.target+" min).";
+  var msg="🎯 You've hit your target on <b>"+esc(p.name)+"</b> ("+p.target+" min).";
   if(next){ msg+=" Time to move to <b>"+esc(next.name)+"</b>. <span style=\"text-decoration:underline\">Tap to switch</span>.";
     el.onclick=function(){ pick(next.id); hide('switchBanner'); }; }
   else { el.onclick=null; }
@@ -1168,7 +1168,7 @@ function suggestSwitch(){
   others.sort(function(a,b){ return projMins(a.id)-projMins(b.id); });
   var next=others[0];
   var el=document.getElementById('switchBanner');
-  el.innerHTML="ð Good session on <b>"+esc(projName(proj))+"</b>. Next up: time to take on <b>"+
+  el.innerHTML="🔄 Good session on <b>"+esc(projName(proj))+"</b>. Next up: time to take on <b>"+
     esc(next.name)+"</b>. <span style=\"text-decoration:underline\">Tap to switch</span>.";
   el.onclick=function(){ pick(next.id); hide('switchBanner'); };
   show('switchBanner');
@@ -1207,10 +1207,10 @@ function renderSplitHours(){
   // labels
   var rows=S.projects.map(function(p){
     var h=Math.round(hoursBy[p.id]*10)/10, extra='';
-    if(hasTargets && p.target>0){ var left=Math.max(0,p.target-projMins(p.id)); extra=left>0?(' ('+left+' min left)'):' â'; }
-    return '<span style="color:'+projColor(p.id)+'">â </span> '+esc(p.name)+' â <b>'+h+'h</b>'+extra;
+    if(hasTargets && p.target>0){ var left=Math.max(0,p.target-projMins(p.id)); extra=left>0?(' ('+left+' min left)'):' ✓'; }
+    return '<span style="color:'+projColor(p.id)+'">■</span> '+esc(p.name)+' – <b>'+h+'h</b>'+extra;
   });
-  el.innerHTML=(hasTargets?'ð¯ Your goals today:<br>':'â±ï¸ Suggested for you (estimated):<br>')+rows.join('<br>');
+  el.innerHTML=(hasTargets?'🎯 Your goals today:<br>':'⏱️ Suggested for you (estimated):<br>')+rows.join('<br>');
 }
 
 // ---- suggested split (N projects: lean to the least-worked) ----
@@ -1245,7 +1245,7 @@ function paintStats(){
     bar.appendChild(seg);
     txt.push(p.name+' '+pct+'%');
   });
-  document.getElementById('sSplitTxt').textContent = S.projects.length? txt.join(' Â· ') : 'â';
+  document.getElementById('sSplitTxt').textContent = S.projects.length? txt.join(' · ') : '–';
   renderSplitHours();
   // tired point
   if(S.tiredPoints.length){
@@ -1302,18 +1302,18 @@ function beep(){
 // Each criterion has a weight; ticking it for a project adds that weight.
 // 'quick' is a small tie-breaker (a quick win / small job) as in WSJF/RICE effort.
 var CRIT=[
-  {c:'pay',w:3,q:'ð° You get paid / earn income from it'},
-  {c:'deadline',w:3,q:'â° It has a real deadline coming up'},
-  {c:'waiting',w:2,q:'ð¥ Someone is waiting on it / it blocks others'},
-  {c:'important',w:2,q:'ð¯ It matters most to your bigger goals'},
-  {c:'stress',w:2,q:'ð£ It will nag or stress you if left undone'},
-  {c:'quick',w:1,q:'â¡ You can make real progress on it quickly today'}
+  {c:'pay',w:3,q:'💰 You get paid / earn income from it'},
+  {c:'deadline',w:3,q:'⏰ It has a real deadline coming up'},
+  {c:'waiting',w:2,q:'👥 Someone is waiting on it / it blocks others'},
+  {c:'important',w:2,q:'🎯 It matters most to your bigger goals'},
+  {c:'stress',w:2,q:'😣 It will nag or stress you if left undone'},
+  {c:'quick',w:1,q:'⚡ You can make real progress on it quickly today'}
 ];
 function toggleDecide(){
   var b=document.getElementById('decideBody');
   var open=b.style.display!=='none';
   b.style.display=open?'none':'block';
-  document.getElementById('decideBtn').textContent=open?'ð¤ Help me choose':'Hide';
+  document.getElementById('decideBtn').textContent=open?'🤔 Help me choose':'Hide';
   if(!open) buildDecide();
 }
 function buildDecide(){
@@ -1346,7 +1346,7 @@ function decide(){
   var top=ids.slice().sort(function(a,b){ return score[b]-score[a]; });
   var best=top[0], second=top[1];
   if(score[best]===0){
-    r.innerHTML='<div class="msg">Nothing ticked yet. If they honestly feel equal, do the one you can <b>start in the next 5 minutes</b> â momentum decides it.</div>';
+    r.innerHTML='<div class="msg">Nothing ticked yet. If they honestly feel equal, do the one you can <b>start in the next 5 minutes</b> – momentum decides it.</div>';
     return;
   }
   var winId=best;
@@ -1356,16 +1356,16 @@ function decide(){
     var q=tied.filter(function(i){return quick[i];});
     if(q.length===1){ winId=q[0]; }
     else {
-      r.innerHTML='<div class="msg">It\'s a tie ('+score[best]+' each) between <b>'+tied.map(function(i){return esc(projName(i));}).join('</b> and <b>')+'</b>. Do the <b>quicker</b> one first to build momentum, then switch. Just start â you don\'t have to choose perfectly.</div><div class="mot">ðª '+motLine()+'</div>';
+      r.innerHTML='<div class="msg">It\'s a tie ('+score[best]+' each) between <b>'+tied.map(function(i){return esc(projName(i));}).join('</b> and <b>')+'</b>. Do the <b>quicker</b> one first to build momentum, then switch. Just start – you don\'t have to choose perfectly.</div><div class="mot">💪 '+motLine()+'</div>';
       return;
     }
   }
   var winN=projName(winId);
   var rs=reasons[winId].slice(0,3);
   var why=rs.length ? '<ul style="margin:8px 0 0;padding-left:18px">'+rs.map(function(x){return '<li>'+x+'</li>';}).join('')+'</ul>' : '';
-  r.innerHTML='<div class="msg">ð Start with <b>'+esc(winN)+'</b> now (score '+score[winId]+').'+why+
-    '<div style="margin-top:10px">Give it one focus block, then reassess. You are not abandoning the others â they are just next, not now.</div></div>'+
-    '<div class="mot">ðª '+motLine()+'</div>'+
+  r.innerHTML='<div class="msg">👉 Start with <b>'+esc(winN)+'</b> now (score '+score[winId]+').'+why+
+    '<div style="margin-top:10px">Give it one focus block, then reassess. You are not abandoning the others – they are just next, not now.</div></div>'+
+    '<div class="mot">💪 '+motLine()+'</div>'+
     '<div class="acts"><button class="primary" onclick="pick(\''+winId+'\')">Pick '+esc(winN)+' &amp; focus</button></div>';
 }
 
@@ -1373,27 +1373,27 @@ function decide(){
 // Each feeling: a kind, honest message and which coping tools to offer.
 // b = breathing, g = grounding, s = tiny-step reframe.
 var MOODS={
-  anxious:{emo:"ð°",msg:"Anxiety is your mind bracing for something that hasn't happened. Slow your breath and it loosens its grip. Aim at one small next step, not the whole mountain.",tools:["b","s"]},
-  annoyed:{emo:"ð",msg:"Annoyance is a small signal, not an emergency. Step away for 60 seconds, roll your shoulders and unclench your jaw, then come back a little lighter.",tools:["b"]},
-  angry:{emo:"ð ",msg:"Anger usually means something mattered to you. Let the first hot wave pass before you act on it. Breathe out longer than you breathe in â it calms the body fast.",tools:["b"]},
-  frustrated:{emo:"ð¤",msg:"Frustration means you care and you're stuck â that often happens right before a breakthrough. Don't quit on the hard part. Shrink it: what is the very next tiny piece?",tools:["s","b"]},
-  happy:{emo:"ð",msg:"Wonderful. Pause and actually notice this feeling â let it fuel your next block. You earned this.",tools:[]},
-  calm:{emo:"ð",msg:"Calm is a wonderful place to work from. Notice it in your body, and let it steady your next block.",tools:[]},
-  neutral:{emo:"ð¶",msg:"Neutral is a calm, steady baseline â nothing wrong with that. Notice it, and let it be an easy place to begin your next block from.",tools:[]},
-  grateful:{emo:"ð",msg:"Beautiful. Naming one thing you're grateful for right now makes the good feeling last longer.",tools:[]},
-  motivated:{emo:"ðª",msg:"That's momentum. Ride it â start your most important thing while the energy is here.",tools:[]},
-  focused:{emo:"ð¯",msg:"You're in the zone â protect it. Silence what you can, pick your most important thing, and ride this focus while it lasts.",tools:[]},
-  hopeful:{emo:"ð¤ï¸",msg:"Hope is quiet fuel. Let it pull you gently forward, one small step at a time.",tools:[]},
-  successful:{emo:"ð",msg:"You did it â that's success. Take a moment to really feel it, and let it remind you what you're capable of.",tools:[]},
-  sad:{emo:"ð",msg:"It's okay to feel low. Be as gentle with yourself as you'd be with a good friend. Water, daylight or a short walk can lift the fog a little.",tools:["b"]},
-  panicked:{emo:"ð¨",msg:"You are safe in this moment. Let's slow everything down together with one round of breathing. This wave will rise, peak, and pass â they always do.",tools:["b","g"]},
-  overwhelmed:{emo:"ð¤¯",msg:"Too much is landing at once. Let's make it small: pick ONE thing and let the rest wait. You do not have to do it all today. Doing the next single piece is enough.",tools:["s","g","b"]},
-  tired:{emo:"ð´",msg:"Tired is your body asking for rest, not a weakness. Take a proper break â water, a short walk, fresh air, or even a nap. You'll come back sharper.",tools:[]}
+  anxious:{emo:"😰",msg:"Anxiety is your mind bracing for something that hasn't happened. Slow your breath and it loosens its grip. Aim at one small next step, not the whole mountain.",tools:["b","s"]},
+  annoyed:{emo:"😒",msg:"Annoyance is a small signal, not an emergency. Step away for 60 seconds, roll your shoulders and unclench your jaw, then come back a little lighter.",tools:["b"]},
+  angry:{emo:"😠",msg:"Anger usually means something mattered to you. Let the first hot wave pass before you act on it. Breathe out longer than you breathe in – it calms the body fast.",tools:["b"]},
+  frustrated:{emo:"😤",msg:"Frustration means you care and you're stuck – that often happens right before a breakthrough. Don't quit on the hard part. Shrink it: what is the very next tiny piece?",tools:["s","b"]},
+  happy:{emo:"😊",msg:"Wonderful. Pause and actually notice this feeling – let it fuel your next block. You earned this.",tools:[]},
+  calm:{emo:"😌",msg:"Calm is a wonderful place to work from. Notice it in your body, and let it steady your next block.",tools:[]},
+  neutral:{emo:"😶",msg:"Neutral is a calm, steady baseline – nothing wrong with that. Notice it, and let it be an easy place to begin your next block from.",tools:[]},
+  grateful:{emo:"🙏",msg:"Beautiful. Naming one thing you're grateful for right now makes the good feeling last longer.",tools:[]},
+  motivated:{emo:"💪",msg:"That's momentum. Ride it – start your most important thing while the energy is here.",tools:[]},
+  focused:{emo:"🎯",msg:"You're in the zone – protect it. Silence what you can, pick your most important thing, and ride this focus while it lasts.",tools:[]},
+  hopeful:{emo:"🌤️",msg:"Hope is quiet fuel. Let it pull you gently forward, one small step at a time.",tools:[]},
+  successful:{emo:"🏆",msg:"You did it – that's success. Take a moment to really feel it, and let it remind you what you're capable of.",tools:[]},
+  sad:{emo:"😔",msg:"It's okay to feel low. Be as gentle with yourself as you'd be with a good friend. Water, daylight or a short walk can lift the fog a little.",tools:["b"]},
+  panicked:{emo:"😨",msg:"You are safe in this moment. Let's slow everything down together with one round of breathing. This wave will rise, peak, and pass – they always do.",tools:["b","g"]},
+  overwhelmed:{emo:"🤯",msg:"Too much is landing at once. Let's make it small: pick ONE thing and let the rest wait. You do not have to do it all today. Doing the next single piece is enough.",tools:["s","g","b"]},
+  tired:{emo:"😴",msg:"Tired is your body asking for rest, not a weakness. Take a proper break – water, a short walk, fresh air, or even a nap. You'll come back sharper.",tools:[]}
 };
 var MOT=[
   "You showed up. That is the hardest part, and you already did it.",
   "Progress, not perfection. One block at a time.",
-  "You built DiveScanner from nothing â you can do this next piece too.",
+  "You built DiveScanner from nothing – you can do this next piece too.",
   "Giving up is a choice for tomorrow-you. Right now, just the next 5 minutes.",
   "Every person who ever got good at this was once overwhelmed by this exact thing.",
   "You are allowed to do it slowly. Slow and finished beats fast and abandoned.",
@@ -1403,14 +1403,14 @@ function motLine(){ return MOT[Math.floor((S.blocks+ (S.moods?S.moods.length:0))
 function drankWater(){
   S.lastDrankTs=Date.now(); S.lastWaterTs=Date.now(); save();
   hide('waterBanner');
-  document.getElementById('phase').textContent="Water logged ð§ well done.";
+  document.getElementById('phase').textContent="Water logged 💧 well done.";
   addWin("You drank water"); paintWaterBtn(); renderMoodLog();
 }
 // water button shows the tick + ring from when you log until the NEXT reminder fires
 function paintWaterBtn(){
   var wb=document.getElementById('waterBtn'); if(!wb) return;
   var logged = S.lastDrankTs && S.lastWaterTs && S.lastDrankTs >= S.lastWaterTs;
-  wb.textContent='ð§ Drank water: '+(logged?'Yes':'No'); wb.classList.remove('sel');
+  wb.textContent='💧 Drank water: '+(logged?'Yes':'No'); wb.classList.remove('sel');
 }
 // tap on = log water (Yes); tap again = remove it (No), to undo a mistake
 function toggleWater(){
@@ -1427,10 +1427,10 @@ function toggleWater(){
 
 // ---- small wins (positive reinforcement) ----
 var WINS_QUICK=[
-  ["ð","You smiled"],["ð¶","You moved your body"],["ð¥","You ate something good"],
-  ["âï¸","You reached out to someone"],["ð¤ï¸","You stepped outside"],["ð","You let yourself rest"],
-  ["ðª","You kept going when it was hard"],["ð§¹","You did one small task"],
-  ["ð","You were kind to yourself"]
+  ["😊","You smiled"],["🚶","You moved your body"],["🥗","You ate something good"],
+  ["☎️","You reached out to someone"],["🌤️","You stepped outside"],["😌","You let yourself rest"],
+  ["💪","You kept going when it was hard"],["🧹","You did one small task"],
+  ["🙏","You were kind to yourself"]
 ];
 function winDoneToday(t){ return (S.wins||[]).some(function(w){ return w.t===t; }); }
 function buildWinChips(){
@@ -1463,13 +1463,13 @@ function renderWins(){
   var el=document.getElementById('winsList'); if(!el) return;
   var n=S.wins?S.wins.length:0;
   var cEl=document.getElementById('winsCount');
-  if(cEl) cEl.textContent = n ? (n+' small win'+(n>1?'s':'')+' today â that all counts ð') : '';
+  if(cEl) cEl.textContent = n ? (n+' small win'+(n>1?'s':'')+' today – that all counts 🎉') : '';
   if(!n){ el.innerHTML='Every tiny thing counts. Tap one below the moment you do it.'; return; }
   el.innerHTML=S.wins.map(function(w,i){
     var d=new Date(w.ts), t=two(d.getHours())+':'+two(d.getMinutes());
     return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line);color:var(--ink)">'+
-      '<span style="flex:1">â '+esc(w.t)+' <span class="muted" style="font-size:12px">'+t+'</span></span>'+
-      '<button onclick="removeWinAt('+i+')" aria-label="Remove" title="Remove" style="background:transparent;border:0;color:var(--muted);font-size:17px;line-height:1;padding:2px 8px;cursor:pointer">â</button>'+
+      '<span style="flex:1">✅ '+esc(w.t)+' <span class="muted" style="font-size:12px">'+t+'</span></span>'+
+      '<button onclick="removeWinAt('+i+')" aria-label="Remove" title="Remove" style="background:transparent;border:0;color:var(--muted);font-size:17px;line-height:1;padding:2px 8px;cursor:pointer">✕</button>'+
       '</div>';
   }).reverse().join('');
 }
@@ -1487,10 +1487,10 @@ function renderMoodLog(){
     var d=new Date(m.ts), t=two(d.getHours())+':'+two(d.getMinutes());
     var name=m.e.charAt(0).toUpperCase()+m.e.slice(1);
     var emo=(MOODS[m.e]?MOODS[m.e].emo:'');
-    var act=m.act?esc(m.act):'â';
-    var w=m.water?'ð§ water yes':'â no water';
+    var act=m.act?esc(m.act):'–';
+    var w=m.water?'💧 water yes':'✗ no water';
     return '<div style="padding:6px 0;border-bottom:1px dashed var(--line);color:var(--ink)">'+
-      '<b>'+t+'</b> &nbsp;'+emo+' '+name+' &nbsp;Â·&nbsp; '+act+' &nbsp;Â·&nbsp; <span class="muted">'+w+'</span></div>';
+      '<b>'+t+'</b> &nbsp;'+emo+' '+name+' &nbsp;·&nbsp; '+act+' &nbsp;·&nbsp; <span class="muted">'+w+'</span></div>';
   }).join('');
 }
 function clearMoodLog(){ S.moods=[]; save(); renderMoodLog(); paintStats(); }
@@ -1518,16 +1518,16 @@ function pickMood(k,btn){
   if(m.tools.indexOf('b')>=0) acts+='<button class="primary" onclick="startBreathe()">Breathe with me</button>';
   if(m.tools.indexOf('g')>=0) acts+='<button onclick="startGround()">Grounding (5-4-3-2-1)</button>';
   if(m.tools.indexOf('s')>=0) acts+='<button onclick="tinyStep()">Break it into one tiny step</button>';
-  if(['happy','calm','grateful','motivated','hopeful','successful'].indexOf(k)<0) acts+='<button onclick="showReset()">ð¶ Step away &amp; reset</button>';
+  if(['happy','calm','grateful','motivated','hopeful','successful'].indexOf(k)<0) acts+='<button onclick="showReset()">🚶 Step away &amp; reset</button>';
   var give = (k==='frustrated'||k==='overwhelmed')
-    ? '<div class="foot" style="text-align:left;margin-top:10px">Before you give up: take a 5-minute break, drink water, then do just ONE tiny piece. If it is still too heavy after that, stopping to rest is okay too â that is not failure.</div>'
+    ? '<div class="foot" style="text-align:left;margin-top:10px">Before you give up: take a 5-minute break, drink water, then do just ONE tiny piece. If it is still too heavy after that, stopping to rest is okay too – that is not failure.</div>'
     : '';
   var r=document.getElementById('moodResp');
   r.innerHTML='<div class="msg">'+m.msg+'</div>'+give+
-    '<div class="mot">ðª '+motLine()+'</div>'+
+    '<div class="mot">💪 '+motLine()+'</div>'+
     (acts?'<div class="acts">'+acts+'</div>':'');
   r.classList.add('show');
-  // Stress feelings launch breathing straight away â coping is one tap, or zero.
+  // Stress feelings launch breathing straight away – coping is one tap, or zero.
   var STRESS=['anxious','panicked','overwhelmed','angry','frustrated'];
   if(STRESS.indexOf(k)>=0) startBreathe();
 }
@@ -1538,11 +1538,11 @@ function showReset(){
   var box=document.getElementById('resetBox');
   if(!box){ box=document.createElement('div'); box.id='resetBox'; box.className='msg';
     box.style.marginTop='12px'; r.appendChild(box); }
-  box.innerHTML='ð¿ Try this now: <b>'+idea+'</b>. Real rest away from the screen is how the anxiety settles and focus comes back. Another idea? Tap again.';
+  box.innerHTML='🌿 Try this now: <b>'+idea+'</b>. Real rest away from the screen is how the anxiety settles and focus comes back. Another idea? Tap again.';
 }
 function tinyStep(){
   var r=document.getElementById('moodResp');
-  var extra='<div class="msg" style="margin-top:12px">Answer just this: <b>What is the smallest thing I could do in the next 5 minutes?</b> Not the project â one tiny piece of it. Do only that. Then decide about the next piece.</div>';
+  var extra='<div class="msg" style="margin-top:12px">Answer just this: <b>What is the smallest thing I could do in the next 5 minutes?</b> Not the project – one tiny piece of it. Do only that. Then decide about the next piece.</div>';
   if(r.getAttribute('data-tiny')!=='1'){ r.innerHTML+=extra; r.setAttribute('data-tiny','1'); }
 }
 
@@ -1608,7 +1608,7 @@ function playSound(type){
       try{ d.start(t); d.stop(t+0.35); }catch(e){}
       timers.push(setTimeout(drop, 60+Math.random()*260));
     })();
-  } else { // hairdryer / fan â steady low whoosh
+  } else { // hairdryer / fan – steady low whoosh
     var s2=a.createBufferSource(); s2.buffer=noiseBuffer(a,2); s2.loop=true;
     var l3=a.createBiquadFilter(); l3.type='lowpass'; l3.frequency.value=1100; l3.Q.value=0.6;
     var pk=a.createBiquadFilter(); pk.type='peaking'; pk.frequency.value=180; pk.gain.value=7;
@@ -1630,8 +1630,8 @@ function stopSound(){
 }
 function soundBtns(active){
   var r=document.getElementById('sndRain'), d=document.getElementById('sndDry');
-  if(r) r.textContent=(active==='rain')?'ð§ï¸ Rain (on)':'ð§ï¸ Rain';
-  if(d) d.textContent=(active==='dryer')?'ð¨ Hairdryer (on)':'ð¨ Hairdryer';
+  if(r) r.textContent=(active==='rain')?'🌧️ Rain (on)':'🌧️ Rain';
+  if(d) d.textContent=(active==='dryer')?'💨 Hairdryer (on)':'💨 Hairdryer';
 }
 
 // ---- breathing (box breathing: in 4, hold 4, out 4, hold 4) ----
@@ -1642,14 +1642,14 @@ function overwhelmed(){
   startBreathe();
   try{ playSound('rain'); }catch(e){}
   var n=S.wins?S.wins.length:0;
-  var msg="You're overwhelmed, and that's okay â it will pass. Breathe with the circle. "+
-    "Results come slower than the effort you put in â you are further along than it feels right now.";
-  if(n) msg+=" You've already done "+n+" small thing"+(n>1?"s":"")+" today. ð";
+  var msg="You're overwhelmed, and that's okay – it will pass. Breathe with the circle. "+
+    "Results come slower than the effort you put in – you are further along than it feels right now.";
+  if(n) msg+=" You've already done "+n+" small thing"+(n>1?"s":"")+" today. 🌟";
   var rf=document.getElementById('breatheReframe'); if(rf) rf.innerHTML=msg;
 }
 function toggleEye(){
   S.eyeRest=!S.eyeRest; S.lastEyeTs=Date.now(); save();
-  document.getElementById('eyeBtn').textContent='ð Eye-rest: '+(S.eyeRest?'On':'Off');
+  document.getElementById('eyeBtn').textContent='👀 Eye-rest: '+(S.eyeRest?'On':'Off');
   syncAlerts();
 }
 // 20-20-20: every 20 min, look ~6 m away for 20 s.
@@ -1658,13 +1658,13 @@ function checkEye(){
   if(!S.lastEyeTs){ S.lastEyeTs=Date.now(); save(); return; }
   if(Date.now()-S.lastEyeTs >= S.eyeEvery*60*1000){
     S.lastEyeTs=Date.now(); save();
-    show('eyeBanner'); notify("ð Eye rest","Look ~6 m away for 20 seconds and blink.",'eye'); showTimed('eyeBanner',25000);
+    show('eyeBanner'); notify("👀 Eye rest","Look ~6 m away for 20 seconds and blink.",'eye'); showTimed('eyeBanner',25000);
   }
 }
 setInterval(checkEye,20000);
 function toggleStand(){
   S.stand=!S.stand; S.lastStandTs=Date.now(); save();
-  document.getElementById('standBtn').textContent='ð§ Stand: '+(S.stand?'On':'Off');
+  document.getElementById('standBtn').textContent='🧍 Stand: '+(S.stand?'On':'Off');
   syncAlerts();
 }
 // Every 30 min: stand up and stretch (for sitting too long).
@@ -1673,7 +1673,7 @@ function checkStand(){
   if(!S.lastStandTs){ S.lastStandTs=Date.now(); save(); return; }
   if(Date.now()-S.lastStandTs >= 30*60*1000){
     S.lastStandTs=Date.now(); save();
-    show('standBanner'); notify("ð§ Stand & stretch","Stand up and move for a moment.",'stand'); showTimed('standBanner',25000);
+    show('standBanner'); notify("🧍 Stand & stretch","Stand up and move for a moment.",'stand'); showTimed('standBanner',25000);
   }
 }
 setInterval(checkStand,20000);
@@ -1723,7 +1723,7 @@ function renderDoneSplit(){
   }).join('');
   txt.innerHTML=S.projects.map(function(p){
     var pct=Math.round((tot[p.id]||0)/sum*100), h=Math.round((tot[p.id]||0)/60*10)/10;
-    return '<span style="color:'+projColor(p.id)+'">â </span> '+esc(p.name)+' â <b>'+h+'h</b> ('+pct+'%)';
+    return '<span style="color:'+projColor(p.id)+'">■</span> '+esc(p.name)+' – <b>'+h+'h</b> ('+pct+'%)';
   }).join('<br>');
 }
 function renderProjProgress(){
@@ -1749,7 +1749,7 @@ function renderProjection(all){
   var avg=recent.length? sum/recent.length : 0;
   var week=Math.round(avg*7/60*10)/10;
   var month=Math.round(avg*30/60);
-  el.innerHTML='Average <b>'+Math.round(avg)+' min/day</b> Â· at this pace â <b>'+week+' h/week</b> ('+month+' h/month)';
+  el.innerHTML='Average <b>'+Math.round(avg)+' min/day</b> · at this pace ≈ <b>'+week+' h/week</b> ('+month+' h/month)';
 }
 function projDays(){
   var arr=(S.history||[]).slice(-13).map(function(h){ return h.mins||{}; });
@@ -1831,10 +1831,10 @@ function runBreathe(round,total){
   if(round>=total){ document.getElementById('bcue').textContent="Well done. Notice how you feel now."; return; }
   rnd.textContent="Round "+(round+1)+" of "+total;
   var steps=[
-    {t:"Breathe inâ¦",c:"Breathe in",grow:true,secs:4},
-    {t:"Holdâ¦",c:"Hold",grow:true,secs:4},
-    {t:"Breathe outâ¦",c:"Breathe out",grow:false,secs:4},
-    {t:"Holdâ¦",c:"Hold",grow:false,secs:4}
+    {t:"Breathe in…",c:"Breathe in",grow:true,secs:4},
+    {t:"Hold…",c:"Hold",grow:true,secs:4},
+    {t:"Breathe out…",c:"Breathe out",grow:false,secs:4},
+    {t:"Hold…",c:"Hold",grow:false,secs:4}
   ];
   var i=0;
   function paint(word,n){
@@ -1905,15 +1905,15 @@ function openEmergency(){
   var el=document.getElementById('emergList'); el.innerHTML="";
   var off=document.createElement('button'); off.className='primary';
   off.style.cssText='background:#1f9d57;color:#fff;border:0;padding:14px;font-size:16px';
-  off.textContent='ð Call '+(e.official||'112')+' (official emergency)';
+  off.textContent='📞 Call '+(e.official||'112')+' (official emergency)';
   off.onclick=function(){ callNumber(e.official||'112'); };
   el.appendChild(off);
   (e.contacts||[]).forEach(function(c,idx){
     var row=document.createElement('div'); row.style.cssText='display:flex;gap:8px';
     var b=document.createElement('button'); b.style.cssText='flex:1;padding:12px';
-    b.textContent='ð '+c.name+' ('+c.number+')';
+    b.textContent='📞 '+c.name+' ('+c.number+')';
     b.onclick=function(){ callNumber(c.number); };
-    var del=document.createElement('button'); del.textContent='ð'; del.onclick=function(){ removeEmergencyContact(idx); };
+    var del=document.createElement('button'); del.textContent='🗑'; del.onclick=function(){ removeEmergencyContact(idx); };
     row.appendChild(b); row.appendChild(del); el.appendChild(row);
   });
   show('emergency');
@@ -1935,12 +1935,12 @@ function afterCurfew(){ var h=new Date().getHours(); return h>=23 || h<6; }
 function showCurfew(){ show('curfew'); }
 function curfewContinue(){
   curfewOK=true; hide('curfew');
-  showToast("ð Okay &ndash; but please wind down soon. Finish this block and head to bed. You&rsquo;ve earned the rest. ð");
+  showToast("🌙 Okay &ndash; but please wind down soon. Finish this block and head to bed. You&rsquo;ve earned the rest. 💙");
 }
 
 // ---- optional cloud account (Firebase) ----
 // Sign-in / cloud sync is a FUTURE PREMIUM feature. Kept fully built but HIDDEN
-// for now â flip ACCOUNTS_ENABLED to true (behind a premium check) to switch it on.
+// for now – flip ACCOUNTS_ENABLED to true (behind a premium check) to switch it on.
 var ACCOUNTS_ENABLED = true;
 // Paste your Firebase web config here after creating the project. Empty = cloud off.
 var firebaseConfig = {
@@ -1984,7 +1984,7 @@ function renderAcct(){
   var el=document.getElementById('acctBody'); if(!el) return; acctMsg('');
   if(fbUser){
     el.innerHTML='<div class="stat"><span>Signed in</span><b>'+esc(fbUser.email||'')+'</b></div>'+
-      '<div class="foot" style="text-align:left;color:var(--good);margin:6px 0">Progress is backing up automatically â</div>'+
+      '<div class="foot" style="text-align:left;color:var(--good);margin:6px 0">Progress is backing up automatically ✓</div>'+
       '<button onclick="fbSignOut()">Sign out</button>';
   } else {
     var gicon='<svg width="18" height="18" viewBox="0 0 48 48" style="vertical-align:middle">'+
@@ -2007,7 +2007,7 @@ function renderAcct(){
   }
 }
 function fbGoogle(){
-  acctMsg('Opening Googleâ¦');
+  acctMsg('Opening Google…');
   if(inNativeApp && window.AndroidBridge && window.AndroidBridge.googleSignIn){
     try{ window.AndroidBridge.googleSignIn(); return; }catch(e){}
   }
@@ -2029,13 +2029,13 @@ window.onNativeGoogleError=function(msg){
 };
 function fbSignUp(){
   var e=document.getElementById('acctEmail').value.trim(), p=document.getElementById('acctPass').value;
-  acctMsg('Creating accountâ¦');
+  acctMsg('Creating account…');
   firebase.auth().createUserWithEmailAndPassword(e,p)
     .then(function(){ acctMsg(''); }).catch(function(err){ acctMsg(friendlyAuthError(err)); });
 }
 function fbSignIn(){
   var e=document.getElementById('acctEmail').value.trim(), p=document.getElementById('acctPass').value;
-  acctMsg('Signing inâ¦');
+  acctMsg('Signing in…');
   firebase.auth().signInWithEmailAndPassword(e,p)
     .then(function(){ acctMsg(''); }).catch(function(err){ acctMsg(friendlyAuthError(err)); });
 }
@@ -2058,7 +2058,7 @@ function cloudLoad(){
       try{ localStorage.setItem(KEY,JSON.stringify(S)); }catch(e){}
       renderAll();
     } else {
-      cloudSave(); // first sign-in on this account â push what's here
+      cloudSave(); // first sign-in on this account – push what's here
     }
     cloudLoaded=true;
   }).catch(function(){ cloudLoaded=true; });
@@ -2067,8 +2067,8 @@ function renderAll(){
   document.getElementById('blockLen').value=S.block;
   document.getElementById('waterEvery').value=S.waterEvery; paintEyeOpts(); paintBlockOpts();
   document.getElementById('onlineLimit').value=S.onlineLimit;
-  document.getElementById('eyeBtn').textContent='ð Eye-rest: '+(S.eyeRest?'On':'Off');
-  document.getElementById('standBtn').textContent='ð§ Stand: '+(S.stand?'On':'Off');
+  document.getElementById('eyeBtn').textContent='👀 Eye-rest: '+(S.eyeRest?'On':'Off');
+  document.getElementById('standBtn').textContent='🧍 Stand: '+(S.stand?'On':'Off');
   paintWaterBtn();
   buildMoods(); buildWinChips(); renderProjects(); renderWins(); renderMoodLog(); renderProgress(); paintStats();
 }
@@ -2085,12 +2085,12 @@ document.getElementById('blockLen').value=S.block;
 document.getElementById('waterEvery').value=S.waterEvery; paintEyeOpts(); paintBlockOpts();
 document.getElementById('onlineLimit').value=S.onlineLimit;
 if(!S.lastWaterTs){ S.lastWaterTs=Date.now(); save(); }
-S.contStart=Date.now(); save(); // a fresh app open is a NEW online session â an overnight/away gap is not continuous screen time, so never trigger the time-out on open
+S.contStart=Date.now(); save(); // a fresh app open is a NEW online session – an overnight/away gap is not continuous screen time, so never trigger the time-out on open
 if(!S.lastEyeTs){ S.lastEyeTs=Date.now(); save(); }
 if(!S.lastStandTs){ S.lastStandTs=Date.now(); save(); }
 resetReminderClocks(); // start fresh so no backlog of reminders fires on open
-document.getElementById('eyeBtn').textContent='ð Eye-rest: '+(S.eyeRest?'On':'Off');
-document.getElementById('standBtn').textContent='ð§ Stand: '+(S.stand?'On':'Off');
+document.getElementById('eyeBtn').textContent='👀 Eye-rest: '+(S.eyeRest?'On':'Off');
+document.getElementById('standBtn').textContent='🧍 Stand: '+(S.stand?'On':'Off');
 paintWaterBtn();
 renderProgress();
 remain=S.block*60;
@@ -2102,18 +2102,18 @@ initFirebase();
 applyPremiumGate();
 // Show the short walkthrough the first time the app is opened.
 if(!S.onboarded){ obShow(); }
-// whole-screen lock is a native-app feature â show and restore its state
+// whole-screen lock is a native-app feature – show and restore its state
 if(inNativeApp){
   pushEmergencyToNative();
   document.getElementById('guardRow').style.display='flex';
   var gb=document.getElementById('guardBtn');
   if(S.guard && window.AndroidBridge.hasOverlay && window.AndroidBridge.hasOverlay()){
-    gb.textContent='ð Whole-screen break lock: On';
+    gb.textContent='🔒 Whole-screen break lock: On';
   } else {
     if(S.guard){ S.guard=false; save(); } // permission was revoked
-    gb.textContent='ð Whole-screen break lock: Off';
+    gb.textContent='🔒 Whole-screen break lock: Off';
   }
-  nCancel('water'); nCancel('eye'); nCancel('stand'); // legacy alarms off â service handles reminders
+  nCancel('water'); nCancel('eye'); nCancel('stand'); // legacy alarms off – service handles reminders
   syncAlerts();
 }
 
