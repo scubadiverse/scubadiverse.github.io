@@ -2008,10 +2008,25 @@ function renderAcct(){
 }
 function fbGoogle(){
   acctMsg('Opening Googleâ¦');
+  if(inNativeApp && window.AndroidBridge && window.AndroidBridge.googleSignIn){
+    try{ window.AndroidBridge.googleSignIn(); return; }catch(e){}
+  }
   var provider=new firebase.auth.GoogleAuthProvider();
   firebase.auth().signInWithPopup(provider)
     .then(function(){ acctMsg(''); }).catch(function(err){ acctMsg(friendlyAuthError(err)); });
 }
+// Called by the native app after native Google sign-in returns an ID token.
+window.onNativeGoogleToken=function(idToken){
+  acctMsg('Signing in...');
+  try{
+    var cred=firebase.auth.GoogleAuthProvider.credential(idToken);
+    firebase.auth().signInWithCredential(cred)
+      .then(function(){ acctMsg(''); }).catch(function(err){ acctMsg(friendlyAuthError(err)); });
+  }catch(e){ acctMsg('Google sign-in could not finish. Please use email.'); }
+};
+window.onNativeGoogleError=function(msg){
+  acctMsg('Google sign-in did not finish. Please try again, or use email.');
+};
 function fbSignUp(){
   var e=document.getElementById('acctEmail').value.trim(), p=document.getElementById('acctPass').value;
   acctMsg('Creating accountâ¦');

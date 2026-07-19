@@ -27,12 +27,46 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.activity.result.contract.ActivityResultContracts
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var web: WebView
     private val channelId = "focusflow"
     private var notifId = 100
+
+    // Native Google sign-in: gets a Google ID token natively (Google allows this,
+    // unlike the web popup inside a WebView), then hands it to the web layer which
+    // signs in to Firebase with signInWithCredential.
+    private val webClientId = "692487500416-ri7ktor3vc68n12euhbma7480n50d0si.apps.googleusercontent.com"
+    private lateinit var googleClient: GoogleSignInClient
+    private val googleLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            try {
+                val account = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+                    .getResult(ApiException::class.java)
+                val idToken = account.idToken
+                if (idToken != null) {
+                    web.evaluateJavascript(
+                        "window.onNativeGoogleToken(" + org.json.JSONObject.quote(idToken) + ")", null)
+                } else {
+                    sendGoogleError("no-token")
+                }
+            } catch (e: Exception) {
+                sendGoogleError("failed")
+            }
+        }
+
+    private fun sendGoogleError(msg: String) {
+        runOnUiThread {
+            web.evaluateJavascript(
+                "window.onNativeGoogleError(" + org.json.JSONObject.quote(msg) + ")", null)
+        }
+    }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,6 +97,12 @@ class MainActivity : AppCompatActivity() {
         web.settings.domStorageEnabled = true
         web.settings.mediaPlaybackRequiresUserGesture = false
         web.addJavascriptInterface(Bridge(), "AndroidBridge")
+        // Configure native Google sign-in (asks for an ID token for our Firebase web client).
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(webClientId)
+            .requestEmail()
+            .build()
+        googleClient = GoogleSignIn.getClient(this, gso)
         // Android 15 (API 35) draws edge-to-edge by default, which slides the WebView
         // under the status and navigation bars. Pad the WebView by the system-bar
         // insets so no content is ever hidden behind them, and colour the padded
@@ -260,6 +300,21 @@ class MainActivity : AppCompatActivity() {
                     stopService(svc)
                 }
             } catch (ex: Exception) {}
+        }
+
+        // Native Google sign-in, called by the web "Continue with Google" button.
+        // Signs out first so the account picker always appears (lets the user choose).
+        @JavascriptInterface
+        fun googleSignIn() {
+            runOnUiThread {
+                googleClient.signOut().addOnCompleteListener {
+                    try {
+                        googleLauncher.launch(googleClient.signInIntent)
+                    } catch (e: Exception) {
+                        sendGoogleError("launch-failed")
+                    }
+                }
+            }
         }
 
         @JavascriptInterface
