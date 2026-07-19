@@ -269,6 +269,7 @@
 <div class="card">
   <div class="row"><b class="grow">Today</b><button class="pill" onclick="resetDay()">Reset day</button></div>
   <div class="stat"><span>Total focused</span><b id="sTotal">0 min</b></div>
+  <div class="stat" id="sUnplannedRow" style="display:none"><span>Unplanned</span><b id="sUnplanned">0 min</b></div>
   <div class="stat"><span>Blocks done</span><b id="sBlocks">0</b></div>
   <div class="stat"><span>Suggested split now</span><b id="sSplitTxt">–</b></div>
   <div class="split" id="splitBar"></div>
@@ -601,6 +602,7 @@ function renderUnplanned(){
     txt.innerHTML='Unplanned today: <b>'+mins+' min</b> &ndash; life happens, your plan still counts.'+
       '<div class="note">That\'s '+mins+' min that went to surprises instead of your projects today.</div>';
   } else { sum.style.display='none'; }
+  if(typeof paintStats==='function') paintStats();  // keep the Today "Unplanned" line in sync
 }
 
 
@@ -1273,6 +1275,12 @@ function paintStats(){
   renderProjects();
   var tot=0; S.projects.forEach(function(p){ tot+=projMins(p.id); });
   document.getElementById('sTotal').textContent=tot+" min";
+  // Unplanned time counts too – shown as its own line so the day adds up (kept separate from focus time).
+  var upMin=0, tday=todayKey();
+  (S.unplanned||[]).forEach(function(t){ if(t.day===tday) upMin+=(t.min||0); });
+  var uRow=document.getElementById('sUnplannedRow'), uEl=document.getElementById('sUnplanned');
+  if(uEl) uEl.textContent=upMin+" min";
+  if(uRow) uRow.style.display = upMin>0 ? '' : 'none';
   document.getElementById('sBlocks').textContent=S.blocks;
   var bar=document.getElementById('splitBar'); bar.innerHTML=""; var txt=[];
   var sh=splitShares();
