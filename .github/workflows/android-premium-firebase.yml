@@ -24,7 +24,7 @@ jobs:
           set -e
           sed -i 's#https://scubadiverse.github.io/focus-flow/#https://project-savvy-914a1.web.app#' \
             app/src/main/java/net/scubadiverse/focusflow/MainActivity.kt
-          sed -i 's#versionCode 24#versionCode 1026#' app/build.gradle
+          sed -i 's#versionCode 24#versionCode 1027#' app/build.gradle
           echo "Patched URL + versionCode. Check:"
           grep -n "loadUrl(" app/src/main/java/net/scubadiverse/focusflow/MainActivity.kt
           grep -n "versionCode" app/build.gradle
@@ -60,8 +60,8 @@ jobs:
           name: "ProjectSavvy - Premium (Firebase address, closed testing)"
           body: |
             PREMIUM build for Google Play CLOSED TESTING that loads
-            project-savvy-914a1.web.app (sign-in works there). versionCode 1026,
-            supersedes the previous premium upload (1025). Upload app-release.aab to
+            project-savvy-914a1.web.app (sign-in works there). versionCode 1027,
+            supersedes the previous premium upload (1026). Upload app-release.aab to
             the Closed testing track. Do NOT promote to production.
           files: |
             focus-flow-android/app/build/outputs/bundle/release/app-release.aab
