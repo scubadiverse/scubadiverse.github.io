@@ -1,8 +1,8 @@
 // ProjectSavvy – service worker.
-// Stale-while-revalidate for the page: serve the cached app INSTANTLY, then refresh
-// from the network in the background so the next open has the latest. Bump CACHE to
-// force old caches out.
-var CACHE = "focusflow-paid-v20";
+// NETWORK-FIRST for the page: always fetch the freshest app so a new deploy shows
+// on the very next open; fall back to the cached copy only when offline. Bump CACHE
+// to force old caches out.
+var CACHE = "focusflow-paid-v21";
 var ASSETS = [
   "./",
   "./index.html",
@@ -38,16 +38,16 @@ self.addEventListener("fetch", function (e) {
     (e.request.destination === "document") ||
     e.request.url.indexOf("index.html") !== -1;
   if (isPage) {
-    // stale-while-revalidate: serve cache instantly, refresh in the background
+    // network-first: always try the freshest page so deploys show immediately;
+    // fall back to the cached copy only when the network is unavailable.
     e.respondWith(
-      caches.open(CACHE).then(function (c) {
-        return c.match(e.request).then(function (cached) {
-          var net = fetch(e.request).then(function (res) {
-            try { c.put(e.request, res.clone()); } catch (x) {}
-            return res;
-          }).catch(function () { return cached || c.match("./index.html"); });
-          // instant from cache if we have it; otherwise wait for the network
-          return cached || c.match("./index.html").then(function (h) { return h || net; });
+      fetch(e.request.url, { cache: "no-store" }).then(function (res) {
+        var copy = res.clone();
+        caches.open(CACHE).then(function (c) { try { c.put("./index.html", copy); } catch (x) {} });
+        return res;
+      }).catch(function () {
+        return caches.open(CACHE).then(function (c) {
+          return c.match(e.request).then(function (h) { return h || c.match("./index.html"); });
         });
       })
     );

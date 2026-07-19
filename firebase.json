@@ -1,6 +1,12 @@
 {
   "hosting": {
     "public": "focus-flow-premium",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "headers": [
+      { "source": "/", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
+      { "source": "/index.html", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
+      { "source": "**/*.html", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
+      { "source": "/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+    ]
   }
 }
