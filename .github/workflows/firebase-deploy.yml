@@ -1,0 +1,28 @@
+name: Deploy premium web to Firebase Hosting
+
+# Deploys focus-flow-premium/ (the latest premium web: badge, resting zone,
+# sign-in gate + the premium agent's sync/Unplanned) to Firebase Hosting at
+# project-savvy-914a1.web.app. The closed-testing AAB (v1025) loads that address,
+# so after this runs, testers see the latest features WITH working sign-in.
+# Needs a repo secret FIREBASE_SERVICE_ACCOUNT (JSON from Firebase Console ->
+# Project settings -> Service accounts -> Generate new private key).
+# Run by hand from the Actions tab.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to Firebase Hosting (live)
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: project-savvy-914a1
+          channelId: live
