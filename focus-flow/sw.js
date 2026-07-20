@@ -2,7 +2,7 @@
 // NETWORK-FIRST for the page: always fetch the freshest app so a new deploy shows
 // on the very next open; fall back to the cached copy only when offline. Bump CACHE
 // to force old caches out.
-var CACHE = "focusflow-v86";
+var CACHE = "focusflow-v87";
 var ASSETS = [
   "./",
   "./index.html",
@@ -43,16 +43,21 @@ self.addEventListener("fetch", function (e) {
     (e.request.destination === "document") ||
     e.request.url.indexOf("index.html") !== -1;
   if (isPage) {
-    // network-first: always try the freshest page so deploys show immediately;
-    // fall back to the cached copy only when the network is unavailable.
+    // FAST open + fresh: serve the cached page almost instantly, but race a fresh
+    // network fetch for up to 1.5s so a quick connection still shows the latest,
+    // and the cache is refreshed in the background for the next open either way.
     e.respondWith(
-      fetch(e.request.url, { cache: "no-store" }).then(function (res) {
-        var copy = res.clone();
-        caches.open(CACHE).then(function (c) { try { c.put("./index.html", copy); } catch (x) {} });
-        return res;
-      }).catch(function () {
-        return caches.open(CACHE).then(function (c) {
-          return c.match(e.request).then(function (h) { return h || c.match("./index.html"); });
+      caches.open(CACHE).then(function (c) {
+        return c.match("./index.html").then(function (cached) {
+          var net = fetch(e.request.url, { cache: "no-store" }).then(function (res) {
+            try { c.put("./index.html", res.clone()); } catch (x) {}
+            return res;
+          });
+          if (!cached) return net; // nothing cached yet: must wait for the network
+          return Promise.race([
+            net.catch(function () { return cached; }),
+            new Promise(function (resolve) { setTimeout(function () { resolve(cached); }, 1500); })
+          ]);
         });
       })
     );
