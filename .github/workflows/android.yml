@@ -30,6 +30,13 @@ jobs:
         with:
           gradle-version: '8.7'
 
+      - name: Bump versionCode for the production upload
+        working-directory: focus-flow-android
+        run: |
+          set -e
+          sed -i 's#versionCode 24#versionCode 25#' app/build.gradle
+          grep -n "versionCode" app/build.gradle
+
       - name: Build debug APK (for sideloading / testing on your phone)
         working-directory: focus-flow-android
         run: gradle assembleDebug --no-daemon --stacktrace

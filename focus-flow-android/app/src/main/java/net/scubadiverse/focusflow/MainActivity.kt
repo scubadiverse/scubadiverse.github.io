@@ -219,6 +219,18 @@ class MainActivity : AppCompatActivity() {
             getSharedPreferences("focusflow", Context.MODE_PRIVATE).edit().putString("contacts", json).apply()
         }
 
+        // Durable backup of the whole app state to native storage (SharedPreferences).
+        // Survives WebView cache/localStorage being cleared and app updates, so the
+        // web layer can restore a user's projects/stats if local storage is ever lost.
+        @JavascriptInterface
+        fun saveBackup(json: String) {
+            try { getSharedPreferences("focusflow", Context.MODE_PRIVATE).edit().putString("stateBackup", json).apply() } catch (e: Exception) {}
+        }
+        @JavascriptInterface
+        fun readBackup(): String {
+            return try { getSharedPreferences("focusflow", Context.MODE_PRIVATE).getString("stateBackup", "") ?: "" } catch (e: Exception) { "" }
+        }
+
         // Schedule a one-shot reminder that fires even if the app is closed.
         @JavascriptInterface
         fun scheduleAlert(id: String, delaySec: Double, title: String, body: String) {

@@ -448,6 +448,8 @@ function stateHasData(s){
     || (s.moods&&s.moods.length>0);
 }
 function readState(k){ try{ var r=localStorage.getItem(k); if(!r) return null; var o=JSON.parse(r); return (o&&typeof o==='object')?o:null; }catch(e){ return null; } }
+// Durable native backup (Android SharedPreferences) – survives a storage clear / update.
+function readNativeBackup(){ try{ if(window.AndroidBridge && window.AndroidBridge.readBackup){ var r=window.AndroidBridge.readBackup(); if(r){ var o=JSON.parse(r); return (o&&typeof o==='object')?o:null; } } }catch(e){} return null; }
 function load(){
   var base={
     day:todayKey(),
@@ -477,10 +479,10 @@ function load(){
     moods:[],                // mood check-in history {e,ts,h,act,water}
     unplanned:[]             // premium: unplanned tasks {id,name,min,pri,day}
   };
-  var main=readState(KEY), bak=readState(KEY+'.bak');
-  // Never lose data on an update/change: if the main slot is missing or blank but a
-  // backup holds real data, recover from the backup instead of starting fresh.
-  var s = stateHasData(main) ? main : (stateHasData(bak) ? bak : (main||bak));
+  var main=readState(KEY), bak=readState(KEY+'.bak'), nat=readNativeBackup();
+  // Never lose data on an update/change: if the main slot is missing or blank, recover
+  // from the local backup, then the durable native backup, before starting fresh.
+  var s = stateHasData(main) ? main : (stateHasData(bak) ? bak : (stateHasData(nat) ? nat : (main||bak)));
   if(!s) return base;
   if(s.day!==todayKey()){
     var tot=0; for(var mk in (s.mins||{})) tot+=s.mins[mk];
@@ -502,14 +504,20 @@ function load(){
 }
 function projName(id){ for(var i=0;i<S.projects.length;i++) if(S.projects[i].id===id) return S.projects[i].name; return id; }
 function projMins(id){ return S.mins[id]||0; }
+var _natBakTs=0;
 function save(){
   try{
     // Update-proofing: never overwrite real saved data with a blank/default state,
     // and keep a rolling backup so data can always be recovered.
     var stored=readState(KEY);
     if(stateHasData(stored) && !stateHasData(S)) return;   // don't clobber real data with a blank slate
-    localStorage.setItem(KEY, JSON.stringify(S));
-    if(stateHasData(S)) localStorage.setItem(KEY+'.bak', JSON.stringify(S));
+    var json=JSON.stringify(S);
+    localStorage.setItem(KEY, json);
+    if(stateHasData(S)){
+      localStorage.setItem(KEY+'.bak', json);
+      // durable native backup (throttled) – survives storage clears / app updates
+      try{ var now=Date.now(); if(window.AndroidBridge && window.AndroidBridge.saveBackup && now-_natBakTs>8000){ _natBakTs=now; window.AndroidBridge.saveBackup(json); } }catch(e){}
+    }
   }catch(e){}
   scheduleCloudSave();
 }
