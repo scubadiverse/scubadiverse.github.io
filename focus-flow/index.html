@@ -439,8 +439,16 @@ function todayKey(){var d=new Date();return d.getFullYear()+"-"+(d.getMonth()+1)
 // The app learns each person's own rhythm from their sessions – no preset seed.
 var seed={ hourWeights:{}, peakHours:[] };
 var S=load();
+// True only if this state holds real user work (not a fresh/default slate).
+function stateHasData(s){
+  if(!s || typeof s!=='object') return false;
+  var proj=(s.projects||[]).some(function(p){ return p && p.name && !/^Project \d+$/.test(p.name); });
+  return proj || (s.history&&s.history.length>0) || (s.mins&&Object.keys(s.mins).length>0)
+    || ((s.blocks||0)>0) || (s.wins&&s.wins.length>0) || (s.hourMins&&Object.keys(s.hourMins).length>0)
+    || (s.moods&&s.moods.length>0);
+}
+function readState(k){ try{ var r=localStorage.getItem(k); if(!r) return null; var o=JSON.parse(r); return (o&&typeof o==='object')?o:null; }catch(e){ return null; } }
 function load(){
-  var raw=null; try{raw=localStorage.getItem(KEY);}catch(e){}
   var base={
     day:todayKey(),
     projects:[{id:'p1',name:'Project 1',target:0},{id:'p2',name:'Project 2',target:0}],
@@ -469,8 +477,11 @@ function load(){
     moods:[],                // mood check-in history {e,ts,h,act,water}
     unplanned:[]             // premium: unplanned tasks {id,name,min,pri,day}
   };
-  if(!raw) return base;
-  var s; try{s=JSON.parse(raw);}catch(e){return base;}
+  var main=readState(KEY), bak=readState(KEY+'.bak');
+  // Never lose data on an update/change: if the main slot is missing or blank but a
+  // backup holds real data, recover from the backup instead of starting fresh.
+  var s = stateHasData(main) ? main : (stateHasData(bak) ? bak : (main||bak));
+  if(!s) return base;
   if(s.day!==todayKey()){
     var tot=0; for(var mk in (s.mins||{})) tot+=s.mins[mk];
     if(tot>0 || (s.blocks||0)>0 || (s.wins&&s.wins.length)){
@@ -491,7 +502,17 @@ function load(){
 }
 function projName(id){ for(var i=0;i<S.projects.length;i++) if(S.projects[i].id===id) return S.projects[i].name; return id; }
 function projMins(id){ return S.mins[id]||0; }
-function save(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} scheduleCloudSave(); }
+function save(){
+  try{
+    // Update-proofing: never overwrite real saved data with a blank/default state,
+    // and keep a rolling backup so data can always be recovered.
+    var stored=readState(KEY);
+    if(stateHasData(stored) && !stateHasData(S)) return;   // don't clobber real data with a blank slate
+    localStorage.setItem(KEY, JSON.stringify(S));
+    if(stateHasData(S)) localStorage.setItem(KEY+'.bak', JSON.stringify(S));
+  }catch(e){}
+  scheduleCloudSave();
+}
 
 // ---- premium: Unplanned tasks ----
 function isPremium(){ return !!(typeof fbUser!=='undefined' && fbUser); }
