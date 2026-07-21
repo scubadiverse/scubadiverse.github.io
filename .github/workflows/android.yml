@@ -34,7 +34,7 @@ jobs:
         working-directory: focus-flow-android
         run: |
           set -e
-          sed -i 's#versionCode 24#versionCode 25#' app/build.gradle
+          sed -i 's#versionCode 24#versionCode 30#' app/build.gradle
           grep -n "versionCode" app/build.gradle
 
       - name: Build debug APK (for sideloading / testing on your phone)
