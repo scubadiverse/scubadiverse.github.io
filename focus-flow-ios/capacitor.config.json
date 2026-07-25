@@ -1,0 +1,9 @@
+{
+  "appId": "app.ainative.focusflow",
+  "appName": "ProjectSavvy",
+  "webDir": "www",
+  "server": {
+    "url": "https://project-savvy-914a1.web.app",
+    "cleartext": false
+  }
+}

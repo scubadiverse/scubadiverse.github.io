@@ -1,0 +1,78 @@
+name: Build iPhone app (unsigned IPA)
+
+# Builds an UNSIGNED .ipa of the ProjectSavvy premium app for iPhone. It wraps the
+# premium web app (project-savvy-914a1.web.app) in a Capacitor iOS shell and builds
+# it on a cloud Mac. The .ipa is NOT signed by Apple - install it by sideloading
+# with a free Apple ID (Sideloadly / AltStore) or on a device that allows
+# unauthorised apps. Run by hand from the Actions tab.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Capacitor + add the iOS project
+        working-directory: focus-flow-ios
+        run: |
+          set -e
+          npm install
+          npx cap add ios
+          npx cap sync ios
+
+      - name: Build an unsigned archive
+        working-directory: focus-flow-ios/ios/App
+        run: |
+          set -e
+          xcodebuild \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath "$PWD/App.xcarchive" \
+            archive \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Package the .app into an unsigned .ipa
+        working-directory: focus-flow-ios/ios/App
+        run: |
+          set -e
+          mkdir -p build/Payload
+          cp -R App.xcarchive/Products/Applications/App.app build/Payload/ProjectSavvy.app
+          cd build
+          zip -r ../ProjectSavvy-unsigned.ipa Payload
+          cd ..
+          ls -la ProjectSavvy-unsigned.ipa
+
+      - name: Upload IPA as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: projectsavvy-ios-unsigned-ipa
+          path: focus-flow-ios/ios/App/ProjectSavvy-unsigned.ipa
+
+      - name: Publish IPA to a Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ios-unsigned
+          name: "ProjectSavvy - iPhone (unsigned IPA)"
+          body: |
+            UNSIGNED iPhone build of the ProjectSavvy premium app. It loads
+            project-savvy-914a1.web.app. Apple did NOT sign this - install it by
+            sideloading with a free Apple ID (Sideloadly or AltStore) or on a phone
+            that allows unauthorised apps. A free-Apple-ID sideload lasts 7 days,
+            then re-install. For testing / showing an investor only.
+          files: |
+            focus-flow-ios/ios/App/ProjectSavvy-unsigned.ipa

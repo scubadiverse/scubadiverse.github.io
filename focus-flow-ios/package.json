@@ -1,0 +1,11 @@
+{
+  "name": "projectsavvy-ios",
+  "version": "1.0.0",
+  "private": true,
+  "description": "iOS wrapper (Capacitor) that loads the ProjectSavvy premium web app",
+  "dependencies": {
+    "@capacitor/cli": "^6.1.2",
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/ios": "^6.1.2"
+  }
+}
