@@ -1,0 +1,70 @@
+name: Build iPhone app (Appetize simulator build)
+
+# Builds an iOS SIMULATOR build (.app, zipped) of the ProjectSavvy premium app so
+# it can run on an iPhone inside a browser via Appetize.io. No Apple signing and no
+# Apple account needed - Appetize only accepts simulator builds. The zip is
+# published to the ios-appetize release tag; upload it to Appetize to get a public
+# link an investor can open on any device. Run by hand from the Actions tab.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Capacitor + add the iOS project
+        working-directory: focus-flow-ios
+        run: |
+          set -e
+          npm install
+          npx cap add ios
+          npx cap sync ios
+
+      - name: Build the iOS simulator app
+        working-directory: focus-flow-ios/ios/App
+        run: |
+          set -e
+          xcodebuild \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
+            build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
+          APP="build/Build/Products/Release-iphonesimulator/App.app"
+          test -d "$APP"
+          cp -R "$APP" ProjectSavvy.app
+          zip -r ProjectSavvy-appetize.zip ProjectSavvy.app
+          ls -la ProjectSavvy-appetize.zip
+
+      - name: Upload zip as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: projectsavvy-ios-appetize
+          path: focus-flow-ios/ios/App/ProjectSavvy-appetize.zip
+
+      - name: Publish zip to a Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ios-appetize
+          name: "ProjectSavvy - iPhone (Appetize simulator build)"
+          body: |
+            iOS SIMULATOR build of the ProjectSavvy premium app, for Appetize.io.
+            It loads project-savvy-914a1.web.app. Upload ProjectSavvy-appetize.zip to
+            Appetize (New app -> drag the zip) to get a public link that runs the app
+            on an iPhone inside any browser. No install, no Apple account.
+          files: |
+            focus-flow-ios/ios/App/ProjectSavvy-appetize.zip
