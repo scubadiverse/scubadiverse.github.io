@@ -170,9 +170,9 @@
   align-items:center;justify-content:center;line-height:1;padding:0;
   box-shadow:0 3px 12px rgba(0,0,0,.35);opacity:.92"><svg width="23" height="23" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></button>
 
-<div class="topbar">
+<div class="topbar" id="topbar" style="display:none">
   <button class="tbBtn off" id="tbBack" onclick="goBack()" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-  <div class="tbTitle" id="tbTitle">Home</div>
+  <div class="tbTitle" id="tbTitle"></div>
   <div style="width:36px;flex:0 0 auto"></div>
 </div>
 
@@ -636,8 +636,10 @@ function switchTab(name, isBack){
     var pane=document.getElementById('pane'+cap(t)); if(pane) pane.style.display=(t===name)?'':'none';
     var btn=document.getElementById('bn'+cap(t)); if(btn) btn.classList.toggle('on', t===name);
   });
-  var title=document.getElementById('tbTitle'); if(title) title.textContent=TAB_TITLE[name];
   var back=document.getElementById('tbBack'); if(back) back.classList.toggle('off', navStack.length===0);
+  // Top bar is only a back bar now (the bottom nav already labels the tab), so it
+  // shows only when there is somewhere to go back to - no duplicate title on Home.
+  var tb=document.getElementById('topbar'); if(tb) tb.style.display = navStack.length ? '' : 'none';
   if(name==='unplanned') renderUnplanned();
   try{ window.scrollTo(0,0); }catch(e){}
 }
