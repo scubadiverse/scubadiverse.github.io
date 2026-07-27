@@ -761,11 +761,14 @@ function sendToCalendar(pi, mins, silent){
 }
 // Android tells us how the calendar write went.
 window.onCalendarResult=function(ok){ try{ toast(ok ? 'Added to Google Calendar ✓' : 'Could not add to calendar – please try again.'); }catch(e){} };
+// Android tells us whether the user granted calendar access.
+window.onCalendarConnected=function(ok){ gcal().connected=!!ok; save(); try{ renderGcalCard(); }catch(e){} try{ toast(ok ? 'Google Calendar connected ✓' : 'Calendar not connected – please allow access.'); }catch(e){} };
 // Settings toggles.
 function toggleGcalConnect(){
-  gcal().connected=!gcal().connected;
-  if(gcal().connected && window.AndroidBridge && window.AndroidBridge.connectCalendar){ try{ window.AndroidBridge.connectCalendar(); }catch(e){} }
-  save(); renderGcalCard();
+  if(gcal().connected){ gcal().connected=false; save(); renderGcalCard(); return; }
+  // Turning on: ask the app to grant calendar access; it confirms via onCalendarConnected.
+  if(window.AndroidBridge && window.AndroidBridge.connectCalendar){ try{ window.AndroidBridge.connectCalendar(); }catch(e){} }
+  else { gcal().connected=true; save(); renderGcalCard(); }
 }
 function toggleGcalAuto(){ gcal().autoSend=!gcal().autoSend; save(); renderGcalCard(); }
 function renderGcalCard(){

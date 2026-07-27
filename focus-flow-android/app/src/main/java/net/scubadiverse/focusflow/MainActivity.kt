@@ -32,6 +32,8 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.Scope
+import com.google.android.gms.auth.GoogleAuthUtil
 import com.android.billingclient.api.*
 
 class MainActivity : AppCompatActivity() {
@@ -191,6 +193,84 @@ class MainActivity : AppCompatActivity() {
                     .build()))
             .build()
         runOnUiThread { billingClient?.launchBillingFlow(this, flowParams) }
+    }
+
+    // ---- Google Calendar: write a finished focus block as an event (premium) ----
+    private val calendarScope = Scope("https://www.googleapis.com/auth/calendar.events")
+    private val CAL_PERM_REQ = 9011
+
+    // Ask for the Calendar permission once (the "Connect Google Calendar" toggle).
+    private fun ensureCalendarPermission() {
+        val acct = GoogleSignIn.getLastSignedInAccount(this)
+        if (acct != null && GoogleSignIn.hasPermissions(acct, calendarScope)) {
+            calendarConnectedResult(true); return
+        }
+        if (acct != null) {
+            GoogleSignIn.requestPermissions(this, CAL_PERM_REQ, acct, calendarScope)
+        } else {
+            val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestScopes(calendarScope).requestEmail().build()
+            startActivityForResult(GoogleSignIn.getClient(this, gso).signInIntent, CAL_PERM_REQ)
+        }
+    }
+
+    private fun calendarConnectedResult(ok: Boolean) {
+        runOnUiThread {
+            try { web.evaluateJavascript(
+                "window.onCalendarConnected && window.onCalendarConnected(" + ok + ")", null) } catch (e: Exception) {}
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == CAL_PERM_REQ) {
+            val acct = GoogleSignIn.getLastSignedInAccount(this)
+            calendarConnectedResult(acct != null && GoogleSignIn.hasPermissions(acct, calendarScope))
+        }
+    }
+
+    // Insert the event on a background thread (network + token are blocking).
+    private fun writeCalendarEvent(title: String, startMs: Long, endMs: Long, desc: String) {
+        Thread {
+            var ok = false
+            try {
+                val account = GoogleSignIn.getLastSignedInAccount(this)?.account
+                if (account != null) {
+                    val token = GoogleAuthUtil.getToken(
+                        this, account, "oauth2:https://www.googleapis.com/auth/calendar.events")
+                    ok = insertEvent(token, title, startMs, endMs, desc)
+                }
+            } catch (e: Exception) { ok = false }
+            val res = ok
+            runOnUiThread {
+                try { web.evaluateJavascript(
+                    "window.onCalendarResult && window.onCalendarResult(" + res + ")", null) } catch (e: Exception) {}
+            }
+        }.start()
+    }
+
+    private fun insertEvent(token: String, title: String, startMs: Long, endMs: Long, desc: String): Boolean {
+        return try {
+            val url = java.net.URL("https://www.googleapis.com/calendar/v3/calendars/primary/events")
+            val conn = url.openConnection() as java.net.HttpURLConnection
+            conn.requestMethod = "POST"
+            conn.setRequestProperty("Authorization", "Bearer $token")
+            conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+            conn.doOutput = true
+            val tz = java.util.TimeZone.getDefault().id
+            val fmt = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", java.util.Locale.US)
+            val body = org.json.JSONObject()
+            body.put("summary", title)
+            body.put("description", desc)
+            body.put("start", org.json.JSONObject()
+                .put("dateTime", fmt.format(java.util.Date(startMs))).put("timeZone", tz))
+            body.put("end", org.json.JSONObject()
+                .put("dateTime", fmt.format(java.util.Date(endMs))).put("timeZone", tz))
+            conn.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
+            val code = conn.responseCode
+            conn.disconnect()
+            code in 200..299
+        } catch (e: Exception) { false }
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -372,6 +452,16 @@ class MainActivity : AppCompatActivity() {
         fun isPremiumPaid(): Boolean { return premiumActive }
         @JavascriptInterface
         fun restorePurchases() { runOnUiThread { if (billingClient?.isReady == true) refreshPurchases() } }
+
+        // ---- Google Calendar (premium) ----
+        @JavascriptInterface
+        fun connectCalendar() { runOnUiThread { ensureCalendarPermission() } }
+        @JavascriptInterface
+        fun addCalendarEvent(title: String, startMs: String, endMs: String, desc: String) {
+            val s = startMs.toLongOrNull() ?: return
+            val e = endMs.toLongOrNull() ?: return
+            writeCalendarEvent(title, s, e, desc)
+        }
 
         // Schedule a one-shot reminder that fires even if the app is closed.
         @JavascriptInterface
