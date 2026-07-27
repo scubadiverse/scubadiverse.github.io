@@ -245,13 +245,6 @@ class MainActivity : AppCompatActivity() {
         setupBilling()
     }
 
-    override fun onResume() {
-        super.onResume()
-        // Re-check the subscription each time the app comes forward, so a purchase
-        // made elsewhere (or a cancellation) is reflected.
-        if (billingClient?.isReady == true) refreshPurchases()
-    }
-
     override fun onDestroy() {
         try { billingClient?.endConnection() } catch (e: Exception) {}
         super.onDestroy()
@@ -496,6 +489,8 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         web.onResume()
         web.resumeTimers()
+        // Re-check the subscription when the app comes forward (purchase/cancel elsewhere).
+        if (billingClient?.isReady == true) refreshPurchases()
     }
 
     override fun onBackPressed() {
