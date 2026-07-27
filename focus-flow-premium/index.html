@@ -335,6 +335,15 @@
     <div class="foot" id="acctMsg" style="text-align:left;color:var(--warn);margin-top:8px"></div>
   </div>
 
+  <div class="card" id="gcalCard" style="display:none">
+    <b>📅 Google Calendar</b>
+    <div class="foot" style="text-align:left;margin:4px 0 10px">Log your finished focus blocks to your Google Calendar as work-hours events.</div>
+    <button id="gcalConnectBtn" onclick="toggleGcalConnect()" style="width:100%">📅 Connect Google Calendar</button>
+    <div class="row" id="gcalAutoRow" style="margin-top:8px;display:none;justify-content:center">
+      <button id="gcalAutoBtn" onclick="toggleGcalAuto()">Auto-send every session: Off</button>
+    </div>
+  </div>
+
   <div class="card">
     <b>🔔 Reminders</b>
     <div class="row" style="margin-top:10px;justify-content:center">
@@ -502,6 +511,20 @@ feelings are frequent or heavy, talking to someone you trust helps.
 
 <div id="toast" style="display:none;position:fixed;left:50%;top:20%;transform:translateX(-50%);z-index:80;width:min(88%,420px);background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:16px;box-shadow:0 16px 40px rgba(0,0,0,.4);padding:18px 20px;text-align:center;font-size:16px;line-height:1.45" onclick="this.style.display='none'"></div>
 
+<!-- Premium: after a focus block, offer to log the work hours to Google Calendar. -->
+<style>
+.calprompt{position:fixed;left:50%;bottom:82px;transform:translateX(-50%);z-index:81;width:min(92%,440px);background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.45);padding:14px 16px;display:none}
+.calprompt.show{display:block}
+.calprompt .t{color:var(--ink);font-size:14px;font-weight:600;margin-bottom:10px;text-align:left}
+.calprompt .r{display:flex;gap:8px}
+.calprompt .add{flex:1;background:#7c5cff;color:#fff;border:none;border-radius:10px;padding:10px;font-weight:800}
+.calprompt .no{flex:0 0 auto;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+</style>
+<div id="calPrompt" class="calprompt">
+  <div class="t" id="calPromptText"></div>
+  <div class="r"><button class="add" onclick="calPromptAdd()">📅 Add to calendar</button><button class="no" onclick="calPromptDismiss()">Not now</button></div>
+</div>
+
 <!-- Firebase SDK (compat build): loaded so sign-in + cloud sync work (premium). -->
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
@@ -553,7 +576,8 @@ function load(){
     history:[],              // per-day summaries {day,min,blocks,wins}
     wins:[],                 // small wins today {t,ts,k}
     moods:[],                // mood check-in history {e,ts,h,act,water}
-    unplanned:[]             // premium: unplanned tasks {id,name,min,pri,day}
+    unplanned:[],            // premium: unplanned tasks {id,name,min,pri,day}
+    gcal:{connected:false, autoSend:false} // premium: log work hours to Google Calendar
   };
   var main=readState(KEY), bak=readState(KEY+'.bak'), nat=readNativeBackup();
   // Never lose data on an update/change: if the main slot is missing or blank, recover
@@ -672,6 +696,7 @@ function applyPremiumGate(){
   }
   if(typeof renderProjEdit==='function'){ var pe=document.getElementById('projEdit'); if(pe && pe.style.display!=='none') renderProjEdit(); }
   if(typeof renderRestingZone==='function') renderRestingZone();
+  try{ renderGcalCard(); }catch(e){}
 }
 // ---- Premium subscribe sheet (Google Play Billing – Android app only) ----
 var subPlan='yearly';
@@ -701,6 +726,57 @@ function fillSubPrices(){
 function doSubscribe(){
   try{ if(window.AndroidBridge && window.AndroidBridge.subscribe) window.AndroidBridge.subscribe(subPlan); }catch(e){}
   closeSubSheet();
+}
+// ---- Google Calendar: log a finished focus block as a work-hours event (premium) ----
+function gcal(){ if(!S.gcal) S.gcal={connected:false,autoSend:false}; return S.gcal; }
+function gcalOn(){ return isPremium() && gcal().connected; }
+function gcalBridge(){ return !!(window.AndroidBridge && window.AndroidBridge.addCalendarEvent); }
+function projNameAt(i){ var p=(S.projects&&S.projects[i]); return (p&&p.name)||'Focus'; }
+// Called from blockDone with the project index + minutes just finished.
+function offerCalendar(pi, mins){
+  if(!gcalOn() || !mins || pi===null || pi===undefined) return;
+  if(gcal().autoSend){ sendToCalendar(pi, mins, true); return; }
+  var p=document.getElementById('calPrompt');
+  if(!p) return;
+  document.getElementById('calPromptText').textContent='Add '+mins+' min on “'+projNameAt(pi)+'” to your calendar?';
+  p.dataset.pi=pi; p.dataset.mins=mins; p.classList.add('show');
+}
+function calPromptAdd(){
+  var p=document.getElementById('calPrompt');
+  if(p){ sendToCalendar(parseInt(p.dataset.pi,10), parseInt(p.dataset.mins,10), false); p.classList.remove('show'); }
+}
+function calPromptDismiss(){ var p=document.getElementById('calPrompt'); if(p) p.classList.remove('show'); }
+function sendToCalendar(pi, mins, silent){
+  try{
+    var end=Date.now(), start=end - mins*60000;
+    var title='Working hours: '+projNameAt(pi);
+    var desc='Logged by ProjectSavvy – '+mins+' min focus.';
+    if(gcalBridge()){
+      window.AndroidBridge.addCalendarEvent(title, String(start), String(end), desc);
+      if(!silent) toast('Adding to Google Calendar…');
+    } else if(!silent){
+      toast('Open the ProjectSavvy app to sync to Google Calendar.');
+    }
+  }catch(e){}
+}
+// Android tells us how the calendar write went.
+window.onCalendarResult=function(ok){ try{ toast(ok ? 'Added to Google Calendar ✓' : 'Could not add to calendar – please try again.'); }catch(e){} };
+// Settings toggles.
+function toggleGcalConnect(){
+  gcal().connected=!gcal().connected;
+  if(gcal().connected && window.AndroidBridge && window.AndroidBridge.connectCalendar){ try{ window.AndroidBridge.connectCalendar(); }catch(e){} }
+  save(); renderGcalCard();
+}
+function toggleGcalAuto(){ gcal().autoSend=!gcal().autoSend; save(); renderGcalCard(); }
+function renderGcalCard(){
+  var card=document.getElementById('gcalCard'); if(!card) return;
+  // Only show once the app build that can actually write to Google Calendar is
+  // installed (native bridge present) - hidden in browsers and older app builds.
+  card.style.display = (isPremium() && gcalBridge()) ? '' : 'none';
+  var c=document.getElementById('gcalConnectBtn'), a=document.getElementById('gcalAutoRow'), ab=document.getElementById('gcalAutoBtn');
+  if(c) c.textContent = gcal().connected ? '📅 Google Calendar: Connected ✓' : '📅 Connect Google Calendar';
+  if(a) a.style.display = gcal().connected ? '' : 'none';
+  if(ab) ab.textContent = gcal().autoSend ? 'Auto-send every session: On' : 'Auto-send every session: Off';
 }
 // ---- bottom-nav navigation (Home / Unplanned / Stats / Settings) + back stack ----
 var TAB_TITLE={home:'Home',unplanned:'Unplanned',stats:'Stats',settings:'Settings'};
@@ -1101,6 +1177,7 @@ function blockDone(){
   else { suggestSwitch(); }
   addWin("You finished a focus block");
   if(proj!==null) S.projRemain[proj]=S.block*60; remain=S.block*60; paint(); paintStats(); renderProgress();
+  offerCalendar(proj, S.block);   // premium: offer to log these work hours to Google Calendar
 }
 // Real-world reset ideas – get away from the screen.
 var REST_IDEAS=[
