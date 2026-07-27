@@ -32,6 +32,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
+import com.android.billingclient.api.*
 
 class MainActivity : AppCompatActivity() {
 
@@ -66,6 +67,130 @@ class MainActivity : AppCompatActivity() {
             web.evaluateJavascript(
                 "window.onNativeGoogleError(" + org.json.JSONObject.quote(msg) + ")", null)
         }
+    }
+
+    // ---- Google Play Billing: the Premium subscription ----
+    // One subscription product "premium" with two base plans, "monthly" and
+    // "yearly" (each carrying the 10-day free-trial offer). The web layer asks us
+    // to launch the purchase, and we tell it back whether Premium is active.
+    private val subProductId = "premium"
+    private var billingClient: BillingClient? = null
+    private var subDetails: ProductDetails? = null
+    private var premiumActive = false
+
+    private val purchasesUpdatedListener = PurchasesUpdatedListener { result, purchases ->
+        if (result.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
+            for (p in purchases) handlePurchase(p)
+        }
+    }
+
+    private fun setupBilling() {
+        billingClient = BillingClient.newBuilder(this)
+            .setListener(purchasesUpdatedListener)
+            .enablePendingPurchases(
+                PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
+            .build()
+        billingClient?.startConnection(object : BillingClientStateListener {
+            override fun onBillingSetupFinished(result: BillingResult) {
+                if (result.responseCode == BillingClient.BillingResponseCode.OK) {
+                    queryProduct()
+                    refreshPurchases()
+                }
+            }
+            override fun onBillingServiceDisconnected() {}
+        })
+    }
+
+    private fun queryProduct() {
+        val product = QueryProductDetailsParams.Product.newBuilder()
+            .setProductId(subProductId)
+            .setProductType(BillingClient.ProductType.SUBS)
+            .build()
+        val params = QueryProductDetailsParams.newBuilder()
+            .setProductList(listOf(product)).build()
+        billingClient?.queryProductDetailsAsync(params) { result, list ->
+            if (result.responseCode == BillingClient.BillingResponseCode.OK && list.isNotEmpty()) {
+                subDetails = list[0]
+                pushPricesToWeb()
+            }
+        }
+    }
+
+    // Send each base plan's real recurring price (formatted by Play) to the web
+    // layer so the subscribe screen shows the true price - never a hardcoded number.
+    private fun pushPricesToWeb() {
+        val d = subDetails ?: return
+        val offers = d.subscriptionOfferDetails ?: return
+        val obj = org.json.JSONObject()
+        for (o in offers) {
+            if (obj.has(o.basePlanId)) continue
+            val phases = o.pricingPhases.pricingPhaseList
+            val recurring = phases.lastOrNull()
+            if (recurring != null) obj.put(o.basePlanId, recurring.formattedPrice)
+        }
+        runOnUiThread {
+            try {
+                web.evaluateJavascript(
+                    "window.onNativePrices && window.onNativePrices(" +
+                        org.json.JSONObject.quote(obj.toString()) + ")", null)
+            } catch (e: Exception) {}
+        }
+    }
+
+    private fun refreshPurchases() {
+        billingClient?.queryPurchasesAsync(
+            QueryPurchasesParams.newBuilder()
+                .setProductType(BillingClient.ProductType.SUBS).build()
+        ) { _, purchases ->
+            var active = false
+            for (p in purchases) {
+                if (p.purchaseState == Purchase.PurchaseState.PURCHASED) { active = true; handlePurchase(p) }
+            }
+            setPremium(active)
+        }
+    }
+
+    private fun handlePurchase(p: Purchase) {
+        if (p.purchaseState != Purchase.PurchaseState.PURCHASED) return
+        if (!p.isAcknowledged) {
+            val ack = AcknowledgePurchaseParams.newBuilder()
+                .setPurchaseToken(p.purchaseToken).build()
+            billingClient?.acknowledgePurchase(ack) {}
+        }
+        setPremium(true)
+    }
+
+    private fun setPremium(active: Boolean) {
+        premiumActive = active
+        try {
+            getSharedPreferences("focusflow", Context.MODE_PRIVATE)
+                .edit().putBoolean("premiumPaid", active).apply()
+        } catch (e: Exception) {}
+        runOnUiThread {
+            try {
+                web.evaluateJavascript(
+                    "window.onNativePremium && window.onNativePremium(" + active + ")", null)
+            } catch (e: Exception) {}
+        }
+    }
+
+    // Launch Play's purchase sheet for the chosen base plan ("monthly"/"yearly"),
+    // preferring the offer that carries the free trial.
+    private fun launchSubscribe(planId: String) {
+        val details = subDetails
+        if (details == null) { queryProduct(); return }
+        val offers = details.subscriptionOfferDetails ?: return
+        val forPlan = offers.filter { it.basePlanId == planId }
+        val chosen = forPlan.firstOrNull { it.offerId != null }
+            ?: forPlan.firstOrNull() ?: offers.firstOrNull() ?: return
+        val flowParams = BillingFlowParams.newBuilder()
+            .setProductDetailsParamsList(listOf(
+                BillingFlowParams.ProductDetailsParams.newBuilder()
+                    .setProductDetails(details)
+                    .setOfferToken(chosen.offerToken)
+                    .build()))
+            .build()
+        runOnUiThread { billingClient?.launchBillingFlow(this, flowParams) }
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -117,6 +242,19 @@ class MainActivity : AppCompatActivity() {
         }
         setContentView(web)
         web.loadUrl("https://scubadiverse.github.io/focus-flow/")
+        setupBilling()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Re-check the subscription each time the app comes forward, so a purchase
+        // made elsewhere (or a cancellation) is reflected.
+        if (billingClient?.isReady == true) refreshPurchases()
+    }
+
+    override fun onDestroy() {
+        try { billingClient?.endConnection() } catch (e: Exception) {}
+        super.onDestroy()
     }
 
     private fun createChannel() {
@@ -230,6 +368,17 @@ class MainActivity : AppCompatActivity() {
         fun readBackup(): String {
             return try { getSharedPreferences("focusflow", Context.MODE_PRIVATE).getString("stateBackup", "") ?: "" } catch (e: Exception) { "" }
         }
+
+        // ---- Premium subscription (Google Play Billing) ----
+        // Web layer calls subscribe("monthly"|"yearly") to open Play's purchase
+        // sheet; isPremiumPaid() tells it whether Premium is active; restore()
+        // re-checks after a purchase or on demand.
+        @JavascriptInterface
+        fun subscribe(planId: String) { runOnUiThread { launchSubscribe(planId) } }
+        @JavascriptInterface
+        fun isPremiumPaid(): Boolean { return premiumActive }
+        @JavascriptInterface
+        fun restorePurchases() { runOnUiThread { if (billingClient?.isReady == true) refreshPurchases() } }
 
         // Schedule a one-shot reminder that fires even if the app is closed.
         @JavascriptInterface
