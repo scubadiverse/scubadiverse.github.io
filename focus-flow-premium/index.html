@@ -344,6 +344,22 @@
     </div>
   </div>
 
+  <div class="card" id="togglCard" style="display:none">
+    <b>⏱ Toggl Track</b>
+    <div class="foot" style="text-align:left;margin:4px 0 10px">Send your finished focus blocks to Toggl Track as time entries.</div>
+    <div id="togglSetup">
+      <input type="text" id="togglToken" placeholder="Paste your Toggl API token" style="width:100%;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px">
+      <div class="foot" style="text-align:left;margin:6px 0 8px">Get it in Toggl → Profile settings → API Token.</div>
+      <button onclick="connectToggl()" style="width:100%">⏱ Connect Toggl</button>
+    </div>
+    <div id="togglDone" style="display:none">
+      <button onclick="disconnectToggl()" style="width:100%">⏱ Toggl: Connected ✓ (tap to disconnect)</button>
+      <div class="row" style="margin-top:8px;justify-content:center">
+        <button id="togglAutoBtn" onclick="toggleTogglAuto()">Auto-send every session: Off</button>
+      </div>
+    </div>
+  </div>
+
   <div class="card">
     <b>🔔 Reminders</b>
     <div class="row" style="margin-top:10px;justify-content:center">
@@ -518,11 +534,12 @@ feelings are frequent or heavy, talking to someone you trust helps.
 .calprompt .t{color:var(--ink);font-size:14px;font-weight:600;margin-bottom:10px;text-align:left}
 .calprompt .r{display:flex;gap:8px}
 .calprompt .add{flex:1;background:#7c5cff;color:#fff;border:none;border-radius:10px;padding:10px;font-weight:800}
+.calprompt .tog{flex:1;background:#e57cd8;color:#2a0d2a;border:none;border-radius:10px;padding:10px;font-weight:800}
 .calprompt .no{flex:0 0 auto;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
 </style>
 <div id="calPrompt" class="calprompt">
   <div class="t" id="calPromptText"></div>
-  <div class="r"><button class="add" onclick="calPromptAdd()">📅 Add to calendar</button><button class="no" onclick="calPromptDismiss()">Not now</button></div>
+  <div class="r" id="calPromptBtns"></div>
 </div>
 
 <!-- Firebase SDK (compat build): loaded so sign-in + cloud sync work (premium). -->
@@ -577,7 +594,8 @@ function load(){
     wins:[],                 // small wins today {t,ts,k}
     moods:[],                // mood check-in history {e,ts,h,act,water}
     unplanned:[],            // premium: unplanned tasks {id,name,min,pri,day}
-    gcal:{connected:false, autoSend:false} // premium: log work hours to Google Calendar
+    gcal:{connected:false, autoSend:false}, // premium: log work hours to Google Calendar
+    toggl:{connected:false, autoSend:false, token:'', workspaceId:''} // premium: log to Toggl Track
   };
   var main=readState(KEY), bak=readState(KEY+'.bak'), nat=readNativeBackup();
   // Never lose data on an update/change: if the main slot is missing or blank, recover
@@ -697,6 +715,7 @@ function applyPremiumGate(){
   if(typeof renderProjEdit==='function'){ var pe=document.getElementById('projEdit'); if(pe && pe.style.display!=='none') renderProjEdit(); }
   if(typeof renderRestingZone==='function') renderRestingZone();
   try{ renderGcalCard(); }catch(e){}
+  try{ renderTogglCard(); }catch(e){}
 }
 // ---- Premium subscribe sheet (Google Play Billing – Android app only) ----
 var subPlan='yearly';
@@ -732,19 +751,6 @@ function gcal(){ if(!S.gcal) S.gcal={connected:false,autoSend:false}; return S.g
 function gcalOn(){ return isPremium() && gcal().connected; }
 function gcalBridge(){ return !!(window.AndroidBridge && window.AndroidBridge.addCalendarEvent); }
 function projNameAt(i){ var p=(S.projects&&S.projects[i]); return (p&&p.name)||'Focus'; }
-// Called from blockDone with the project index + minutes just finished.
-function offerCalendar(pi, mins){
-  if(!gcalOn() || !mins || pi===null || pi===undefined) return;
-  if(gcal().autoSend){ sendToCalendar(pi, mins, true); return; }
-  var p=document.getElementById('calPrompt');
-  if(!p) return;
-  document.getElementById('calPromptText').textContent='Add '+mins+' min on “'+projNameAt(pi)+'” to your calendar?';
-  p.dataset.pi=pi; p.dataset.mins=mins; p.classList.add('show');
-}
-function calPromptAdd(){
-  var p=document.getElementById('calPrompt');
-  if(p){ sendToCalendar(parseInt(p.dataset.pi,10), parseInt(p.dataset.mins,10), false); p.classList.remove('show'); }
-}
 function calPromptDismiss(){ var p=document.getElementById('calPrompt'); if(p) p.classList.remove('show'); }
 function sendToCalendar(pi, mins, silent){
   try{
@@ -780,6 +786,64 @@ function renderGcalCard(){
   if(c) c.textContent = gcal().connected ? '📅 Google Calendar: Connected ✓' : '📅 Connect Google Calendar';
   if(a) a.style.display = gcal().connected ? '' : 'none';
   if(ab) ab.textContent = gcal().autoSend ? 'Auto-send every session: On' : 'Auto-send every session: Off';
+}
+// ---- Toggl Track (premium) ----
+function toggl(){ if(!S.toggl) S.toggl={connected:false,autoSend:false,token:'',workspaceId:''}; return S.toggl; }
+function togglOn(){ return isPremium() && toggl().connected; }
+function togglBridge(){ return !!(window.AndroidBridge && window.AndroidBridge.sendToggl); }
+function sendToToggl(pi, mins, silent){
+  try{
+    var t=toggl(); if(!t.token) return;
+    var start=Date.now()-mins*60000;
+    if(togglBridge()){
+      window.AndroidBridge.sendToggl(t.token, String(t.workspaceId||''), String(Math.floor(start/1000)), String(mins*60), projNameAt(pi));
+      if(!silent) toast('Sending to Toggl…');
+    } else if(!silent){ toast('Open the ProjectSavvy app to sync to Toggl.'); }
+  }catch(e){}
+}
+window.onTogglResult=function(ok){ try{ toast(ok?'Sent to Toggl ✓':'Could not send to Toggl – check your token.'); }catch(e){} };
+window.onTogglMe=function(json){ try{ var o=JSON.parse(json); if(o&&o.workspaceId){ toggl().workspaceId=o.workspaceId; toggl().connected=true; save(); renderTogglCard(); toast('Toggl connected ✓'); } else { toast('Toggl token not valid.'); } }catch(e){ toast('Toggl token not valid.'); } };
+function connectToggl(){
+  var inp=document.getElementById('togglToken'); if(!inp) return;
+  var tk=(inp.value||'').trim(); if(!tk){ toast('Paste your Toggl API token first.'); return; }
+  toggl().token=tk; save();
+  if(window.AndroidBridge && window.AndroidBridge.togglValidate){ try{ window.AndroidBridge.togglValidate(tk); }catch(e){} }
+  else { toast('Open the ProjectSavvy app to connect Toggl.'); }
+}
+function disconnectToggl(){ toggl().connected=false; toggl().token=''; toggl().workspaceId=''; save(); renderTogglCard(); }
+function toggleTogglAuto(){ toggl().autoSend=!toggl().autoSend; save(); renderTogglCard(); }
+function renderTogglCard(){
+  var card=document.getElementById('togglCard'); if(!card) return;
+  card.style.display = (isPremium() && togglBridge()) ? '' : 'none';
+  var connected=toggl().connected;
+  var setup=document.getElementById('togglSetup'), done=document.getElementById('togglDone'), ab=document.getElementById('togglAutoBtn');
+  if(setup) setup.style.display = connected ? 'none' : '';
+  if(done) done.style.display = connected ? '' : 'none';
+  if(ab) ab.textContent = toggl().autoSend ? 'Auto-send every session: On' : 'Auto-send every session: Off';
+}
+// ---- After a focus block: auto-send where set, else offer the connected destinations ----
+function offerLog(pi, mins){
+  if(!mins || pi===null || pi===undefined) return;
+  if(gcalOn() && gcal().autoSend) sendToCalendar(pi, mins, true);
+  if(togglOn() && toggl().autoSend) sendToToggl(pi, mins, true);
+  var opts=[];
+  if(gcalOn() && !gcal().autoSend) opts.push('cal');
+  if(togglOn() && !toggl().autoSend) opts.push('toggl');
+  if(!opts.length) return;
+  var p=document.getElementById('calPrompt'); if(!p) return;
+  document.getElementById('calPromptText').textContent='Log '+mins+' min on “'+projNameAt(pi)+'”?';
+  var r=document.getElementById('calPromptBtns'); r.innerHTML='';
+  if(opts.indexOf('cal')>=0) r.innerHTML+='<button class="add" onclick="logDo(\'cal\')">📅 Calendar</button>';
+  if(opts.indexOf('toggl')>=0) r.innerHTML+='<button class="tog" onclick="logDo(\'toggl\')">⏱ Toggl</button>';
+  r.innerHTML+='<button class="no" onclick="calPromptDismiss()">Not now</button>';
+  p.dataset.pi=pi; p.dataset.mins=mins; p.classList.add('show');
+}
+function logDo(dest){
+  var p=document.getElementById('calPrompt'); if(!p) return;
+  var pi=parseInt(p.dataset.pi,10), mins=parseInt(p.dataset.mins,10);
+  if(dest==='cal') sendToCalendar(pi, mins, false);
+  else if(dest==='toggl') sendToToggl(pi, mins, false);
+  p.classList.remove('show');
 }
 // ---- bottom-nav navigation (Home / Unplanned / Stats / Settings) + back stack ----
 var TAB_TITLE={home:'Home',unplanned:'Unplanned',stats:'Stats',settings:'Settings'};
@@ -1180,7 +1244,7 @@ function blockDone(){
   else { suggestSwitch(); }
   addWin("You finished a focus block");
   if(proj!==null) S.projRemain[proj]=S.block*60; remain=S.block*60; paint(); paintStats(); renderProgress();
-  offerCalendar(proj, S.block);   // premium: offer to log these work hours to Google Calendar
+  offerLog(proj, S.block);   // premium: auto-send or offer to log these work hours (Calendar / Toggl)
 }
 // Real-world reset ideas – get away from the screen.
 var REST_IDEAS=[

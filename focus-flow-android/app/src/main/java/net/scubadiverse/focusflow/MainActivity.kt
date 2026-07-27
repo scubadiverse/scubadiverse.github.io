@@ -273,6 +273,72 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) { false }
     }
 
+    // ---- Toggl Track (premium): validate token + send a finished block as a time entry ----
+    // HTTP Basic auth with the user's API token: base64("<token>:api_token"). Called from
+    // native so there is no browser CORS problem and the token stays on-device.
+    private fun togglAuth(token: String): String =
+        "Basic " + android.util.Base64.encodeToString(
+            (token + ":api_token").toByteArray(Charsets.UTF_8), android.util.Base64.NO_WRAP)
+
+    private fun togglValidateToken(token: String) {
+        Thread {
+            var wid = ""
+            try {
+                val conn = (java.net.URL("https://api.track.toggl.com/api/v9/me")
+                    .openConnection() as java.net.HttpURLConnection)
+                conn.requestMethod = "GET"
+                conn.setRequestProperty("Authorization", togglAuth(token))
+                if (conn.responseCode in 200..299) {
+                    val body = conn.inputStream.bufferedReader().use { it.readText() }
+                    val w = org.json.JSONObject(body).optLong("default_workspace_id", 0L)
+                    if (w != 0L) wid = w.toString()
+                }
+                conn.disconnect()
+            } catch (e: Exception) {}
+            val w = wid
+            runOnUiThread {
+                try {
+                    val res = org.json.JSONObject().put("workspaceId", w).toString()
+                    web.evaluateJavascript(
+                        "window.onTogglMe && window.onTogglMe(" + org.json.JSONObject.quote(res) + ")", null)
+                } catch (e: Exception) {}
+            }
+        }.start()
+    }
+
+    private fun togglSendEntry(token: String, workspaceId: String, startSec: Long, durationSec: Long, desc: String) {
+        Thread {
+            var ok = false
+            try {
+                if (workspaceId.isNotEmpty()) {
+                    val conn = (java.net.URL(
+                        "https://api.track.toggl.com/api/v9/workspaces/$workspaceId/time_entries")
+                        .openConnection() as java.net.HttpURLConnection)
+                    conn.requestMethod = "POST"
+                    conn.setRequestProperty("Authorization", togglAuth(token))
+                    conn.setRequestProperty("Content-Type", "application/json")
+                    conn.doOutput = true
+                    val fmt = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US)
+                    fmt.timeZone = java.util.TimeZone.getTimeZone("UTC")
+                    val body = org.json.JSONObject()
+                    body.put("workspace_id", workspaceId.toLong())
+                    body.put("start", fmt.format(java.util.Date(startSec * 1000)))
+                    body.put("duration", durationSec)
+                    body.put("description", desc)
+                    body.put("created_with", "ProjectSavvy")
+                    conn.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
+                    ok = conn.responseCode in 200..299
+                    conn.disconnect()
+                }
+            } catch (e: Exception) { ok = false }
+            val res = ok
+            runOnUiThread {
+                try { web.evaluateJavascript(
+                    "window.onTogglResult && window.onTogglResult(" + res + ")", null) } catch (e: Exception) {}
+            }
+        }.start()
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -461,6 +527,16 @@ class MainActivity : AppCompatActivity() {
             val s = startMs.toLongOrNull() ?: return
             val e = endMs.toLongOrNull() ?: return
             writeCalendarEvent(title, s, e, desc)
+        }
+
+        // ---- Toggl Track (premium) ----
+        @JavascriptInterface
+        fun togglValidate(token: String) { togglValidateToken(token) }
+        @JavascriptInterface
+        fun sendToggl(token: String, workspaceId: String, startSec: String, durationSec: String, desc: String) {
+            val s = startSec.toLongOrNull() ?: return
+            val d = durationSec.toLongOrNull() ?: return
+            togglSendEntry(token, workspaceId, s, d, desc)
         }
 
         // Schedule a one-shot reminder that fires even if the app is closed.
