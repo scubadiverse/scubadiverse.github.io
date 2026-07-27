@@ -343,6 +343,9 @@
     <div class="row" id="gcalAutoRow" style="margin-top:8px;display:none;justify-content:center">
       <button id="gcalAutoBtn" onclick="toggleGcalAuto()">Auto-send every session: Off</button>
     </div>
+    <div id="gcalTestRow" style="margin-top:8px;display:none;text-align:center">
+      <button onclick="gcalTest()">📅 Send a test event now</button>
+    </div>
   </div>
 
   <div class="card" id="togglCard" style="display:none">
@@ -766,8 +769,8 @@ function sendToCalendar(pi, mins, silent){
     }
   }catch(e){}
 }
-// Android tells us how the calendar write went.
-window.onCalendarResult=function(ok){ try{ toast(ok ? 'Added to Google Calendar ✓' : 'Could not add to calendar – please try again.'); }catch(e){} };
+// Android tells us how the calendar write went (with a reason if it failed).
+window.onCalendarResult=function(ok, detail){ try{ toast(ok ? 'Added to Google Calendar ✓' : ('Calendar failed: '+(detail||'unknown'))); }catch(e){} };
 // Android tells us whether the user granted calendar access.
 window.onCalendarConnected=function(ok){ gcal().connected=!!ok; save(); try{ renderGcalCard(); }catch(e){} try{ toast(ok ? 'Google Calendar connected ✓' : 'Calendar not connected – please allow access.'); }catch(e){} };
 // Settings toggles.
@@ -787,6 +790,12 @@ function renderGcalCard(){
   if(c) c.textContent = gcal().connected ? '📅 Google Calendar: Connected ✓' : '📅 Connect Google Calendar';
   if(a) a.style.display = gcal().connected ? '' : 'none';
   if(ab) ab.textContent = gcal().autoSend ? 'Auto-send every session: On' : 'Auto-send every session: Off';
+  var tr=document.getElementById('gcalTestRow'); if(tr) tr.style.display = gcal().connected ? '' : 'none';
+}
+function gcalTest(){
+  if(!gcalBridge()){ toast('Open the ProjectSavvy app to test the calendar.'); return; }
+  var end=Date.now(), start=end-60000;
+  try{ window.AndroidBridge.addCalendarEvent('ProjectSavvy test', String(start), String(end), 'Test event from ProjectSavvy'); toast('Sending test event…'); }catch(e){}
 }
 // ---- Toggl Track (premium) ----
 function toggl(){ if(!S.toggl) S.toggl={connected:false,autoSend:false,token:'',workspaceId:''}; return S.toggl; }

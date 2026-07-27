@@ -229,27 +229,43 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // Insert the event on a background thread (network + token are blocking).
+    // Insert the event on a background thread (network + token are blocking). Reports
+    // the real reason back to the web layer on failure, and auto-launches the Google
+    // consent if the calendar scope has not actually been granted yet.
     private fun writeCalendarEvent(title: String, startMs: Long, endMs: Long, desc: String) {
         Thread {
-            var ok = false
+            var ok = false; var err = ""
             try {
                 val account = GoogleSignIn.getLastSignedInAccount(this)?.account
-                if (account != null) {
-                    val token = GoogleAuthUtil.getToken(
-                        this, account, "oauth2:https://www.googleapis.com/auth/calendar.events")
-                    ok = insertEvent(token, title, startMs, endMs, desc)
+                if (account == null) {
+                    err = "Not signed in with Google. Tap Continue with Google, then Connect Calendar."
+                } else {
+                    try {
+                        val token = GoogleAuthUtil.getToken(
+                            this, account, "oauth2:https://www.googleapis.com/auth/calendar.events")
+                        val res = insertEvent(token, title, startMs, endMs, desc)
+                        ok = res.first in 200..299
+                        if (!ok) err = "Calendar API " + res.first + " " + res.second.take(160)
+                    } catch (e: com.google.android.gms.auth.UserRecoverableAuthException) {
+                        err = "Approve the Google calendar screen, then try again."
+                        runOnUiThread { try { startActivity(e.intent) } catch (x: Exception) {} }
+                    } catch (e: com.google.android.gms.auth.GoogleAuthException) {
+                        err = "Google auth: " + (e.message ?: "GoogleAuthException")
+                    } catch (e: Exception) {
+                        err = "Token: " + (e.message ?: e.javaClass.simpleName)
+                    }
                 }
-            } catch (e: Exception) { ok = false }
-            val res = ok
+            } catch (e: Exception) { err = e.message ?: "error" }
+            val fok = ok; val ferr = err
             runOnUiThread {
                 try { web.evaluateJavascript(
-                    "window.onCalendarResult && window.onCalendarResult(" + res + ")", null) } catch (e: Exception) {}
+                    "window.onCalendarResult && window.onCalendarResult(" + fok + "," +
+                        org.json.JSONObject.quote(ferr) + ")", null) } catch (e: Exception) {}
             }
         }.start()
     }
 
-    private fun insertEvent(token: String, title: String, startMs: Long, endMs: Long, desc: String): Boolean {
+    private fun insertEvent(token: String, title: String, startMs: Long, endMs: Long, desc: String): Pair<Int, String> {
         return try {
             val url = java.net.URL("https://www.googleapis.com/calendar/v3/calendars/primary/events")
             val conn = url.openConnection() as java.net.HttpURLConnection
@@ -268,9 +284,11 @@ class MainActivity : AppCompatActivity() {
                 .put("dateTime", fmt.format(java.util.Date(endMs))).put("timeZone", tz))
             conn.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
             val code = conn.responseCode
+            val stream = if (code in 200..299) conn.inputStream else conn.errorStream
+            val resp = try { stream?.bufferedReader()?.use { it.readText() } ?: "" } catch (e: Exception) { "" }
             conn.disconnect()
-            code in 200..299
-        } catch (e: Exception) { false }
+            Pair(code, resp)
+        } catch (e: Exception) { Pair(-1, e.message ?: "network") }
     }
 
     // ---- Toggl Track (premium): validate token + send a finished block as a time entry ----
