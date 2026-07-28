@@ -344,7 +344,7 @@
       <button id="gcalAutoBtn" onclick="toggleGcalAuto()">Auto-send every session: Off</button>
     </div>
     <div id="gcalTestRow" style="margin-top:8px;display:none;text-align:center">
-      <button onclick="gcalTest()">📅 Send a test event now</button>
+      <button onclick="gcalAddSession()">📅 Add this session</button>
     </div>
   </div>
 
@@ -352,14 +352,23 @@
     <b>⏱ Toggl Track</b>
     <div class="foot" style="text-align:left;margin:4px 0 10px">Send your finished focus blocks to Toggl Track as time entries.</div>
     <div id="togglSetup">
-      <input type="text" id="togglToken" placeholder="Paste your Toggl API token" style="width:100%;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px">
-      <div class="foot" style="text-align:left;margin:6px 0 8px">Get it in Toggl → Profile settings → API Token.</div>
-      <button onclick="connectToggl()" style="width:100%">⏱ Connect Toggl</button>
+      <input type="email" id="togglEmail" placeholder="Toggl email" autocomplete="username" style="width:100%;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px">
+      <input type="password" id="togglPass" placeholder="Toggl password" autocomplete="current-password" style="width:100%;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px">
+      <button onclick="connectTogglLogin()" style="width:100%;margin-top:8px">⏱ Connect Toggl</button>
+      <div class="foot" style="text-align:center;margin-top:8px"><a href="#" onclick="togglShowToken();return false;" style="color:var(--muted);font-size:12px;text-decoration:underline">Use 2-factor or Google login? Connect with an API token instead</a></div>
+      <div id="togglTokenBox" style="display:none;margin-top:8px">
+        <input type="text" id="togglToken" placeholder="Paste your Toggl API token" style="width:100%;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px">
+        <div class="foot" style="text-align:left;margin:6px 0 8px">Toggl → Profile settings → API Token (at the bottom).</div>
+        <button onclick="connectToggl()" style="width:100%">Connect with token</button>
+      </div>
     </div>
     <div id="togglDone" style="display:none">
       <button onclick="disconnectToggl()" style="width:100%">⏱ Toggl: Connected ✓ (tap to disconnect)</button>
       <div class="row" style="margin-top:8px;justify-content:center">
         <button id="togglAutoBtn" onclick="toggleTogglAuto()">Auto-send every session: Off</button>
+      </div>
+      <div style="margin-top:8px;text-align:center">
+        <button onclick="togglAddSession()">⏱ Add this session</button>
       </div>
     </div>
   </div>
@@ -756,9 +765,9 @@ function gcalOn(){ return isPremium() && gcal().connected; }
 function gcalBridge(){ return !!(window.AndroidBridge && window.AndroidBridge.addCalendarEvent); }
 function projNameAt(i){ var p=(S.projects&&S.projects[i]); return (p&&p.name)||'Focus'; }
 function calPromptDismiss(){ var p=document.getElementById('calPrompt'); if(p) p.classList.remove('show'); }
-function sendToCalendar(pi, mins, silent){
+function sendToCalendar(pi, mins, silent, endTs){
   try{
-    var end=Date.now(), start=end - mins*60000;
+    var end=endTs||Date.now(), start=end - mins*60000;
     var title='Working hours: '+projNameAt(pi);
     var desc='Logged by ProjectSavvy – '+mins+' min focus.';
     if(gcalBridge()){
@@ -792,19 +801,28 @@ function renderGcalCard(){
   if(ab) ab.textContent = gcal().autoSend ? 'Auto-send every session: On' : 'Auto-send every session: Off';
   var tr=document.getElementById('gcalTestRow'); if(tr) tr.style.display = gcal().connected ? '' : 'none';
 }
-function gcalTest(){
-  if(!gcalBridge()){ toast('Open the ProjectSavvy app to test the calendar.'); return; }
-  var end=Date.now(), start=end-60000;
-  try{ window.AndroidBridge.addCalendarEvent('ProjectSavvy test', String(start), String(end), 'Test event from ProjectSavvy'); toast('Sending test event…'); }catch(e){}
+// Manually add the most recent finished session (when auto-send is off).
+function lastSession(){ return S.lastSession || null; }
+function gcalAddSession(){
+  if(!gcalBridge()){ toast('Open the ProjectSavvy app to add to the calendar.'); return; }
+  var ls=lastSession();
+  if(!ls){ toast('Finish a focus block first, then add it.'); return; }
+  sendToCalendar(ls.pi, ls.mins, false, ls.ts);
+}
+function togglAddSession(){
+  if(!togglBridge()){ toast('Open the ProjectSavvy app to add to Toggl.'); return; }
+  var ls=lastSession();
+  if(!ls){ toast('Finish a focus block first, then add it.'); return; }
+  sendToToggl(ls.pi, ls.mins, false, ls.ts);
 }
 // ---- Toggl Track (premium) ----
 function toggl(){ if(!S.toggl) S.toggl={connected:false,autoSend:false,token:'',workspaceId:''}; return S.toggl; }
 function togglOn(){ return isPremium() && toggl().connected; }
 function togglBridge(){ return !!(window.AndroidBridge && window.AndroidBridge.sendToggl); }
-function sendToToggl(pi, mins, silent){
+function sendToToggl(pi, mins, silent, endTs){
   try{
     var t=toggl(); if(!t.token) return;
-    var start=Date.now()-mins*60000;
+    var start=(endTs||Date.now())-mins*60000;
     if(togglBridge()){
       window.AndroidBridge.sendToggl(t.token, String(t.workspaceId||''), String(Math.floor(start/1000)), String(mins*60), projNameAt(pi));
       if(!silent) toast('Sending to Toggl…');
@@ -812,7 +830,15 @@ function sendToToggl(pi, mins, silent){
   }catch(e){}
 }
 window.onTogglResult=function(ok){ try{ toast(ok?'Sent to Toggl ✓':'Could not send to Toggl – check your token.'); }catch(e){} };
-window.onTogglMe=function(json){ try{ var o=JSON.parse(json); if(o&&o.workspaceId){ toggl().workspaceId=o.workspaceId; toggl().connected=true; save(); renderTogglCard(); toast('Toggl connected ✓'); } else { toast('Toggl token not valid.'); } }catch(e){ toast('Toggl token not valid.'); } };
+window.onTogglMe=function(json){ try{ var o=JSON.parse(json); if(o&&(o.workspaceId||o.token)){ if(o.token) toggl().token=o.token; if(o.workspaceId) toggl().workspaceId=o.workspaceId; toggl().connected=true; save(); renderTogglCard(); toast('Toggl connected ✓'); } else { toast('Toggl login failed – check email/password. If you use 2-factor or Google login, use the API-token option.'); } }catch(e){ toast('Toggl login failed.'); } };
+function connectTogglLogin(){
+  var e=document.getElementById('togglEmail'), p=document.getElementById('togglPass');
+  var em=((e&&e.value)||'').trim(), pw=((p&&p.value)||'');
+  if(!em||!pw){ toast('Enter your Toggl email and password.'); return; }
+  if(window.AndroidBridge && window.AndroidBridge.togglLogin){ try{ window.AndroidBridge.togglLogin(em, pw); toast('Connecting to Toggl…'); }catch(e){} }
+  else { toast('Open the ProjectSavvy app to connect Toggl.'); }
+}
+function togglShowToken(){ var b=document.getElementById('togglTokenBox'); if(b) b.style.display='block'; }
 function connectToggl(){
   var inp=document.getElementById('togglToken'); if(!inp) return;
   var tk=(inp.value||'').trim(); if(!tk){ toast('Paste your Toggl API token first.'); return; }
@@ -1254,6 +1280,7 @@ function blockDone(){
   else { suggestSwitch(); }
   addWin("You finished a focus block");
   if(proj!==null) S.projRemain[proj]=S.block*60; remain=S.block*60; paint(); paintStats(); renderProgress();
+  S.lastSession={pi:proj, mins:S.block, ts:Date.now()};   // remember the block just finished
   offerLog(proj, S.block);   // premium: auto-send or offer to log these work hours (Calendar / Toggl)
 }
 // Real-world reset ideas – get away from the screen.

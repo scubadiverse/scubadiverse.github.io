@@ -324,6 +324,39 @@ class MainActivity : AppCompatActivity() {
         }.start()
     }
 
+    // Log in with the user's Toggl email + password: fetch their api_token + default
+    // workspace from /me, so the user never has to find an API token. Password is used
+    // once and never stored.
+    private fun togglLoginWith(email: String, password: String) {
+        Thread {
+            var token = ""; var wid = ""
+            try {
+                val conn = (java.net.URL("https://api.track.toggl.com/api/v9/me")
+                    .openConnection() as java.net.HttpURLConnection)
+                conn.requestMethod = "GET"
+                conn.setRequestProperty("Authorization", "Basic " +
+                    android.util.Base64.encodeToString(
+                        (email + ":" + password).toByteArray(Charsets.UTF_8), android.util.Base64.NO_WRAP))
+                if (conn.responseCode in 200..299) {
+                    val body = conn.inputStream.bufferedReader().use { it.readText() }
+                    val o = org.json.JSONObject(body)
+                    token = o.optString("api_token", "")
+                    val w = o.optLong("default_workspace_id", 0L)
+                    if (w != 0L) wid = w.toString()
+                }
+                conn.disconnect()
+            } catch (e: Exception) {}
+            val t = token; val w = wid
+            runOnUiThread {
+                try {
+                    val res = org.json.JSONObject().put("token", t).put("workspaceId", w).toString()
+                    web.evaluateJavascript(
+                        "window.onTogglMe && window.onTogglMe(" + org.json.JSONObject.quote(res) + ")", null)
+                } catch (e: Exception) {}
+            }
+        }.start()
+    }
+
     private fun togglSendEntry(token: String, workspaceId: String, startSec: Long, durationSec: Long, desc: String) {
         Thread {
             var ok = false
@@ -548,6 +581,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         // ---- Toggl Track (premium) ----
+        @JavascriptInterface
+        fun togglLogin(email: String, password: String) { togglLoginWith(email, password) }
         @JavascriptInterface
         fun togglValidate(token: String) { togglValidateToken(token) }
         @JavascriptInterface
