@@ -1,0 +1,132 @@
+<title>Focus & Flow – Native App with Health Sync: Plan</title>
+<style>
+  :root{
+    --bg:#f6f4ef; --ink:#1c2530; --muted:#5f6f7e; --line:#e2ddd2; --card:#fffdf8;
+    --accent:#0f8f7e; --accent2:#2ea6ff; --warn:#b5701a; --good:#0f8f7e;
+    --chip:#eef3f1;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#101820; --ink:#e8eef4; --muted:#9fb0c0; --line:#26333f; --card:#17222c;
+      --accent:#4fd6c0; --accent2:#5ab6ff; --warn:#e2a24a; --good:#4fd6c0; --chip:#1d2a35; }
+  }
+  :root[data-theme="light"]{ --bg:#f6f4ef; --ink:#1c2530; --muted:#5f6f7e; --line:#e2ddd2;
+    --card:#fffdf8; --accent:#0f8f7e; --accent2:#2ea6ff; --warn:#b5701a; --good:#0f8f7e; --chip:#eef3f1; }
+  :root[data-theme="dark"]{ --bg:#101820; --ink:#e8eef4; --muted:#9fb0c0; --line:#26333f;
+    --card:#17222c; --accent:#4fd6c0; --accent2:#5ab6ff; --warn:#e2a24a; --good:#4fd6c0; --chip:#1d2a35; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:760px;margin:0 auto;padding:40px 20px 64px}
+  .eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:12px;color:var(--accent);font-weight:700}
+  h1{font-size:30px;line-height:1.2;margin:8px 0 6px;text-wrap:balance}
+  .lede{color:var(--muted);font-size:17px;margin:0 0 8px}
+  h2{font-size:20px;margin:34px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--line)}
+  h3{font-size:16px;margin:18px 0 4px}
+  p{margin:8px 0}
+  ul{margin:8px 0;padding-left:20px} li{margin:5px 0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:14px 0}
+  .note{border-left:4px solid var(--warn);background:var(--card);padding:12px 16px;border-radius:0 10px 10px 0;margin:14px 0}
+  .note b{color:var(--warn)}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:15px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  td.n{font-variant-numeric:tabular-nums;white-space:nowrap}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+  .chip{background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:13px}
+  .phase{display:flex;gap:14px;align-items:flex-start;margin:12px 0}
+  .phase .num{flex:none;width:30px;height:30px;border-radius:50%;background:var(--accent);color:#04211d;
+    font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14px}
+  .foot{color:var(--muted);font-size:13px;margin-top:30px;border-top:1px solid var(--line);padding-top:14px}
+  a{color:var(--accent2)}
+  .tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;
+    background:var(--chip);color:var(--muted);margin-left:6px;text-transform:uppercase;letter-spacing:.05em}
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">Plan &amp; Estimate</div>
+  <h1>Focus &amp; Flow – Native App with Health Sync</h1>
+  <p class="lede">A plan to rebuild your focus app as a real phone app that can read your stress from
+    Apple Health, Samsung Health, Google Health Connect and Garmin – and calm you down automatically.</p>
+
+  <div class="note">
+    <b>The honest headline.</b> Your current app is a web page, and web pages <b>cannot</b> read health
+    data from any phone platform – Apple, Samsung, Google and Garmin all block it. The only way to reach
+    that data is a <b>native app</b> installed from the App Store / Play Store. This is the plan for that app.
+  </div>
+
+  <h2>What it would do</h2>
+  <p>Everything the app does today – focus timer, projects, priority helper, mood check-ins, breathing,
+    rain &amp; hairdryer sounds, water/break/time-out reminders – plus one new power:</p>
+  <div class="card">
+    <b>Automatic stress rescue.</b> The app reads your live stress / heart-rate data from your watch or
+    phone. When your stress climbs above a level you set, it steps in on its own: a <b>2-minute time-out</b>,
+    plays <b>rain</b>, and guides you to <b>breathe</b> – exactly what you asked for, without you having to
+    notice or press anything.
+  </div>
+
+  <h2>Which health sources it connects to</h2>
+  <p>Instead of wiring each one separately, we use one service – <b>Terra</b> – that bundles 500+ devices
+    behind a single connection:</p>
+  <div class="chips">
+    <span class="chip">🍎 Apple Health</span>
+    <span class="chip">📱 Samsung Health</span>
+    <span class="chip">🤖 Google Health Connect</span>
+    <span class="chip">⌚ Garmin Connect</span>
+    <span class="chip">＋ Fitbit, Oura, Whoop, Polar…</span>
+  </div>
+
+  <h2>How it gets built</h2>
+  <div class="phase"><div class="num">1</div><div>
+    <h3>Rebuild the app for phones <span class="tag">~1–2 weeks</span></h3>
+    <p>Re-create the current app in <b>React Native</b> – one codebase that becomes both an iPhone and an
+      Android app. Same look and features you already have.</p></div></div>
+  <div class="phase"><div class="num">2</div><div>
+    <h3>Add the health connection <span class="tag">~1 week</span></h3>
+    <p>Plug in Terra to read stress / heart-rate, and wire the "stress too high → time-out + rain + breathe"
+      rule.</p></div></div>
+  <div class="phase"><div class="num">3</div><div>
+    <h3>Test on real phones &amp; publish <span class="tag">~1–2 weeks</span></h3>
+    <p>Test with a real watch, then submit to the App Store and Play Store. Apple's review of a health app
+      can take several days and sometimes asks questions.</p></div></div>
+  <p style="margin-top:12px"><b>Rough total: about 4–6 weeks</b> of focused work for a first working version.</p>
+
+  <h2>What it costs</h2>
+  <table>
+    <tr><th>Item</th><th>Cost</th><th>Notes</th></tr>
+    <tr><td>Apple Developer account</td><td class="n">$99 / year</td><td>Required to publish on iPhone.</td></tr>
+    <tr><td>Google Play account</td><td class="n">$25 once</td><td>Required to publish on Android.</td></tr>
+    <tr><td>Terra (health data)</td><td class="n">Free to test<br>→ paid to run</td><td>Free tier for prototyping; paid plan for real use. Exact price isn't public – <b>I'd confirm it before we commit.</b></td></tr>
+    <tr><td>Small server / host</td><td class="n">$0–10 / month</td><td>Receives the health updates. A free tier likely covers personal use.</td></tr>
+  </table>
+  <p class="foot" style="border:0;margin-top:4px;padding-top:0">The dollar figures for the developer
+    accounts are Apple's and Google's published prices. Terra's exact pricing I have <b>not</b> confirmed –
+    I've flagged it rather than guess a number.</p>
+
+  <h2>Honest limitations</h2>
+  <ul>
+    <li><b>Not truly real-time.</b> Watches send stress data in chunks after they sync (every few hours, or
+      when you open the health app). The app would check every ~15 minutes – so the rescue comes soon after
+      a stress spike, not the exact second.</li>
+    <li><b>App Store review.</b> Health apps get extra scrutiny and can take days; occasionally rejected and
+      resubmitted.</li>
+    <li><b>Ongoing upkeep.</b> A native app needs updates as phones and rules change – it's not "build once,
+      forget."</li>
+  </ul>
+
+  <h2>My recommendation</h2>
+  <div class="card">
+    <p style="margin-top:0">Start <b>small and cheap</b> to prove it works before spending on everything:</p>
+    <ul>
+      <li>Build a rough test app that connects <b>just your own phone's health data</b> (e.g. Apple Health on
+        your iPhone) and triggers the breathe.</li>
+      <li>If the stress-rescue feels right, then do the full build and publish to the stores.</li>
+    </ul>
+    <p style="margin-bottom:0">Meanwhile, your <b>free web app keeps working today</b> with the manual
+      "breathe now" button, so you lose nothing while we decide.</p>
+  </div>
+
+  <p class="foot">Sources: Apple HealthKit and Google Health Connect are on-device SDKs with no web API;
+    Samsung Health and Apple Health are mobile-only for third parties; Terra connects 500+ sources incl.
+    Garmin, Apple Health, Samsung Health and Health Connect via a mobile SDK. Prepared for Monica · Focus &amp; Flow.</p>
+</div>

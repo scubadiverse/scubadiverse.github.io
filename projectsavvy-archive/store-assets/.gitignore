@@ -1,0 +1,7 @@
+# Build outputs / temp files – not source
+app-release.aab
+app-debug.apk
+_embed.json
+Focus-Flow-store-images.zip
+*.zip
+*.webm

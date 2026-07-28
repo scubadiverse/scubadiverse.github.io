@@ -1,0 +1,12 @@
+{
+  "name": "projectsavvy-desktop-prototype",
+  "version": "0.1.0",
+  "description": "ProjectSavvy desktop prototype: loads the app (sign-in + sync) and adds a whole-screen break lock.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^31.7.7"
+  }
+}

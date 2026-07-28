@@ -1,0 +1,11 @@
+import pw from '/opt/node22/lib/node_modules/playwright/index.js';
+const { chromium } = pw;
+const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+const c=await b.newContext({viewport:{width:432,height:420},deviceScaleFactor:2.5,colorScheme:'dark'});
+const p=await c.newPage();
+await p.goto('file://'+process.cwd()+'/index.html',{waitUntil:'load'});
+await p.waitForTimeout(700);
+await p.evaluate(()=>{document.querySelectorAll('.overlay').forEach(o=>{o.classList.remove('show');o.style.display='none';});});
+await p.screenshot({path:'store-assets/name-hint.png'});
+await b.close();
+console.log('done');
