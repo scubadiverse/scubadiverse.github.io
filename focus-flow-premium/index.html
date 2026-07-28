@@ -565,6 +565,7 @@ feelings are frequent or heavy, talking to someone you trust helps.
 // ---- storage ----
 var KEY="focusflow.v1";
 function todayKey(){var d=new Date();return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();}
+function dayKeyOf(ts){var d=new Date(ts);return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();}
 // The app learns each person's own rhythm from their sessions – no preset seed.
 var seed={ hourWeights:{}, peakHours:[] };
 var S=load();
@@ -617,12 +618,21 @@ function load(){
   if(!s) return base;
   if(s.day!==todayKey()){
     var tot=0; for(var mk in (s.mins||{})) tot+=s.mins[mk];
-    if(tot>0 || (s.blocks||0)>0 || (s.wins&&s.wins.length)){
+    if(tot>0 || (s.blocks||0)>0 || (s.wins&&s.wins.length) || (s.moods&&s.moods.length)){
       if(!s.history) s.history=[];
-      s.history.push({day:s.day, min:tot, blocks:s.blocks||0, wins:(s.wins?s.wins.length:0), mins:(s.mins||{})});
+      s.history.push({day:s.day, min:tot, blocks:s.blocks||0, wins:(s.wins?s.wins.length:0), mins:(s.mins||{}), moods:(s.moods||[])});
       if(s.history.length>180) s.history=s.history.slice(-180);
     }
+    // Fresh journal each day: feelings + water reset here (stats stay archived above).
     s.day=todayKey(); s.mins={}; s.blocks=0; s.lastProj=null; s.wins=[]; s.targetNotified={}; s.projRemain={}; s.timer=null;
+    s.moods=[]; s.lastDrankTs=0; s.lastWaterTs=0;
+  }
+  // Clean up feelings that piled up before the daily reset existed: keep only
+  // today's in the live journal, move older ones to the archive.
+  if(s.moods && s.moods.length){
+    var _tk=todayKey(), _keep=[], _arch=s.moodArchive||[];
+    s.moods.forEach(function(m){ if(m && m.ts && dayKeyOf(m.ts)!==_tk){ _arch.push(m); } else { _keep.push(m); } });
+    if(_keep.length!==s.moods.length){ s.moods=_keep; s.moodArchive=(_arch.length>1000?_arch.slice(-1000):_arch); }
   }
   for(var k in base) if(!(k in s)) s[k]=base[k];
   if(!s.projects || !s.projects.length) s.projects=base.projects;
