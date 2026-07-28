@@ -110,7 +110,8 @@ class MainActivity : AppCompatActivity() {
             .build()
         val params = QueryProductDetailsParams.newBuilder()
             .setProductList(listOf(product)).build()
-        billingClient?.queryProductDetailsAsync(params) { result, list ->
+        billingClient?.queryProductDetailsAsync(params) { result, productDetailsResult ->
+            val list = productDetailsResult.productDetailsList
             if (result.responseCode == BillingClient.BillingResponseCode.OK && list.isNotEmpty()) {
                 subDetails = list[0]
                 pushPricesToWeb()

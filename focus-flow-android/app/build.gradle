@@ -54,5 +54,5 @@ dependencies {
     implementation 'com.google.android.gms:play-services-auth:21.2.0'
     // Google Play Billing - the subscription payment (Premium). Declares the
     // com.android.vending.BILLING permission so Play Console lets us sell it.
-    implementation 'com.android.billingclient:billing-ktx:7.1.1'
+    implementation 'com.android.billingclient:billing-ktx:9.0.0'
 }
