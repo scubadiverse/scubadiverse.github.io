@@ -24,7 +24,7 @@ jobs:
           set -e
           sed -i 's#https://scubadiverse.github.io/focus-flow/#https://project-savvy-914a1.web.app#' \
             app/src/main/java/net/scubadiverse/focusflow/MainActivity.kt
-          sed -i 's#versionCode 24#versionCode 1110#' app/build.gradle
+          sed -i 's#versionCode 24#versionCode 1120#' app/build.gradle
           echo "Patched URL + versionCode. Check:"
           grep -n "loadUrl(" app/src/main/java/net/scubadiverse/focusflow/MainActivity.kt
           grep -n "versionCode" app/build.gradle

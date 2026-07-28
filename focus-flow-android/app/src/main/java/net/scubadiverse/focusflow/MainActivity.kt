@@ -592,6 +592,22 @@ class MainActivity : AppCompatActivity() {
             val d = durationSec.toLongOrNull() ?: return
             togglSendEntry(token, workspaceId, s, d, desc)
         }
+        // Simplest connect: open Toggl's own page in the real browser (Google login
+        // works there), user copies the token, and the app reads it from the clipboard.
+        @JavascriptInterface
+        fun openTogglTokenPage() {
+            runOnUiThread {
+                try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://track.toggl.com/profile"))) } catch (e: Exception) {}
+            }
+        }
+        @JavascriptInterface
+        fun readClipboard(): String {
+            return try {
+                val cm = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                val clip = cm.primaryClip
+                if (clip != null && clip.itemCount > 0) (clip.getItemAt(0).coerceToText(this@MainActivity)?.toString() ?: "") else ""
+            } catch (e: Exception) { "" }
+        }
 
         // Schedule a one-shot reminder that fires even if the app is closed.
         @JavascriptInterface
