@@ -227,6 +227,24 @@
   </div>
 </div>
 
+<style>
+.wbchip{flex:1;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:9px 6px;text-align:center;cursor:pointer}
+.wbchip .ic{font-size:19px;line-height:1}
+.wbchip .lb{color:var(--ink);font-size:11px;font-weight:700;margin-top:4px}
+.wbchip .st{font-size:10px;margin-top:2px;color:var(--muted)}
+.wbchip.done{border-color:rgba(61,220,151,.55);background:linear-gradient(180deg,rgba(61,220,151,.10),var(--card2))}
+.wbchip.done .st{color:var(--good)}
+</style>
+<div class="card" id="wellCard">
+  <div class="row"><b class="grow">Well-being</b><span class="pill" id="wellState">reminders on</span></div>
+  <div style="display:flex;gap:8px;margin-top:12px">
+    <div class="wbchip" id="wbWater" onclick="wbWater()"><div class="ic">💧</div><div class="lb">Water</div><div class="st" id="wbWaterSt">not yet</div></div>
+    <div class="wbchip" onclick="wbOpen()"><div class="ic">👀</div><div class="lb">Eye rest</div><div class="st" id="wbEyeSt">on</div></div>
+    <div class="wbchip" onclick="wbOpen()"><div class="ic">🧍</div><div class="lb">Stand</div><div class="st" id="wbStandSt">on</div></div>
+    <div class="wbchip" onclick="wbOpen()"><div class="ic">🔒</div><div class="lb">Time-out</div><div class="st" id="wbTimeoutSt">after 60m</div></div>
+  </div>
+</div>
+
 <div class="card">
   <div class="row"><b class="grow">Can't decide which project?</b>
     <button class="pill" onclick="toggleDecide()" id="decideBtn">🤔 Help me choose</button></div>
@@ -910,6 +928,7 @@ function switchTab(name, isBack){
   // shows only when there is somewhere to go back to - no duplicate title on Home.
   var tb=document.getElementById('topbar'); if(tb) tb.style.display = navStack.length ? '' : 'none';
   if(name==='unplanned') renderUnplanned();
+  if(name==='home'){ try{ renderWellbeing(); }catch(e){} }
   try{ window.scrollTo(0,0); }catch(e){}
 }
 function goBack(){ if(!navStack.length) return; switchTab(navStack.pop(), true); }
@@ -1817,7 +1836,22 @@ function paintWaterBtn(){
   var wb=document.getElementById('waterBtn'); if(!wb) return;
   var logged = S.lastDrankTs && S.lastWaterTs && S.lastDrankTs >= S.lastWaterTs;
   wb.textContent='💧 Drank water: '+(logged?'Yes':'No'); wb.classList.remove('sel');
+  try{ renderWellbeing(); }catch(e){}
 }
+// ---- Home Well-being strip: glanceable status of the reminders, details in Settings ----
+function renderWellbeing(){
+  if(!document.getElementById('wellCard')) return;
+  var logged = S.lastDrankTs && S.lastWaterTs && S.lastDrankTs >= S.lastWaterTs;
+  var w=document.getElementById('wbWater'), wst=document.getElementById('wbWaterSt');
+  if(w) w.classList.toggle('done', !!logged);
+  if(wst) wst.textContent = logged ? 'drank ✓' : 'not yet';
+  var est=document.getElementById('wbEyeSt'); if(est) est.textContent = S.eyeRest ? ('every '+(S.eyeEvery||20)+'m') : 'off';
+  var sst=document.getElementById('wbStandSt'); if(sst) sst.textContent = S.stand ? 'on' : 'off';
+  var tst=document.getElementById('wbTimeoutSt'); if(tst) tst.textContent = 'after '+(S.onlineLimit||60)+'m';
+  var ws=document.getElementById('wellState'); if(ws) ws.textContent = S.alertsOn ? 'reminders on' : 'reminders off';
+}
+function wbWater(){ toggleWater(); renderWellbeing(); }
+function wbOpen(){ switchTab('settings'); setTimeout(function(){ var a=document.getElementById('alertBtn'); if(a && a.closest){ var c=a.closest('.card'); if(c) c.scrollIntoView({behavior:'smooth'}); } }, 80); }
 // tap on = log water (Yes); tap again = remove it (No), to undo a mistake
 function toggleWater(){
   var logged = S.lastDrankTs && S.lastWaterTs && S.lastDrankTs >= S.lastWaterTs;

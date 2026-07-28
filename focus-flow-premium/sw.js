@@ -2,7 +2,7 @@
 // NETWORK-FIRST for the page: always fetch the freshest app so a new deploy shows
 // on the very next open; fall back to the cached copy only when offline. Bump CACHE
 // to force old caches out.
-var CACHE = "focusflow-paid-v42";
+var CACHE = "focusflow-paid-v43";
 var ASSETS = [
   "./",
   "./index.html",

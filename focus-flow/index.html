@@ -206,8 +206,9 @@
     <button id="tiredBtn" onclick="markTired()">😮‍💨 Getting tired</button>
   </div>
   <div class="row" style="margin-top:10px;justify-content:center">
-    <button id="resetBtn" onclick="resetBlock()">↺ Reset timer</button>
+    <button id="resetBtn" onclick="resetBlock()">⏹ Stop</button>
   </div>
+  <div class="foot" style="text-align:center;margin-top:4px">Stops and resets the timer completely.</div>
   <div class="row" style="margin-top:10px">
     <button class="grow" style="background:#3a1f2a;color:#ffc2d1;border-color:#6a3348" onclick="overwhelmed()">🆘 I'm overwhelmed</button>
   </div>
@@ -220,6 +221,24 @@
     <span class="muted" style="font-size:13px">Or custom:</span>
     <input type="number" id="blockLen" min="10" max="120" value="50" onchange="setBlock()">
     <span class="muted" style="font-size:13px">min</span>
+  </div>
+</div>
+
+<style>
+.wbchip{flex:1;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:9px 6px;text-align:center;cursor:pointer}
+.wbchip .ic{font-size:19px;line-height:1}
+.wbchip .lb{color:var(--ink);font-size:11px;font-weight:700;margin-top:4px}
+.wbchip .st{font-size:10px;margin-top:2px;color:var(--muted)}
+.wbchip.done{border-color:rgba(61,220,151,.55);background:linear-gradient(180deg,rgba(61,220,151,.10),var(--card2))}
+.wbchip.done .st{color:var(--good)}
+</style>
+<div class="card" id="wellCard">
+  <div class="row"><b class="grow">Well-being</b><span class="pill" id="wellState">reminders on</span></div>
+  <div style="display:flex;gap:8px;margin-top:12px">
+    <div class="wbchip" id="wbWater" onclick="wbWater()"><div class="ic">💧</div><div class="lb">Water</div><div class="st" id="wbWaterSt">not yet</div></div>
+    <div class="wbchip" onclick="wbOpen()"><div class="ic">👀</div><div class="lb">Eye rest</div><div class="st" id="wbEyeSt">on</div></div>
+    <div class="wbchip" onclick="wbOpen()"><div class="ic">🧍</div><div class="lb">Stand</div><div class="st" id="wbStandSt">on</div></div>
+    <div class="wbchip" onclick="wbOpen()"><div class="ic">🔒</div><div class="lb">Time-out</div><div class="st" id="wbTimeoutSt">after 60m</div></div>
   </div>
 </div>
 
@@ -436,6 +455,7 @@ feelings are frequent or heavy, talking to someone you trust helps.
 // ---- storage ----
 var KEY="focusflow.v1";
 function todayKey(){var d=new Date();return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();}
+function dayKeyOf(ts){var d=new Date(ts);return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();}
 // The app learns each person's own rhythm from their sessions – no preset seed.
 var seed={ hourWeights:{}, peakHours:[] };
 var S=load();
@@ -486,12 +506,21 @@ function load(){
   if(!s) return base;
   if(s.day!==todayKey()){
     var tot=0; for(var mk in (s.mins||{})) tot+=s.mins[mk];
-    if(tot>0 || (s.blocks||0)>0 || (s.wins&&s.wins.length)){
+    if(tot>0 || (s.blocks||0)>0 || (s.wins&&s.wins.length) || (s.moods&&s.moods.length)){
       if(!s.history) s.history=[];
-      s.history.push({day:s.day, min:tot, blocks:s.blocks||0, wins:(s.wins?s.wins.length:0), mins:(s.mins||{})});
+      s.history.push({day:s.day, min:tot, blocks:s.blocks||0, wins:(s.wins?s.wins.length:0), mins:(s.mins||{}), moods:(s.moods||[])});
       if(s.history.length>180) s.history=s.history.slice(-180);
     }
+    // Fresh journal each day: feelings + water reset here (stats stay archived above).
     s.day=todayKey(); s.mins={}; s.blocks=0; s.lastProj=null; s.wins=[]; s.targetNotified={}; s.projRemain={}; s.timer=null;
+    s.moods=[]; s.lastDrankTs=0; s.lastWaterTs=0;
+  }
+  // Clean up feelings that piled up before the daily reset existed: keep only
+  // today's in the live journal, move older ones to the archive.
+  if(s.moods && s.moods.length){
+    var _tk=todayKey(), _keep=[], _arch=s.moodArchive||[];
+    s.moods.forEach(function(m){ if(m && m.ts && dayKeyOf(m.ts)!==_tk){ _arch.push(m); } else { _keep.push(m); } });
+    if(_keep.length!==s.moods.length){ s.moods=_keep; s.moodArchive=(_arch.length>1000?_arch.slice(-1000):_arch); }
   }
   for(var k in base) if(!(k in s)) s[k]=base[k];
   if(!s.projects || !s.projects.length) s.projects=base.projects;
@@ -547,6 +576,7 @@ function switchTab(name, isBack){
   var title=document.getElementById('tbTitle'); if(title) title.textContent=TAB_TITLE[name];
   var back=document.getElementById('tbBack'); if(back) back.classList.toggle('off', navStack.length===0);
   if(name==='unplanned') renderUnplanned();
+  if(name==='home'){ try{ renderWellbeing(); }catch(e){} }
   try{ window.scrollTo(0,0); }catch(e){}
 }
 function goBack(){ if(!navStack.length) return; switchTab(navStack.pop(), true); }
@@ -1452,7 +1482,22 @@ function paintWaterBtn(){
   var wb=document.getElementById('waterBtn'); if(!wb) return;
   var logged = S.lastDrankTs && S.lastWaterTs && S.lastDrankTs >= S.lastWaterTs;
   wb.textContent='💧 Drank water: '+(logged?'Yes':'No'); wb.classList.remove('sel');
+  try{ renderWellbeing(); }catch(e){}
 }
+// ---- Home Well-being strip: glanceable status of the reminders, details in Settings ----
+function renderWellbeing(){
+  if(!document.getElementById('wellCard')) return;
+  var logged = S.lastDrankTs && S.lastWaterTs && S.lastDrankTs >= S.lastWaterTs;
+  var w=document.getElementById('wbWater'), wst=document.getElementById('wbWaterSt');
+  if(w) w.classList.toggle('done', !!logged);
+  if(wst) wst.textContent = logged ? 'drank ✓' : 'not yet';
+  var est=document.getElementById('wbEyeSt'); if(est) est.textContent = S.eyeRest ? ('every '+(S.eyeEvery||20)+'m') : 'off';
+  var sst=document.getElementById('wbStandSt'); if(sst) sst.textContent = S.stand ? 'on' : 'off';
+  var tst=document.getElementById('wbTimeoutSt'); if(tst) tst.textContent = 'after '+(S.onlineLimit||60)+'m';
+  var ws=document.getElementById('wellState'); if(ws) ws.textContent = S.alertsOn ? 'reminders on' : 'reminders off';
+}
+function wbWater(){ toggleWater(); renderWellbeing(); }
+function wbOpen(){ switchTab('settings'); setTimeout(function(){ var a=document.getElementById('alertBtn'); if(a && a.closest){ var c=a.closest('.card'); if(c) c.scrollIntoView({behavior:'smooth'}); } }, 80); }
 // tap on = log water (Yes); tap again = remove it (No), to undo a mistake
 function toggleWater(){
   var logged = S.lastDrankTs && S.lastWaterTs && S.lastDrankTs >= S.lastWaterTs;
