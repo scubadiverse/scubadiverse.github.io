@@ -370,12 +370,10 @@
     <b>⏱ Toggl Track</b>
     <div class="foot" style="text-align:left;margin:4px 0 10px">Send your finished focus blocks to Toggl Track as time entries.</div>
     <div id="togglSetup">
-      <div class="foot" style="text-align:left;margin:4px 0 10px">Tap Connect, log in to Toggl, and copy the token it shows. The app fills it in for you.</div>
-      <button onclick="connectTogglSimple()" style="width:100%">⏱ Connect Toggl</button>
-      <div id="togglTokenBox" style="display:none;margin-top:8px">
-        <input type="text" id="togglToken" placeholder="Paste the copied token here" style="width:100%;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px">
-        <button onclick="connectToggl()" style="width:100%;margin-top:6px">Connect</button>
-      </div>
+      <div class="foot" style="text-align:left;margin:4px 0 10px">Log in with your Toggl email and password.</div>
+      <input type="email" id="togglEmail" placeholder="Toggl email" autocomplete="username" style="width:100%;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px">
+      <input type="password" id="togglPass" placeholder="Toggl password" autocomplete="current-password" style="width:100%;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px">
+      <button onclick="connectTogglLogin()" style="width:100%;margin-top:8px">⏱ Connect Toggl</button>
     </div>
     <div id="togglDone" style="display:none">
       <button onclick="disconnectToggl()" style="width:100%">⏱ Toggl: Connected ✓ (tap to disconnect)</button>
@@ -856,26 +854,15 @@ function sendToToggl(pi, mins, silent, endTs){
 }
 window.onTogglResult=function(ok){ try{ toast(ok?'Sent to Toggl ✓':'Could not send to Toggl – check your token.'); }catch(e){} };
 window.onTogglMe=function(json){ try{ var o=JSON.parse(json); if(o&&(o.workspaceId||o.token)){ if(o.token) toggl().token=o.token; if(o.workspaceId) toggl().workspaceId=o.workspaceId; toggl().connected=true; save(); renderTogglCard(); toast('Toggl connected ✓'); } else { toast('Toggl login failed – check email/password. If you use 2-factor or Google login, use the API-token option.'); } }catch(e){ toast('Toggl login failed.'); } };
-// Simplest connect: open Toggl's page (Google login works there), user copies the
-// token, and on return the app auto-reads it from the clipboard.
-var togglAwaitingToken=false;
-function connectTogglSimple(){
-  togglAwaitingToken=true;
-  if(window.AndroidBridge && window.AndroidBridge.openTogglTokenPage){ try{ window.AndroidBridge.openTogglTokenPage(); toast('Log in, copy your token, then come back to the app.'); }catch(e){} }
-  else { var b=document.getElementById('togglTokenBox'); if(b) b.style.display='block'; toast('Open track.toggl.com/profile in your browser, copy the token, and paste it.'); }
+// In-app login: user types their Toggl email + password; the app fetches their
+// token via /me natively (no browser, no token to find). Password never stored.
+function connectTogglLogin(){
+  var e=document.getElementById('togglEmail'), p=document.getElementById('togglPass');
+  var em=((e&&e.value)||'').trim(), pw=((p&&p.value)||'');
+  if(!em||!pw){ toast('Enter your Toggl email and password.'); return; }
+  if(window.AndroidBridge && window.AndroidBridge.togglLogin){ try{ window.AndroidBridge.togglLogin(em, pw); toast('Connecting to Toggl…'); }catch(e){} }
+  else { toast('Open the ProjectSavvy app to connect Toggl.'); }
 }
-function tryTogglFromClipboard(){
-  if(!togglAwaitingToken) return;
-  var tk='';
-  try{ if(window.AndroidBridge && window.AndroidBridge.readClipboard) tk=(window.AndroidBridge.readClipboard()||'').trim(); }catch(e){}
-  if(/^[a-f0-9]{20,64}$/i.test(tk)){
-    togglAwaitingToken=false; toggl().token=tk; save();
-    if(window.AndroidBridge && window.AndroidBridge.togglValidate){ try{ window.AndroidBridge.togglValidate(tk); }catch(e){} }
-  } else {
-    var b=document.getElementById('togglTokenBox'); if(b) b.style.display='block';
-  }
-}
-try{ document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible' && togglAwaitingToken){ setTimeout(tryTogglFromClipboard, 400); } }); }catch(e){}
 function connectToggl(){
   var inp=document.getElementById('togglToken'); if(!inp) return;
   var tk=(inp.value||'').trim(); if(!tk){ toast('Paste your Toggl API token first.'); return; }
