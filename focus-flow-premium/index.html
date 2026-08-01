@@ -366,26 +366,6 @@
     </div>
   </div>
 
-  <div class="card" id="togglCard" style="display:none">
-    <b>⏱ Toggl Track</b>
-    <div class="foot" style="text-align:left;margin:4px 0 10px">Send your finished focus blocks to Toggl Track as time entries.</div>
-    <div id="togglSetup">
-      <div class="foot" style="text-align:left;margin:4px 0 10px">Log in with your Toggl email and password.</div>
-      <input type="email" id="togglEmail" placeholder="Toggl email" autocomplete="username" style="width:100%;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px">
-      <input type="password" id="togglPass" placeholder="Toggl password" autocomplete="current-password" style="width:100%;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px">
-      <button onclick="connectTogglLogin()" style="width:100%;margin-top:8px">⏱ Connect Toggl</button>
-    </div>
-    <div id="togglDone" style="display:none">
-      <button onclick="disconnectToggl()" style="width:100%">⏱ Toggl: Connected ✓ (tap to disconnect)</button>
-      <div class="row" style="margin-top:8px;justify-content:center">
-        <button id="togglAutoBtn" onclick="toggleTogglAuto()">Auto-send every session: Off</button>
-      </div>
-      <div style="margin-top:8px;text-align:center">
-        <button onclick="togglAddSession()">⏱ Add this session</button>
-      </div>
-    </div>
-  </div>
-
   <div class="card">
     <b>🔔 Reminders</b>
     <div class="row" style="margin-top:10px;justify-content:center">
@@ -531,7 +511,7 @@
     <div class="subgrab"></div>
     <div class="subh1">Go Premium ✨</div>
     <div class="subsub">10-day free trial, then cancel anytime</div>
-    <div class="subunl"><b>✓</b> Unplanned tasks &nbsp; <b>✓</b> Resting zone &nbsp; <b>✓</b> Cloud sync<br><b>✓</b> Coming soon: Google Calendar &amp; Toggl</div>
+    <div class="subunl"><b>✓</b> Unplanned tasks &nbsp; <b>✓</b> Resting zone &nbsp; <b>✓</b> Cloud sync<br><b>✓</b> Coming soon: Google Calendar</div>
     <div id="planYear" class="subplan sel" onclick="pickPlan('yearly')">
       <div class="subbadge">BEST VALUE · SAVE 42%</div>
       <div><div class="subpl">Yearly</div><div class="subpsub">10 days free, then billed yearly</div></div>
@@ -840,7 +820,7 @@ function togglAddSession(){
 }
 // ---- Toggl Track (premium) ----
 function toggl(){ if(!S.toggl) S.toggl={connected:false,autoSend:false,token:'',workspaceId:''}; return S.toggl; }
-function togglOn(){ return isPremium() && toggl().connected; }
+function togglOn(){ return false; } // Toggl removed for now (no one-tap connect on Toggl's side)
 function togglBridge(){ return !!(window.AndroidBridge && window.AndroidBridge.sendToggl); }
 function sendToToggl(pi, mins, silent, endTs){
   try{
