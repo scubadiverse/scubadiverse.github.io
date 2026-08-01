@@ -292,6 +292,116 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) { Pair(-1, e.message ?: "network") }
     }
 
+    // ---- Phone / system calendar: write a finished block straight to the device
+    // calendar via CalendarContract. No Google sign-in, no OAuth verification - works
+    // for every user immediately. ----
+    private val SYS_CAL_PERM_REQ = 9021
+    private var pendingSysConnect = false
+    private var pendingSysEvent: Array<Any>? = null // [title, startMs, endMs, desc]
+
+    private fun hasCalPerm(): Boolean =
+        ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_CALENDAR) ==
+            PackageManager.PERMISSION_GRANTED
+
+    // The default writable calendar on the phone: Pair(id, display name) or null.
+    private fun defaultCalendar(): Pair<Long, String>? {
+        return try {
+            val proj = arrayOf(
+                android.provider.CalendarContract.Calendars._ID,
+                android.provider.CalendarContract.Calendars.CALENDAR_DISPLAY_NAME,
+                android.provider.CalendarContract.Calendars.ACCOUNT_NAME,
+                android.provider.CalendarContract.Calendars.IS_PRIMARY,
+                android.provider.CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL)
+            val cur = contentResolver.query(
+                android.provider.CalendarContract.Calendars.CONTENT_URI, proj, null, null, null)
+                ?: return null
+            var bestId = -1L; var bestName = ""; var primaryDone = false
+            cur.use {
+                while (it.moveToNext()) {
+                    if (it.getInt(4) < android.provider.CalendarContract.Calendars.CAL_ACCESS_CONTRIBUTOR) continue
+                    val id = it.getLong(0)
+                    val name = it.getString(1) ?: it.getString(2) ?: "Calendar"
+                    val isPrimary = it.getInt(3) == 1
+                    if (isPrimary && !primaryDone) { bestId = id; bestName = name; primaryDone = true }
+                    else if (bestId < 0) { bestId = id; bestName = name }
+                }
+            }
+            if (bestId >= 0) Pair(bestId, bestName) else null
+        } catch (e: Exception) { null }
+    }
+
+    private fun sysCalConnectedResult(ok: Boolean, name: String) {
+        runOnUiThread {
+            try { web.evaluateJavascript(
+                "window.onSysCalConnected && window.onSysCalConnected(" + ok + "," +
+                    org.json.JSONObject.quote(name) + ")", null) } catch (e: Exception) {}
+        }
+    }
+
+    private fun beginSystemCalendarConnect() {
+        if (hasCalPerm()) {
+            val c = defaultCalendar(); sysCalConnectedResult(c != null, c?.second ?: "")
+        } else {
+            pendingSysConnect = true
+            ActivityCompat.requestPermissions(this,
+                arrayOf(Manifest.permission.WRITE_CALENDAR, Manifest.permission.READ_CALENDAR), SYS_CAL_PERM_REQ)
+        }
+    }
+
+    private fun writeSystemEvent(title: String, startMs: Long, endMs: Long, desc: String) {
+        if (!hasCalPerm()) {
+            pendingSysEvent = arrayOf(title, startMs, endMs, desc); pendingSysConnect = false
+            ActivityCompat.requestPermissions(this,
+                arrayOf(Manifest.permission.WRITE_CALENDAR, Manifest.permission.READ_CALENDAR), SYS_CAL_PERM_REQ)
+            return
+        }
+        Thread {
+            var ok = false; var err = ""
+            try {
+                val c = defaultCalendar()
+                if (c == null) { err = "No writable calendar on this phone." }
+                else {
+                    val v = android.content.ContentValues().apply {
+                        put(android.provider.CalendarContract.Events.CALENDAR_ID, c.first)
+                        put(android.provider.CalendarContract.Events.TITLE, title)
+                        put(android.provider.CalendarContract.Events.DESCRIPTION, desc)
+                        put(android.provider.CalendarContract.Events.DTSTART, startMs)
+                        put(android.provider.CalendarContract.Events.DTEND, endMs)
+                        put(android.provider.CalendarContract.Events.EVENT_TIMEZONE, java.util.TimeZone.getDefault().id)
+                    }
+                    val uri = contentResolver.insert(android.provider.CalendarContract.Events.CONTENT_URI, v)
+                    ok = uri != null
+                    if (!ok) err = "Could not add the event."
+                }
+            } catch (e: Exception) { err = e.message ?: "error" }
+            val fok = ok; val ferr = err
+            runOnUiThread {
+                try { web.evaluateJavascript(
+                    "window.onCalendarResult && window.onCalendarResult(" + fok + "," +
+                        org.json.JSONObject.quote(ferr) + ")", null) } catch (e: Exception) {}
+            }
+        }.start()
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == SYS_CAL_PERM_REQ) {
+            val granted = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
+            if (pendingSysConnect) {
+                pendingSysConnect = false
+                if (granted) { val c = defaultCalendar(); sysCalConnectedResult(c != null, c?.second ?: "") }
+                else sysCalConnectedResult(false, "")
+            }
+            val ev = pendingSysEvent
+            if (ev != null) {
+                pendingSysEvent = null
+                if (granted) writeSystemEvent(ev[0] as String, ev[1] as Long, ev[2] as Long, ev[3] as String)
+                else runOnUiThread { try { web.evaluateJavascript(
+                    "window.onCalendarResult && window.onCalendarResult(false,\"Calendar permission denied.\")", null) } catch (e: Exception) {} }
+            }
+        }
+    }
+
     // ---- Toggl Track (premium): validate token + send a finished block as a time entry ----
     // HTTP Basic auth with the user's API token: base64("<token>:api_token"). Called from
     // native so there is no browser CORS problem and the token stays on-device.
@@ -579,6 +689,19 @@ class MainActivity : AppCompatActivity() {
             val s = startMs.toLongOrNull() ?: return
             val e = endMs.toLongOrNull() ?: return
             writeCalendarEvent(title, s, e, desc)
+        }
+
+        // ---- Phone / system calendar (premium) - no Google login ----
+        @JavascriptInterface
+        fun connectSystemCalendar() { runOnUiThread { beginSystemCalendarConnect() } }
+        // The device calendar's display name (empty until permission is granted).
+        @JavascriptInterface
+        fun sysCalName(): String = if (hasCalPerm()) (defaultCalendar()?.second ?: "") else ""
+        @JavascriptInterface
+        fun addSystemCalendarEvent(title: String, startMs: String, endMs: String, desc: String) {
+            val s = startMs.toLongOrNull() ?: return
+            val e = endMs.toLongOrNull() ?: return
+            writeSystemEvent(title, s, e, desc)
         }
 
         // ---- Toggl Track (premium) ----

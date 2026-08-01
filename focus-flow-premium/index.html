@@ -355,14 +355,25 @@
   </div>
 
   <div class="card" id="gcalCard" style="display:none">
-    <b>📅 Google Calendar</b>
-    <div class="foot" style="text-align:left;margin:4px 0 10px">Log your finished focus blocks to your Google Calendar as work-hours events.</div>
-    <button id="gcalConnectBtn" onclick="toggleGcalConnect()" style="width:100%">📅 Connect Google Calendar</button>
-    <div class="row" id="gcalAutoRow" style="margin-top:8px;display:none;justify-content:center">
-      <button id="gcalAutoBtn" onclick="toggleGcalAuto()">Auto-send every session: Off</button>
+    <b>📅 Calendar</b>
+    <div class="foot" style="text-align:left;margin:4px 0 10px">Log your finished focus blocks to your calendar as work-hours events.</div>
+    <div id="calStart">
+      <button id="calAddBtn" onclick="calChoose()" style="width:100%">📅 Add to calendar</button>
     </div>
-    <div id="gcalTestRow" style="margin-top:8px;display:none;text-align:center">
-      <button onclick="gcalAddSession()">📅 Add this session</button>
+    <div id="calSheet" style="display:none;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:8px">
+      <div style="font-weight:600;text-align:center;margin-bottom:8px">Add to calendar</div>
+      <button id="calSysBtn" onclick="calPick('system')" style="width:100%;margin-bottom:8px">📱 Phone calendar</button>
+      <button onclick="calPick('google')" style="width:100%;margin-bottom:8px">📅 Google Calendar</button>
+      <button onclick="calCancel()" style="width:100%;background:transparent;border:0;color:var(--muted)">Cancel</button>
+    </div>
+    <div id="calConnected" style="display:none">
+      <button id="calTargetBtn" onclick="calChoose()" style="width:100%"></button>
+      <div class="row" style="margin-top:8px;justify-content:center">
+        <button id="gcalAutoBtn" onclick="toggleGcalAuto()">Auto-send every session: Off</button>
+      </div>
+      <div style="margin-top:8px;text-align:center">
+        <button onclick="gcalAddSession()">📅 Add this session</button>
+      </div>
     </div>
   </div>
 
@@ -601,7 +612,7 @@ function load(){
     wins:[],                 // small wins today {t,ts,k}
     moods:[],                // mood check-in history {e,ts,h,act,water}
     unplanned:[],            // premium: unplanned tasks {id,name,min,pri,day}
-    gcal:{connected:false, autoSend:false}, // premium: log work hours to Google Calendar
+    gcal:{connected:false, autoSend:false, target:'', sysName:''}, // premium: log work hours to phone or Google Calendar
     toggl:{connected:false, autoSend:false, token:'', workspaceId:''} // premium: log to Toggl Track
   };
   var main=readState(KEY), bak=readState(KEY+'.bak'), nat=readNativeBackup();
@@ -763,51 +774,85 @@ function doSubscribe(){
   closeSubSheet();
 }
 // ---- Google Calendar: log a finished focus block as a work-hours event (premium) ----
-function gcal(){ if(!S.gcal) S.gcal={connected:false,autoSend:false}; return S.gcal; }
+function gcal(){ if(!S.gcal) S.gcal={connected:false,autoSend:false,target:'',sysName:''}; if(S.gcal.target===undefined) S.gcal.target=''; if(S.gcal.sysName===undefined) S.gcal.sysName=''; return S.gcal; }
 function gcalOn(){ return isPremium() && gcal().connected; }
+// Google-Calendar bridge (needs Google sign-in + verified scope).
 function gcalBridge(){ return !!(window.AndroidBridge && window.AndroidBridge.addCalendarEvent); }
+// Phone/system-calendar bridge (writes to the device calendar, no Google login).
+function sysBridge(){ return !!(window.AndroidBridge && window.AndroidBridge.addSystemCalendarEvent); }
+// The card shows when EITHER calendar path is available in the app.
+function calBridge(){ return gcalBridge() || sysBridge(); }
 function projNameAt(i){ var p=(S.projects&&S.projects[i]); return (p&&p.name)||'Focus'; }
 function calPromptDismiss(){ var p=document.getElementById('calPrompt'); if(p) p.classList.remove('show'); }
+function calTargetName(){ return gcal().target==='system' ? (gcal().sysName || 'phone calendar') : 'Google Calendar'; }
 function sendToCalendar(pi, mins, silent, endTs){
   try{
     var end=endTs||Date.now(), start=end - mins*60000;
     var title='Working hours: '+projNameAt(pi);
     var desc='Logged by ProjectSavvy – '+mins+' min focus.';
-    if(gcalBridge()){
+    if(gcal().target==='system' && sysBridge()){
+      window.AndroidBridge.addSystemCalendarEvent(title, String(start), String(end), desc);
+      if(!silent) toast('Adding to '+(gcal().sysName||'your calendar')+'…');
+    } else if(gcalBridge()){
       window.AndroidBridge.addCalendarEvent(title, String(start), String(end), desc);
       if(!silent) toast('Adding to Google Calendar…');
     } else if(!silent){
-      toast('Open the ProjectSavvy app to sync to Google Calendar.');
+      toast('Open the ProjectSavvy app to sync your calendar.');
     }
   }catch(e){}
 }
 // Android tells us how the calendar write went (with a reason if it failed).
-window.onCalendarResult=function(ok, detail){ try{ toast(ok ? 'Added to Google Calendar ✓' : ('Calendar failed: '+(detail||'unknown'))); }catch(e){} };
-// Android tells us whether the user granted calendar access.
-window.onCalendarConnected=function(ok){ gcal().connected=!!ok; save(); try{ renderGcalCard(); }catch(e){} try{ toast(ok ? 'Google Calendar connected ✓' : 'Calendar not connected – please allow access.'); }catch(e){} };
-// Settings toggles.
+window.onCalendarResult=function(ok, detail){ try{ toast(ok ? ('Added to '+calTargetName()+' ✓') : ('Calendar failed: '+(detail||'unknown'))); }catch(e){} };
+// Android tells us whether the user granted GOOGLE calendar access.
+window.onCalendarConnected=function(ok){ gcal().connected=!!ok; if(ok) gcal().target='google'; save(); try{ renderGcalCard(); }catch(e){} try{ toast(ok ? 'Google Calendar connected ✓' : 'Calendar not connected – please allow access.'); }catch(e){} };
+// Android tells us whether the user granted PHONE calendar access (with the calendar's name).
+window.onSysCalConnected=function(ok, name){ if(ok){ gcal().connected=true; gcal().target='system'; if(name) gcal().sysName=name; } save(); try{ renderGcalCard(); }catch(e){} try{ toast(ok ? ((gcal().sysName||'Phone calendar')+' connected ✓') : 'Calendar not connected – please allow access.'); }catch(e){} };
+// Android can tell us the phone calendar's display name up front (for the button label).
+window.onSysCalName=function(name){ if(name){ gcal().sysName=name; var b=document.getElementById('calSysBtn'); if(b) b.textContent='📱 '+name; } };
+// Pick which calendar to use (opens the choice, then connects that one).
+function calChoose(){
+  var start=document.getElementById('calStart'), sheet=document.getElementById('calSheet'), conn=document.getElementById('calConnected');
+  if(start) start.style.display='none';
+  if(conn) conn.style.display='none';
+  if(sheet) sheet.style.display='';
+  // Read the phone calendar's real name so the button shows e.g. "Samsung Calendar".
+  try{ if(window.AndroidBridge && window.AndroidBridge.sysCalName){ var n=window.AndroidBridge.sysCalName(); if(n){ gcal().sysName=n; } } }catch(e){}
+  var b=document.getElementById('calSysBtn'); if(b) b.textContent='📱 '+(gcal().sysName||'Phone calendar');
+}
+function calCancel(){ renderGcalCard(); }
+function calPick(target){
+  gcal().target=target; save();
+  if(target==='system'){
+    if(window.AndroidBridge && window.AndroidBridge.connectSystemCalendar){ try{ window.AndroidBridge.connectSystemCalendar(); toast('Allow calendar access…'); }catch(e){} }
+    else { toast('Open the ProjectSavvy app to use the phone calendar.'); }
+  } else {
+    if(window.AndroidBridge && window.AndroidBridge.connectCalendar){ try{ window.AndroidBridge.connectCalendar(); }catch(e){} }
+    else { gcal().connected=true; save(); renderGcalCard(); }
+  }
+}
 function toggleGcalConnect(){
-  if(gcal().connected){ gcal().connected=false; save(); renderGcalCard(); return; }
-  // Turning on: ask the app to grant calendar access; it confirms via onCalendarConnected.
-  if(window.AndroidBridge && window.AndroidBridge.connectCalendar){ try{ window.AndroidBridge.connectCalendar(); }catch(e){} }
-  else { gcal().connected=true; save(); renderGcalCard(); }
+  if(gcal().connected){ gcal().connected=false; gcal().target=''; save(); renderGcalCard(); return; }
+  calChoose();
 }
 function toggleGcalAuto(){ gcal().autoSend=!gcal().autoSend; save(); renderGcalCard(); }
 function renderGcalCard(){
   var card=document.getElementById('gcalCard'); if(!card) return;
-  // Only show once the app build that can actually write to Google Calendar is
-  // installed (native bridge present) - hidden in browsers and older app builds.
-  card.style.display = (isPremium() && gcalBridge()) ? '' : 'none';
-  var c=document.getElementById('gcalConnectBtn'), a=document.getElementById('gcalAutoRow'), ab=document.getElementById('gcalAutoBtn');
-  if(c) c.textContent = gcal().connected ? '📅 Google Calendar: Connected ✓' : '📅 Connect Google Calendar';
-  if(a) a.style.display = gcal().connected ? '' : 'none';
-  if(ab) ab.textContent = gcal().autoSend ? 'Auto-send every session: On' : 'Auto-send every session: Off';
-  var tr=document.getElementById('gcalTestRow'); if(tr) tr.style.display = gcal().connected ? '' : 'none';
+  // Only show once an app build that can write to a calendar is installed
+  // (native bridge present) - hidden in browsers and older app builds.
+  card.style.display = (isPremium() && calBridge()) ? '' : 'none';
+  var start=document.getElementById('calStart'), sheet=document.getElementById('calSheet'), conn=document.getElementById('calConnected');
+  var connected=gcal().connected;
+  if(start) start.style.display = connected ? 'none' : '';
+  if(sheet) sheet.style.display='none';
+  if(conn) conn.style.display = connected ? '' : 'none';
+  var sysBtn=document.getElementById('calSysBtn'); if(sysBtn) sysBtn.textContent='📱 '+(gcal().sysName||'Phone calendar');
+  var tb=document.getElementById('calTargetBtn'); if(tb) tb.textContent='✓ Using '+calTargetName()+' (tap to change)';
+  var ab=document.getElementById('gcalAutoBtn'); if(ab) ab.textContent = gcal().autoSend ? 'Auto-send every session: On' : 'Auto-send every session: Off';
 }
 // Manually add the most recent finished session (when auto-send is off).
 function lastSession(){ return S.lastSession || null; }
 function gcalAddSession(){
-  if(!gcalBridge()){ toast('Open the ProjectSavvy app to add to the calendar.'); return; }
+  if(!calBridge()){ toast('Open the ProjectSavvy app to add to the calendar.'); return; }
   var ls=lastSession();
   if(!ls){ toast('Finish a focus block first, then add it.'); return; }
   sendToCalendar(ls.pi, ls.mins, false, ls.ts);
