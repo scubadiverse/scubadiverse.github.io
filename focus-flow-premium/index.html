@@ -363,7 +363,8 @@
     <div id="calSheet" style="display:none;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:8px">
       <div style="font-weight:600;text-align:center;margin-bottom:8px">Add to calendar</div>
       <button id="calSysBtn" onclick="calPick('system')" style="width:100%;margin-bottom:8px">📱 Phone calendar</button>
-      <button onclick="calPick('google')" style="width:100%;margin-bottom:8px">📅 Google Calendar</button>
+      <!-- Google Calendar hidden for now (awaiting Google OAuth verification). To restore: remove display:none. -->
+      <button onclick="calPick('google')" style="width:100%;margin-bottom:8px;display:none">📅 Google Calendar</button>
       <button onclick="calCancel()" style="width:100%;background:transparent;border:0;color:var(--muted)">Cancel</button>
     </div>
     <div id="calConnected" style="display:none">
