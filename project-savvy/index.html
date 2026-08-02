@@ -201,6 +201,12 @@
   <div id="restList"></div>
 </div>
 
+<div class="card" id="doneCard" style="display:none">
+  <b>✅ Completed</b>
+  <div class="foot" style="text-align:left;margin:4px 0 8px">Finished projects. Their time and history stay in your stats.</div>
+  <div id="doneList"></div>
+</div>
+
 <div class="card">
   <div id="clock">50:00</div>
   <div id="phase">Pick a project, then Start a focus block.</div>
@@ -787,7 +793,7 @@ function gcalBridge(){ return !!(window.AndroidBridge && window.AndroidBridge.ad
 function sysBridge(){ return !!(window.AndroidBridge && window.AndroidBridge.addSystemCalendarEvent); }
 // The card shows when EITHER calendar path is available in the app.
 function calBridge(){ return gcalBridge() || sysBridge(); }
-function projNameAt(i){ var p=(S.projects&&S.projects[i]); return (p&&p.name)||'Focus'; }
+function projNameAt(i){ return projLabel(i); }
 function calPromptDismiss(){ var p=document.getElementById('calPrompt'); if(p) p.classList.remove('show'); }
 function calTargetName(){ return gcal().target==='system' ? (gcal().sysName || 'phone calendar') : 'Google Calendar'; }
 function sendToCalendar(pi, mins, silent, endTs){
@@ -1147,17 +1153,23 @@ function setProjColor(id,c){
   save(); renderProjects(); paintStats(); renderProgress(); renderProjEdit();
 }
 function newId(){ var n=0; for(var i=0;i<S.projects.length;i++){ var m=/^p(\d+)$/.exec(S.projects[i].id); if(m) n=Math.max(n,+m[1]); } return 'p'+(n+1); }
-function activeProjects(){ return S.projects.filter(function(p){ return !p.resting; }); }
+function activeProjects(){ return S.projects.filter(function(p){ return !p.resting && !p.done; }); }
+function subsOf(id){ return S.projects.filter(function(p){ return p.parent===id && !p.done && !p.resting; }); }
+function projEntry(ref){ if(S.projects[ref]) return S.projects[ref]; for(var i=0;i<S.projects.length;i++) if(S.projects[i].id===ref) return S.projects[i]; return null; }
+function projLabel(ref){ var p=projEntry(ref); if(!p) return 'Focus'; if(p.parent){ var pa=projEntry(p.parent); return (pa?pa.name+' › ':'')+p.name; } return p.name; }
+function projMinsTotal(id){ var m=projMins(id); S.projects.forEach(function(p){ if(p.parent===id) m+=projMins(p.id); }); return m; }
 function renderProjects(){
   var el=document.getElementById('projList'); el.innerHTML="";
   var act=activeProjects();
   if(!act.length){ el.innerHTML='<span class="muted" style="font-size:13px">No active projects – tap Edit to add one.</span>'; }
-  act.forEach(function(p){
+  act.filter(function(p){ return !p.parent; }).forEach(function(p){
     var c=projColor(p.id), active=(proj===p.id);
+    var subs=subsOf(p.id);
+    var tm=subs.length?projMinsTotal(p.id):projMins(p.id);
     var b=document.createElement('button'); b.className='proj';
     b.style.cssText='flex:1;min-width:130px;text-align:left;border-radius:14px;padding:14px'+
       (active?';box-shadow:0 0 0 2px '+c+' inset;border-color:'+c:'');
-    var mn = p.target>0 ? (projMins(p.id)+' / '+p.target+' min'+(projMins(p.id)>=p.target?' ✓':'')) : (projMins(p.id)+' min today');
+    var mn = p.target>0 ? (tm+' / '+p.target+' min'+(tm>=p.target?' ✓':'')) : (tm+' min today'+(subs.length?' · incl. subprojects':''));
     // Nudge users to rename projects that still have a default name.
     var isDefault = /^project\s*(one|two|three|four|five|six|seven|\d+)?$/i.test((p.name||'').trim());
     b.innerHTML='<div class="nm"><span class="dot" style="background:'+c+'"></span>'+esc(p.name)+'</div>'+
@@ -1165,8 +1177,33 @@ function renderProjects(){
       (isDefault ? '<div class="mn" style="color:#7c5cff;font-weight:700;margin-top:3px">✏️ Tap Edit to change project name</div>' : '');
     b.onclick=function(){ pick(p.id); };
     el.appendChild(b);
+    subs.forEach(function(s){
+      var sActive=(proj===s.id);
+      var sb=document.createElement('button'); sb.className='proj';
+      sb.style.cssText='flex-basis:100%;margin-left:26px;text-align:left;border-radius:12px;padding:10px 14px;border-style:dashed'+
+        (sActive?';box-shadow:0 0 0 2px '+c+' inset;border-color:'+c:'');
+      sb.innerHTML='<div class="nm" style="font-size:14px"><span class="dot" style="background:'+c+';width:8px;height:8px"></span>› '+esc(s.name)+'</div>'+
+        '<div class="mn">'+projMins(s.id)+' min today</div>';
+      sb.onclick=function(){ pick(s.id); };
+      el.appendChild(sb);
+    });
   });
   renderRestingZone();
+  renderCompleted();
+}
+function renderCompleted(){
+  var card=document.getElementById('doneCard'), list=document.getElementById('doneList');
+  if(!card||!list) return;
+  var done=S.projects.filter(function(p){ return p.done && !(p.parent && (projEntry(p.parent)||{}).done); });
+  if(!done.length){ card.style.display='none'; return; }
+  card.style.display='';
+  list.innerHTML=done.map(function(p){
+    return '<div class="task">'+
+      '<span style="width:12px;height:12px;border-radius:50%;flex:none;background:'+projColor(p.id)+'"></span>'+
+      '<div class="nm">'+esc(projLabel(p.id))+' ✓<div class="mn">Completed &middot; time &amp; history stay in your stats</div></div>'+
+      '<button class="pill" onclick="toggleDone(\''+p.id+'\')">↩ Reopen</button>'+
+    '</div>';
+  }).join('');
 }
 function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 function toggleEditProj(){
@@ -1176,7 +1213,7 @@ function toggleEditProj(){
   if(!open) renderProjEdit();
 }
 function moveProject(id,dir){
-  var act=activeProjects(); var ai=-1;
+  var act=activeProjects().filter(function(p){ return !p.parent; }); var ai=-1;
   for(var k=0;k<act.length;k++){ if(act[k].id===id){ ai=k; break; } }
   if(ai<0) return; var aj=ai+dir; if(aj<0||aj>=act.length) return;
   var iA=-1,iB=-1; for(var m=0;m<S.projects.length;m++){ if(S.projects[m].id===act[ai].id) iA=m; if(S.projects[m].id===act[aj].id) iB=m; }
@@ -1195,7 +1232,9 @@ function renderProjEdit(){
     hint.innerHTML='↕ Reorder using the ▲ ▼ arrows';
     el.appendChild(hint);
   }
-  act.forEach(function(p,idx){
+  var parents=act.filter(function(p){ return !p.parent; });
+  last=parents.length-1;
+  parents.forEach(function(p,idx){
     var wrap=document.createElement('div'); wrap.style.cssText='padding:8px 0;border-bottom:1px dashed var(--line)';
     var row=document.createElement('div'); row.className='qrow'; row.style.borderBottom='0'; row.style.padding='0';
     row.innerHTML='<button class="pill" title="Move up" onclick="moveProject(\''+p.id+'\',-1)"'+(idx===0?' disabled style="opacity:.3"':'')+'>▲</button>'+
@@ -1205,9 +1244,21 @@ function renderProjEdit(){
       '<input type="number" min="0" max="720" value="'+(p.target||0)+'" title="daily target minutes" '+
       'style="width:70px;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px" '+
       'onchange="setProjTarget(\''+p.id+'\',this.value)"><span class="muted" style="font-size:12px">min/day</span>'+
+      '<button class="pill" title="Add a subproject" onclick="addSubProject(\''+p.id+'\')">＋ Sub</button>'+
+      '<button class="pill" title="Mark completed" onclick="toggleDone(\''+p.id+'\')">✔ Done</button>'+
       (isPremium()?'<button class="pill" title="Rest this project" onclick="restProject(\''+p.id+'\')">💤</button>':'')+
       '<button class="pill" onclick="deleteProject(\''+p.id+'\')">🗑</button>';
     wrap.appendChild(row);
+    subsOf(p.id).forEach(function(s){
+      var srow=document.createElement('div'); srow.className='qrow';
+      srow.style.cssText='border-bottom:0;padding:0;margin-top:8px;margin-left:26px';
+      srow.innerHTML='<span class="muted">›</span>'+
+        '<input type="text" value="'+esc(s.name)+'" style="flex:1;min-width:100px;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px" '+
+        'onchange="renameProject(\''+s.id+'\',this.value)">'+
+        '<button class="pill" title="Mark completed" onclick="toggleDone(\''+s.id+'\')">✔ Done</button>'+
+        '<button class="pill" onclick="deleteProject(\''+s.id+'\')">🗑</button>';
+      wrap.appendChild(srow);
+    });
     var sw=document.createElement('div'); sw.style.cssText='display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:8px';
     sw.innerHTML='<span class="muted" style="font-size:12px">Colour:</span>'+PALETTE.map(function(c){
       var cur=(projColor(p.id).toLowerCase()===c.toLowerCase());
@@ -1234,6 +1285,21 @@ function doneBtnEl(){
   d.style.cssText='width:100%;margin-top:14px'; d.textContent='✓ Done';
   d.onclick=toggleEditProj;
   return d;
+}
+function addSubProject(pid){
+  if(S.projects.length>=7){ renderProjEdit(); return; }
+  S.projects.push({id:newId(),name:'New subproject',target:0,parent:pid}); save();
+  renderProjects(); renderProjEdit(); paintStats();
+}
+function toggleDone(id){
+  var p=projEntry(id); if(!p) return;
+  var to=!p.done; p.done=to;
+  S.projects.forEach(function(s){ if(s.parent===p.id) s.done=to; });
+  if(to && proj!==null){
+    var cur=projEntry(proj);
+    if(proj===p.id || (cur && cur.parent===p.id)){ if(running) stopBlock(); proj=null; try{ paint(); }catch(e){} }
+  }
+  save(); renderProjects(); renderProjEdit(); paintStats(); renderProgress();
 }
 function addProject(){
   var inp=document.getElementById('newProjName'); var name=(inp.value||'').trim();
@@ -1726,11 +1792,23 @@ function paintStats(){
   S.projects.forEach(function(p){
     var pct=Math.round((sh[p.id]||0)*100);
     var seg=document.createElement('div'); seg.className='s';
-    seg.style.cssText='height:100%;width:'+pct+'%;background:'+splitColor(p.id);
+    seg.style.cssText='height:100%;width:'+pct+'%;background:'+splitColor(p.id)+(p.parent?';opacity:.55':'');
     bar.appendChild(seg);
-    txt.push(p.name+' '+pct+'%');
+    txt.push(projLabel(p.id)+' '+pct+'%');
   });
   document.getElementById('sSplitTxt').textContent = S.projects.length? txt.join(' · ') : '–';
+  var ovEl=document.getElementById('sSplitOverall');
+  if(!ovEl){ ovEl=document.createElement('div'); ovEl.id='sSplitOverall'; ovEl.className='foot'; ovEl.style.textAlign='left';
+    var st=document.getElementById('sSplitTxt'); var rowEl=st&&st.parentNode; if(rowEl&&rowEl.parentNode) rowEl.parentNode.insertBefore(ovEl, rowEl.nextSibling); }
+  var ov=[];
+  S.projects.forEach(function(p){
+    if(p.parent) return;
+    var has=S.projects.some(function(q){ return q.parent===p.id; });
+    if(!has) return;
+    var t=0; S.projects.forEach(function(q){ if(q.id===p.id||q.parent===p.id) t+=(sh[q.id]||0); });
+    ov.push('<b>'+esc(p.name)+' overall: '+Math.round(t*100)+'%</b> (own time + subprojects)');
+  });
+  if(ovEl){ ovEl.innerHTML=ov.join('<br>'); ovEl.style.display=ov.length?'':'none'; }
   renderSplitHours();
   // tired point
   if(S.tiredPoints.length){
