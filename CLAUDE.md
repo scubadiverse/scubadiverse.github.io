@@ -27,6 +27,8 @@ DiveScanner - never mix the two. Everything ProjectSavvy lives here.
   Play accepts it (never reuse a code).
 - **ALWAYS bump the service-worker `CACHE` var** in the app's `sw.js` on every web
   change, or the update will not reach installed apps.
+- **Every release handed to the owner comes with a release note**: version number,
+  what changed in it, and what to test. Never send a bare build file.
 - A change is not "done" until verified live: load the real URL / read the deployed
   source and confirm the change is there.
 
