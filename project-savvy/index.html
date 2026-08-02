@@ -877,7 +877,7 @@ function togglAddSession(){
 }
 // ---- "Add this session to the calendar" under the Stop button (premium, in the app) ----
 var calSessPending=false;
-function calSessShow(){ var r=document.getElementById('calSessRow'); if(r) r.style.display=(isPremium() && calBridge() && lastSession())?'':'none'; }
+function calSessShow(){ var r=document.getElementById('calSessRow'); if(r) r.style.display=(isPremium() && calBridge())?'':'none'; }
 function calSessHide(){ var p=document.getElementById('calSessPop'); if(p) p.classList.remove('show'); }
 function calSessPop(txt, btns){
   var p=document.getElementById('calSessPop'); if(!p) return;
