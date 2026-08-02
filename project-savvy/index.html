@@ -366,9 +366,6 @@
   <div class="card" id="gcalCard" style="display:none">
     <b>📅 Calendar</b>
     <div class="foot" style="text-align:left;margin:4px 0 10px">Log your finished focus blocks to your calendar as work-hours events.</div>
-    <div id="calStart">
-      <button id="calAddBtn" onclick="calChoose()" style="width:100%">📅 Add to calendar</button>
-    </div>
     <div id="calSheet" style="display:none;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:8px">
       <div style="font-weight:600;text-align:center;margin-bottom:8px">Add to calendar</div>
       <button id="calSysBtn" onclick="calPick('system')" style="width:100%;margin-bottom:8px">📱 Phone calendar</button>
@@ -853,7 +850,7 @@ function renderGcalCard(){
   var card=document.getElementById('gcalCard'); if(!card) return;
   // Only show once an app build that can write to a calendar is installed
   // (native bridge present) - hidden in browsers and older app builds.
-  card.style.display = (isPremium() && calBridge()) ? '' : 'none';
+  card.style.display = (isPremium() && calBridge() && gcal().connected) ? '' : 'none';
   var start=document.getElementById('calStart'), sheet=document.getElementById('calSheet'), conn=document.getElementById('calConnected');
   var connected=gcal().connected;
   if(start) start.style.display = connected ? 'none' : '';
