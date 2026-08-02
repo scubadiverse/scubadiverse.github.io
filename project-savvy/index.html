@@ -212,6 +212,9 @@
     <button id="resetBtn" onclick="resetBlock()">⏹ Stop</button>
   </div>
   <div class="foot" style="text-align:center;margin-top:4px">Stops and resets the timer completely.</div>
+  <div class="row" style="margin-top:8px;display:none" id="calSessRow">
+    <button class="grow" id="calSessBtn" onclick="calSessStart()">📅 Add this session to the calendar</button>
+  </div>
   <div class="row" style="margin-top:10px">
     <button class="grow" style="background:#3a1f2a;color:#ffc2d1;border-color:#6a3348" onclick="overwhelmed()">🆘 I'm overwhelmed</button>
   </div>
@@ -370,9 +373,6 @@
       <button id="calTargetBtn" onclick="calChoose()" style="width:100%"></button>
       <div class="row" style="margin-top:8px;justify-content:center">
         <button id="gcalAutoBtn" onclick="toggleGcalAuto()">Auto-send every session: Off</button>
-      </div>
-      <div style="margin-top:8px;text-align:center">
-        <button onclick="gcalAddSession()">📅 Add this session</button>
       </div>
     </div>
   </div>
@@ -557,6 +557,11 @@ feelings are frequent or heavy, talking to someone you trust helps.
 <div id="calPrompt" class="calprompt">
   <div class="t" id="calPromptText"></div>
   <div class="r" id="calPromptBtns"></div>
+</div>
+
+<div id="calSessPop" class="calprompt">
+  <div class="t" id="calSessPopText"></div>
+  <div class="r" id="calSessPopBtns"></div>
 </div>
 
 <!-- Firebase SDK (compat build): loaded so sign-in + cloud sync work (premium). -->
@@ -804,9 +809,9 @@ function sendToCalendar(pi, mins, silent, endTs){
 // Android tells us how the calendar write went (with a reason if it failed).
 window.onCalendarResult=function(ok, detail){ try{ toast(ok ? ('Added to '+calTargetName()+' ✓') : ('Calendar failed: '+(detail||'unknown'))); }catch(e){} };
 // Android tells us whether the user granted GOOGLE calendar access.
-window.onCalendarConnected=function(ok){ gcal().connected=!!ok; if(ok) gcal().target='google'; save(); try{ renderGcalCard(); }catch(e){} try{ toast(ok ? 'Google Calendar connected ✓' : 'Calendar not connected – please allow access.'); }catch(e){} };
+window.onCalendarConnected=function(ok){ gcal().connected=!!ok; if(ok) gcal().target='google'; save(); try{ renderGcalCard(); }catch(e){} try{ toast(ok ? 'Google Calendar connected ✓' : 'Calendar not connected – please allow access.'); }catch(e){} try{ calSessAfterConnect(ok); }catch(e){} };
 // Android tells us whether the user granted PHONE calendar access (with the calendar's name).
-window.onSysCalConnected=function(ok, name){ if(ok){ gcal().connected=true; gcal().target='system'; if(name) gcal().sysName=name; } save(); try{ renderGcalCard(); }catch(e){} try{ toast(ok ? ((gcal().sysName||'Phone calendar')+' connected ✓') : 'Calendar not connected – please allow access.'); }catch(e){} };
+window.onSysCalConnected=function(ok, name){ if(ok){ gcal().connected=true; gcal().target='system'; if(name) gcal().sysName=name; } save(); try{ renderGcalCard(); }catch(e){} try{ toast(ok ? ((gcal().sysName||'Phone calendar')+' connected ✓') : 'Calendar not connected – please allow access.'); }catch(e){} try{ calSessAfterConnect(ok); }catch(e){} };
 // Android can tell us the phone calendar's display name up front (for the button label).
 window.onSysCalName=function(name){ if(name){ gcal().sysName=name; var b=document.getElementById('calSysBtn'); if(b) b.textContent='📱 '+name; } };
 // Pick which calendar to use (opens the choice, then connects that one).
@@ -827,7 +832,7 @@ function calPick(target){
     else { toast('Open the ProjectSavvy app to use the phone calendar.'); }
   } else {
     if(window.AndroidBridge && window.AndroidBridge.connectCalendar){ try{ window.AndroidBridge.connectCalendar(); }catch(e){} }
-    else { gcal().connected=true; save(); renderGcalCard(); }
+    else { toast('Open the ProjectSavvy app to connect Google Calendar.'); }
   }
 }
 function toggleGcalConnect(){
@@ -848,6 +853,7 @@ function renderGcalCard(){
   var sysBtn=document.getElementById('calSysBtn'); if(sysBtn) sysBtn.textContent='📱 '+(gcal().sysName||'Phone calendar');
   var tb=document.getElementById('calTargetBtn'); if(tb) tb.textContent='✓ Using '+calTargetName()+' (tap to change)';
   var ab=document.getElementById('gcalAutoBtn'); if(ab) ab.textContent = gcal().autoSend ? 'Auto-send every session: On' : 'Auto-send every session: Off';
+  try{ calSessShow(); }catch(e){}
 }
 // Manually add the most recent finished session (when auto-send is off).
 function lastSession(){ return S.lastSession || null; }
@@ -863,6 +869,39 @@ function togglAddSession(){
   if(!ls){ toast('Finish a focus block first, then add it.'); return; }
   sendToToggl(ls.pi, ls.mins, false, ls.ts);
 }
+// ---- "Add this session to the calendar" under the Stop button (premium, in the app) ----
+var calSessPending=false;
+function calSessShow(){ var r=document.getElementById('calSessRow'); if(r) r.style.display=(isPremium() && calBridge() && lastSession())?'':'none'; }
+function calSessHide(){ var p=document.getElementById('calSessPop'); if(p) p.classList.remove('show'); }
+function calSessPop(txt, btns){
+  var p=document.getElementById('calSessPop'); if(!p) return;
+  document.getElementById('calSessPopText').textContent=txt;
+  var r=document.getElementById('calSessPopBtns'); r.innerHTML='';
+  for(var i=0;i<btns.length;i++){ r.innerHTML+='<button class="'+btns[i][2]+'" onclick="'+btns[i][1]+'">'+btns[i][0]+'</button>'; }
+  p.classList.add('show');
+}
+function calSessStart(){
+  var ls=lastSession(); if(!ls){ toast('Finish a focus block first.'); return; }
+  if(gcal().connected){ calSessChoice(); } else { calSessConnect(); }
+}
+function calSessConnect(){
+  calSessPending=true;
+  try{ if(window.AndroidBridge && window.AndroidBridge.sysCalName){ var n=window.AndroidBridge.sysCalName(); if(n) gcal().sysName=n; } }catch(e){}
+  calSessPop('Connect a calendar:',[
+    ['📱 '+(gcal().sysName||'Phone calendar'),"calSessHide();calPick('system')",'add'],
+    ['📅 Google Calendar',"calSessHide();calPick('google')",'add'],
+    ['Not now','calSessHide()','no']]);
+}
+function calSessAfterConnect(ok){ if(!calSessPending) return; calSessPending=false; if(ok) calSessChoice(); }
+function calSessChoice(){
+  var ls=lastSession(); if(!ls) return;
+  calSessPop('Log '+ls.mins+' min on “'+projNameAt(ls.pi)+'” to '+calTargetName()+'?',[
+    ['Add only this session','calSessAddOne()','add'],
+    ['Auto-add all sessions','calSessAddAll()','add'],
+    ['Not now','calSessHide()','no']]);
+}
+function calSessAddOne(){ calSessHide(); var ls=lastSession(); if(ls) sendToCalendar(ls.pi, ls.mins, false, ls.ts); }
+function calSessAddAll(){ gcal().autoSend=true; save(); try{ renderGcalCard(); }catch(e){} calSessAddOne(); }
 // ---- Toggl Track (premium) ----
 function toggl(){ if(!S.toggl) S.toggl={connected:false,autoSend:false,token:'',workspaceId:''}; return S.toggl; }
 function togglOn(){ return false; } // Toggl removed for now (no one-tap connect on Toggl's side)
@@ -912,7 +951,6 @@ function offerLog(pi, mins){
   if(gcalOn() && gcal().autoSend) sendToCalendar(pi, mins, true);
   if(togglOn() && toggl().autoSend) sendToToggl(pi, mins, true);
   var opts=[];
-  if(gcalOn() && !gcal().autoSend) opts.push('cal');
   if(togglOn() && !toggl().autoSend) opts.push('toggl');
   if(!opts.length) return;
   var p=document.getElementById('calPrompt'); if(!p) return;
@@ -1331,6 +1369,7 @@ function blockDone(){
   addWin("You finished a focus block");
   if(proj!==null) S.projRemain[proj]=S.block*60; remain=S.block*60; paint(); paintStats(); renderProgress();
   S.lastSession={pi:proj, mins:S.block, ts:Date.now()};   // remember the block just finished
+  try{ calSessShow(); }catch(e){}
   offerLog(proj, S.block);   // premium: auto-send or offer to log these work hours (Calendar / Toggl)
 }
 // Real-world reset ideas – get away from the screen.
