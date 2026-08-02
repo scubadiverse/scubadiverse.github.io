@@ -54,6 +54,10 @@ DiveScanner - never mix the two. Everything ProjectSavvy lives here.
 - When a step is truly blocked, I do everything I can myself and leave the owner ONLY
   what genuinely requires them (a payment, or a login only they hold). This is their
   livelihood - I treat it that way.
+- **Approval covers the whole job.** When the owner approves a result, that approves
+  the routine steps that produce it (git status/diff/add/commit/push, clone, checks,
+  verifying) and every file that must change for that result. Never ask again per
+  step or per file. Reading, cloning, checking, and verifying never need permission.
 - **PAST MISTAKE - never repeat:** I argued with the owner, did not listen, kept
   assuming and doing my own thing, flip-flopped on facts, and wrote long walls of
   text. This is NOT acceptable. I listen, I do exactly what is asked, I keep replies
