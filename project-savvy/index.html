@@ -887,8 +887,9 @@ function calSessPop(txt, btns){
   p.classList.add('show');
 }
 function calSessStart(){
-  var ls=lastSession(); if(!ls){ toast('Finish a focus block first.'); return; }
-  if(gcal().connected){ calSessChoice(); } else { calSessConnect(); }
+  if(!gcal().connected){ calSessConnect(); return; }
+  if(!lastSession()){ toast('Finish a focus block first, then add it here.'); return; }
+  calSessChoice();
 }
 function calSessConnect(){
   calSessPending=true;
@@ -898,9 +899,9 @@ function calSessConnect(){
     ['📅 Google Calendar',"calSessHide();calPick('google')",'add'],
     ['Not now','calSessHide()','no']]);
 }
-function calSessAfterConnect(ok){ if(!calSessPending) return; calSessPending=false; if(ok) calSessChoice(); }
+function calSessAfterConnect(ok){ if(!calSessPending) return; calSessPending=false; if(!ok) return; if(lastSession()) calSessChoice(); else toast('Connected ✓ – finish a focus block, then add it here.'); }
 function calSessChoice(){
-  var ls=lastSession(); if(!ls) return;
+  var ls=lastSession(); if(!ls){ toast('Finish a focus block first, then add it here.'); return; }
   calSessPop('Log '+ls.mins+' min on “'+projNameAt(ls.pi)+'” to '+calTargetName()+'?',[
     ['Add only this session','calSessAddOne()','add'],
     ['Auto-add all sessions','calSessAddAll()','add'],
