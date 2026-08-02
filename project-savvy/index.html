@@ -693,6 +693,9 @@ window.onNativePrices=function(json){ try{ nativePrices=JSON.parse(json); }catch
 var DEVICE_LIMIT=3, deviceBlocked=false, deviceMap={};
 function getDeviceId(){
   var k='focusflow.deviceId';
+  // Prefer the app's stable identity: it survives uninstall + reinstall, so the
+  // same phone keeps the same device slot.
+  try{ if(window.AndroidBridge && window.AndroidBridge.deviceId){ var n=window.AndroidBridge.deviceId(); if(n){ try{ localStorage.setItem(k,n); }catch(e){} return n; } } }catch(e){}
   try{ var d=localStorage.getItem(k); if(d) return d; }catch(e){}
   var id='d'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
   try{ localStorage.setItem(k,id); }catch(e){}

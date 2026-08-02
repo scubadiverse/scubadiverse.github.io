@@ -691,6 +691,14 @@ class MainActivity : AppCompatActivity() {
             writeCalendarEvent(title, s, e, desc)
         }
 
+        // Stable device identity for the premium device limit: survives uninstall +
+        // reinstall (resets only on a factory reset), so the same phone never takes
+        // a second device slot.
+        @JavascriptInterface
+        fun deviceId(): String = try {
+            "a" + android.provider.Settings.Secure.getString(
+                contentResolver, android.provider.Settings.Secure.ANDROID_ID)
+        } catch (e: Exception) { "" }
         // ---- Phone / system calendar (premium) - no Google login ----
         @JavascriptInterface
         fun connectSystemCalendar() { runOnUiThread { beginSystemCalendarConnect() } }
