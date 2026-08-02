@@ -1,6 +1,6 @@
 name: Deploy premium web to Firebase Hosting
 
-# Deploys focus-flow-premium/ (the latest premium web: badge, resting zone,
+# Deploys project-savvy/ (the latest premium web: badge, resting zone,
 # sign-in gate + the premium agent's sync/Unplanned) to Firebase Hosting at
 # project-savvy-914a1.web.app. The closed-testing AAB (v1025) loads that address,
 # so after this runs, testers see the latest features WITH working sign-in.

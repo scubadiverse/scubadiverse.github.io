@@ -24,7 +24,7 @@ jobs:
         working-directory: focus-flow-android
         run: |
           set -e
-          sed -i 's#https://scubadiverse.github.io/focus-flow/#https://scubadiverse.github.io/focus-flow-premium/#' \
+          sed -i 's#https://scubadiverse.github.io/focus-flow/#https://scubadiverse.github.io/project-savvy/#' \
             app/src/main/java/net/scubadiverse/focusflow/MainActivity.kt
           # Premium versionCode = production + 1000, so it always sits above the free build.
           sed -i 's#versionCode 24#versionCode 1024#' app/build.gradle

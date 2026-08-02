@@ -11,7 +11,7 @@ DiveScanner - never mix the two. Everything ProjectSavvy lives here.
 ## Where things live
 - `focus-flow/` - the FREE / production web app. Deploys to GitHub Pages at
   **scubadiverse.github.io/focus-flow**. No sign-in, no premium, no Unplanned tab.
-- `focus-flow-premium/` - the PREMIUM web app (sign-in, Unplanned, cloud sync,
+- `project-savvy/` - the PREMIUM web app (sign-in, Unplanned, cloud sync,
   device limit, payment, Calendar, Toggl). Deploys to Firebase Hosting at
   **project-savvy-914a1.web.app**.
 - `focus-flow-android/` - the Android WebView wrapper (Kotlin). Builds the `.aab`
@@ -21,7 +21,7 @@ DiveScanner - never mix the two. Everything ProjectSavvy lives here.
 ## How to deploy (verify live every time)
 - **Free app:** commit to `main` -> GitHub Pages serves `focus-flow/` automatically.
 - **Premium app:** commit to `main`, then run the **`firebase-deploy.yml`** workflow
-  (Actions tab) -> deploys `focus-flow-premium/` to web.app.
+  (Actions tab) -> deploys `project-savvy/` to web.app.
 - **Android bundle:** run **`android-premium-firebase.yml`** (closed testing) or
   **`android.yml`** (production). Each seds a `versionCode` - bump it every build so
   Play accepts it (never reuse a code).
