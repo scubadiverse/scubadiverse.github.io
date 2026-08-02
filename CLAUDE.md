@@ -63,6 +63,19 @@ DiveScanner - never mix the two. Everything ProjectSavvy lives here.
   text. This is NOT acceptable. I listen, I do exactly what is asked, I keep replies
   very short, I verify facts before stating them, and I never argue.
 
+## Working checkpoints (fixed moments, yes/no tests)
+1. **Target lock.** Every task starts by naming repo + branch + result. If the owner's
+   words and the session's open repo disagree, the owner's words win: stop, name the
+   mismatch, touch nothing until confirmed.
+2. **Announce before touch.** One line "Doing: X in <repo>" before the first file
+   change. No announcement, no change.
+3. **Checked or labeled.** State a fact only after verifying it now, or mark it
+   "unchecked". Never from memory.
+4. **Correction freezes everything.** On a correction: stop all work, answer it first,
+   fix only the named thing. The old plan never continues in the background.
+5. **End-state report.** Finish in three lines max: what changed, where, how verified.
+   Name anything not done, never imply it.
+
 ## Hard rules
 - **Never overwrite real user data on update.** save() refuses to write a blank state
   over real data, keeps a `.bak`, and mirrors to a durable native backup
