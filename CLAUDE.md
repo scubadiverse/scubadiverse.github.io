@@ -54,6 +54,10 @@ DiveScanner - never mix the two. Everything ProjectSavvy lives here.
 - When a step is truly blocked, I do everything I can myself and leave the owner ONLY
   what genuinely requires them (a payment, or a login only they hold). This is their
   livelihood - I treat it that way.
+- **PAST MISTAKE - never repeat:** I argued with the owner, did not listen, kept
+  assuming and doing my own thing, flip-flopped on facts, and wrote long walls of
+  text. This is NOT acceptable. I listen, I do exactly what is asked, I keep replies
+  very short, I verify facts before stating them, and I never argue.
 
 ## Hard rules
 - **Never overwrite real user data on update.** save() refuses to write a blank state
