@@ -549,13 +549,25 @@ feelings are frequent or heavy, talking to someone you trust helps.
 
 <!-- Premium: after a focus block, offer to log the work hours to Google Calendar. -->
 <style>
-.calprompt{position:fixed;left:50%;bottom:82px;transform:translateX(-50%);z-index:81;width:min(92%,440px);background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.45);padding:14px 16px;display:none}
+/* Compact dialog: never wider than a comfortable reading width, on any device -
+   phone, tablet portrait or landscape. Buttons stack so long labels never clip. */
+.calprompt{position:fixed;left:50%;bottom:82px;transform:translateX(-50%);z-index:81;
+  width:min(92%,380px);max-height:calc(100vh - 150px);overflow-y:auto;
+  background:var(--card);border:1px solid var(--line);border-radius:16px;
+  box-shadow:0 12px 40px rgba(0,0,0,.45);padding:14px 16px;display:none}
 .calprompt.show{display:block}
 .calprompt .t{color:var(--ink);font-size:14px;font-weight:600;margin-bottom:10px;text-align:left}
-.calprompt .r{display:flex;gap:8px}
-.calprompt .add{flex:1;background:#7c5cff;color:#fff;border:none;border-radius:10px;padding:10px;font-weight:800}
-.calprompt .tog{flex:1;background:#e57cd8;color:#2a0d2a;border:none;border-radius:10px;padding:10px;font-weight:800}
-.calprompt .no{flex:0 0 auto;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.calprompt .r{display:flex;flex-direction:column;gap:7px}
+.calprompt .r button{width:100%;border-radius:10px;padding:11px;font-weight:700;font-size:14px;text-align:center}
+.calprompt .add{background:#7c5cff;color:#fff;border:none}
+.calprompt .tog{background:#e57cd8;color:#2a0d2a;border:none}
+.calprompt .no{background:var(--card2);color:var(--ink);border:1px solid var(--line);font-weight:600}
+/* Short screens (landscape): sit lower and tighten so it always fits. */
+@media (max-height:520px){
+  .calprompt{bottom:10px;max-height:calc(100vh - 24px);padding:11px 13px}
+  .calprompt .t{margin-bottom:7px}
+  .calprompt .r button{padding:8px;font-size:13px}
+}
 </style>
 <div id="calPrompt" class="calprompt">
   <div class="t" id="calPromptText"></div>
