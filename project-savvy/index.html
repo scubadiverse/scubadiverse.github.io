@@ -1518,6 +1518,9 @@ document.addEventListener('visibilitychange', function(){ if(!document.hidden) r
 window.addEventListener('focus', function(){ rollDayIfNeeded(); });
 setInterval(rollDayIfNeeded, 60000); // also catch midnight while the app stays open
 var _toastH=null;
+// Alias: much of the app calls toast(...) - keep both names pointing at the same
+// function so a missing alias can never silently swallow user feedback again.
+function toast(msg, ms){ return showToast(msg, ms); }
 function showToast(msg, ms){
   var t=document.getElementById('toast'); if(!t) return;
   t.innerHTML=msg; t.style.display='block';
