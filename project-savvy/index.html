@@ -914,12 +914,20 @@ function calSessChoice(){
     var ls=lastSession(); if(!ls){ toast('Finish a focus block first, then add it here.'); return; }
     calSessPop('Log '+ls.mins+' min on “'+projNameAt(ls.pi)+'” to '+calTargetName()+'?',[
       ['Add only this session','calSessAddOne()','add'],
-      ['Auto-add all sessions','calSessAddAll()','add'],
+      [gcal().autoSend ? 'Auto-add: On (tap to turn off)' : 'Auto-add all sessions','calSessToggleAuto()','add'],
+      ['🔁 Change calendar (currently: '+calTargetName()+')','calSessHide();calSessConnect()','tog'],
       ['Not now','calSessHide()','no']]);
   }catch(e){ toast('Calendar error (choice): '+(e&&e.message||e)); }
 }
 function calSessAddOne(){ try{ calSessHide(); var ls=lastSession(); if(ls) sendToCalendar(ls.pi, ls.mins, false, ls.ts); }catch(e){ toast('Calendar error (add): '+(e&&e.message||e)); } }
 function calSessAddAll(){ try{ gcal().autoSend=true; save(); try{ renderGcalCard(); }catch(e){} calSessAddOne(); }catch(e){ toast('Calendar error (add-all): '+(e&&e.message||e)); } }
+function calSessToggleAuto(){
+  try{
+    gcal().autoSend=!gcal().autoSend; save(); try{ renderGcalCard(); }catch(e){}
+    toast('Auto-add every session: '+(gcal().autoSend?'On':'Off'));
+    calSessChoice();
+  }catch(e){ toast('Calendar error (auto-toggle): '+(e&&e.message||e)); }
+}
 window.addEventListener('error', function(e){ try{ toast('JS error: '+e.message+' @'+e.filename+':'+e.lineno); }catch(x){} });
 // ---- Toggl Track (premium) ----
 function toggl(){ if(!S.toggl) S.toggl={connected:false,autoSend:false,token:'',workspaceId:''}; return S.toggl; }
