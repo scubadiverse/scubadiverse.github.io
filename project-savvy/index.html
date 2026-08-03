@@ -1397,12 +1397,21 @@ function setBlock(val){
   paintBlockOpts(); paint(); save();
 }
 function resetBlock(){
+  // Stop ends the block early but the time already worked still counts: record it as
+  // a finished session so it can be logged to the calendar, per project.
+  var workedSec = S.block*60 - remain;
+  var workedMin = Math.floor(workedSec/60);
   if(running){ clearInterval(tickH); running=false; nCancel('warn'); nCancel('end'); }
+  if(proj!==null && workedMin>0){
+    S.lastSession={pi:proj, mins:workedMin, ts:Date.now()};
+    try{ calSessShow(); }catch(e){}
+  }
   S.timer=null; warned=false; hide('warnBanner'); elapsedThisBlock=0;
   remain=S.block*60; if(proj!==null) S.projRemain[proj]=S.block*60;
   document.getElementById('startBtn').textContent="Start";
   document.getElementById('phase').textContent = (proj!=null) ? ("Ready on "+projName(proj)+" – press Start.") : "Pick a project, then Start a focus block.";
   paint(); save();
+  if(workedMin>0) toast('Stopped after '+workedMin+' min – you can add this to your calendar.');
 }
 function paintBlockOpts(){
   var b25=document.getElementById('blk25'), b45=document.getElementById('blk45');
